@@ -11,6 +11,8 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.ImportRules;
+import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.lexer.JavaLexer;
@@ -80,6 +82,37 @@ class CorpusInvariantTest {
                 .set(BraceRules.WHILE_LOOP, BracePolicy.ALWAYS)
                 .build();
         Formatter formatter = FormatJ.newFormatter().style(bracing).build();
+        return corpus().stream().map(path -> DynamicTest.dynamicTest(
+                repository.relativize(path).toString(),
+                () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+                    assertTrue(
+                            once.diagnostics().stream()
+                                    .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                            () -> "rewrites were dropped: " + once.diagnostics());
+
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
+    }
+
+    /**
+     * The same corpus under a style that sorts imports and deletes the unused ones.
+     *
+     * <p>Reordering is the edit class where a mistake is quietest — the file still compiles, it just
+     * says something else — so it is the one most worth running over real code with the ledger
+     * watching.
+     */
+    @TestFactory
+    Stream<DynamicTest> everySourceFileSurvivesHavingItsImportsSorted() throws IOException {
+        Path repository = Path.of("..").toAbsolutePath().normalize();
+        Style sorting = Style.builder()
+                .set(ImportRules.ORDER, SortOrder.ASCENDING)
+                .set(ImportRules.REMOVE_UNUSED, true)
+                .build();
+        Formatter formatter = FormatJ.newFormatter().style(sorting).build();
         return corpus().stream().map(path -> DynamicTest.dynamicTest(
                 repository.relativize(path).toString(),
                 () -> {

@@ -10,6 +10,8 @@ import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
+import zone.rong.formatj.core.imports.ImportEntry;
+import zone.rong.formatj.core.imports.ImportOrder;
 import zone.rong.formatj.core.ir.Doc;
 import java.util.ArrayList;
 import java.util.List;
@@ -168,6 +170,19 @@ public final class DocEmitter extends StatementEmitter {
         return Doc.concat(parts);
     }
 
+    /**
+     * Whether these two neighbouring imports belong to different groups.
+     *
+     * <p>The blank line between groups is whitespace, so it is laid out here rather than being
+     * something the rewrite stage inserts. Both sides read {@link ImportOrder} so that the group the
+     * sort put an import in is the group the blank line is drawn around.
+     */
+    private boolean separatesImportGroups(GreenNode previous, GreenNode next) {
+        ImportEntry before = ImportEntry.of(previous);
+        ImportEntry after = ImportEntry.of(next);
+        return before != null && after != null && ImportOrder.separates(before, after, style());
+    }
+
     private static boolean hasComments(GreenNode node) {
         return node instanceof GreenNode.Leaf leaf && leaf.token().hasComments();
     }
@@ -177,7 +192,10 @@ public final class DocEmitter extends StatementEmitter {
             return rule(BlankLineRules.AFTER_PACKAGE);
         }
         if (previous.kind() == SyntaxKind.IMPORT_DECLARATION) {
-            return next.kind() == SyntaxKind.IMPORT_DECLARATION ? 0 : rule(BlankLineRules.AFTER_IMPORTS);
+            if (next.kind() != SyntaxKind.IMPORT_DECLARATION) {
+                return rule(BlankLineRules.AFTER_IMPORTS);
+            }
+            return separatesImportGroups(previous, next) ? 1 : 0;
         }
         if (next.kind().isTypeDeclaration()) {
             return rule(BlankLineRules.BEFORE_CLASS);

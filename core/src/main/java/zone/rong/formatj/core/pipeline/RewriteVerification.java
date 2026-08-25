@@ -1,14 +1,19 @@
 package zone.rong.formatj.core.pipeline;
 
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxToken;
+import zone.rong.formatj.core.imports.ImportEntry;
+import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Checks the output of a run that was allowed to change the program.
@@ -50,7 +55,7 @@ public final class RewriteVerification {
      * @return a description of the first problem, or null when the output is exactly what was declared
      */
     public static String verifyOutput(GreenNode before, GreenNode formatted, List<TokenEdit> edits) {
-        String lawProblem = checkEditLaws(edits);
+        String lawProblem = checkEditLaws(edits, formatted);
         if (lawProblem != null) {
             return lawProblem;
         }
@@ -149,7 +154,7 @@ public final class RewriteVerification {
      * rule has no business making. The law is what ties an edit back to the rule the user actually
      * turned on.
      */
-    private static String checkEditLaws(List<TokenEdit> edits) {
+    private static String checkEditLaws(List<TokenEdit> edits, GreenNode formatted) {
         for (TokenEdit edit : edits) {
             if (edit.authority() == BraceRules.IF_ELSE
                     || edit.authority() == BraceRules.FOR_LOOP
@@ -159,8 +164,85 @@ public final class RewriteVerification {
                     return problem;
                 }
             }
+            if (edit.authority() == ImportRules.ORDER) {
+                String problem = checkImportLaw(edit, formatted);
+                if (problem != null) {
+                    return problem;
+                }
+            }
         }
         return checkBracesBalance(edits);
+    }
+
+    /**
+     * The import rules may rearrange the declarations that were there, and delete ones nothing refers
+     * to. They may not invent one, and they may not delete one the file still needs.
+     *
+     * <p>The second half is not taken on trust. The verifier splits the edit's own tokens into
+     * declarations and, for each one that did not come back, re-derives from the formatted output
+     * whether the name is still mentioned. It never asks the rewrite what it concluded.
+     */
+    private static String checkImportLaw(TokenEdit edit, GreenNode formatted) {
+        List<ImportEntry> before = declarations(edit.removed());
+        List<ImportEntry> after = declarations(edit.inserted());
+        if (before == null || after == null) {
+            return ImportRules.ORDER.key() + " may only rewrite whole import declarations";
+        }
+
+        Map<String, Integer> remaining = new LinkedHashMap<>();
+        for (ImportEntry entry : before) {
+            remaining.merge(entry.text(), 1, Integer::sum);
+        }
+        for (ImportEntry entry : after) {
+            Integer count = remaining.get(entry.text());
+            if (count == null || count == 0) {
+                return ImportRules.ORDER.key() + " produced an import that was not there: " + entry.text();
+            }
+            remaining.put(entry.text(), count - 1);
+        }
+
+        for (ImportEntry entry : before) {
+            Integer count = remaining.get(entry.text());
+            if (count == null || count == 0) {
+                continue;
+            }
+            String problem = checkRemovable(entry, formatted);
+            if (problem != null) {
+                return problem;
+            }
+        }
+        return null;
+    }
+
+    private static String checkRemovable(ImportEntry entry, GreenNode formatted) {
+        if (!entry.isRemovable()) {
+            return ImportRules.ORDER.key() + " removed an import whose use cannot be seen: " + entry.text();
+        }
+        if (ImportUsage.namesMentioned(formatted).contains(entry.simpleName())
+                || ImportUsage.mentionedInComments(formatted, entry.simpleName())) {
+            return ImportRules.ORDER.key() + " removed " + entry.text() + " but the file still mentions "
+                    + entry.simpleName();
+        }
+        return null;
+    }
+
+    /** Splits a run of tokens into import declarations, or null when it is not made of them. */
+    private static List<ImportEntry> declarations(List<String> tokens) {
+        List<ImportEntry> declarations = new ArrayList<>();
+        List<String> current = new ArrayList<>();
+        for (String token : tokens) {
+            current.add(token);
+            if (!token.equals(";")) {
+                continue;
+            }
+            ImportEntry entry = ImportEntry.ofLexemes(current);
+            if (entry == null) {
+                return null;
+            }
+            declarations.add(entry);
+            current = new ArrayList<>();
+        }
+        return current.isEmpty() ? declarations : null;
     }
 
     /** A brace rule may add and remove braces, and nothing else. */
@@ -212,9 +294,17 @@ public final class RewriteVerification {
      * could delete a brace and take the comment attached to it with no other check noticing. When a
      * rewrite removes a token that carried comments, those comments belong on whatever token survives
      * next to it.
+     *
+     * <p>Compared as a bag rather than a sequence. Reordering imports reorders the comments riding on
+     * them, which is the point of the exercise, so insisting on the original order would fail a
+     * correct rewrite. Losing one, gaining one or altering one still fails.
      */
     private static String checkCommentsSurvived(GreenNode before, GreenNode after) {
-        String difference = firstDifference(comments(before), comments(after));
+        List<String> was = new ArrayList<>(comments(before));
+        List<String> now = new ArrayList<>(comments(after));
+        was.sort(null);
+        now.sort(null);
+        String difference = firstDifference(was, now);
         return difference == null ? null : "a comment was lost or altered: " + difference;
     }
 

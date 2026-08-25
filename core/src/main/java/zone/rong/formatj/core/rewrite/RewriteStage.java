@@ -18,7 +18,8 @@ import java.util.List;
  * <h2>Order</h2>
  *
  * <p>Rewrites run in the fixed order declared here, once each, rather than being iterated to a
- * fixed point. A fixed point would hide rules that disagree with each other; running once in a stated
+ * fixed point. Imports come first because they work on the file as a whole and nothing else has an
+ * opinion about them. A fixed point would hide rules that disagree with each other; running once in a stated
  * order means two rules that fight produce a stable, explainable result. The order matters as more
  * rules land: a rule that turns colon cases into arrow cases creates bodies that the brace rules have
  * an opinion about, so it has to come first.
@@ -34,7 +35,7 @@ import java.util.List;
  */
 public final class RewriteStage {
 
-    private static final List<Rewrite> REWRITES = List.of(new BraceRewrite());
+    private static final List<Rewrite> REWRITES = List.of(new ImportRewrite(), new BraceRewrite());
 
     private RewriteStage() { }
 

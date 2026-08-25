@@ -3,6 +3,7 @@ package zone.rong.formatj.core.pipeline;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.Diagnostic;
@@ -12,7 +13,9 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
@@ -141,6 +144,127 @@ class RewriteVerificationTest {
                                 TokenEdit.delete(BraceRules.IF_ELSE, "imagined braces", 1, "}")));
         assertNotNull(problem);
         assertTrue(problem.contains("but the source has 'class'"), problem);
+    }
+
+    // ------------------------------------------------ the import edit law
+
+    private static final String IMPORTS = """
+            package demo;
+
+            import java.util.List;
+            import java.util.Map;
+
+            class T {
+
+                List<String> run(Map<String, String> in) {
+                    return List.of();
+                }
+
+            }
+            """;
+
+    @Test
+    void reorderingImportsIsPermitted() {
+        GreenNode before = parse(IMPORTS);
+        assertNull(
+                RewriteVerification.verifyOutput(
+                        before,
+                        parse(
+                                IMPORTS.replace(
+                                        "import java.util.List;\nimport java.util.Map;",
+                                        "import java.util.Map;\nimport java.util.List;")),
+                        List.of(
+                                importEdit(
+                                        before,
+                                        List.of(
+                                                "import",
+                                                "java",
+                                                ".",
+                                                "util",
+                                                ".",
+                                                "Map",
+                                                ";",
+                                                "import",
+                                                "java",
+                                                ".",
+                                                "util",
+                                                ".",
+                                                "List",
+                                                ";")))));
+    }
+
+    @Test
+    void anImportTheRunNeverHeldCannotAppear() {
+        GreenNode before = parse(IMPORTS);
+        String problem =
+                RewriteVerification.verifyOutput(
+                        before,
+                        before,
+                        List.of(
+                                importEdit(
+                                        before,
+                                        List.of(
+                                                "import",
+                                                "java",
+                                                ".",
+                                                "util",
+                                                ".",
+                                                "List",
+                                                ";",
+                                                "import",
+                                                "java",
+                                                ".",
+                                                "util",
+                                                ".",
+                                                "Set",
+                                                ";"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("was not there"), problem);
+    }
+
+    @Test
+    void anImportTheFileStillUsesCannotBeDropped() {
+        GreenNode before = parse(IMPORTS);
+        String problem =
+                RewriteVerification.verifyOutput(
+                        before,
+                        parse(IMPORTS.replace("import java.util.Map;\n", "")),
+                        List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("still mentions Map"), problem);
+    }
+
+    @Test
+    void anOnDemandImportCannotBeDroppedEvenWhenNothingNamesIt() {
+        String wildcards = IMPORTS.replace("import java.util.Map;", "import java.util.concurrent.*;");
+        GreenNode before = parse(wildcards);
+        String problem =
+                RewriteVerification.verifyOutput(
+                        before,
+                        parse(wildcards.replace("import java.util.concurrent.*;\n", "")),
+                        List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("use cannot be seen"), problem);
+    }
+
+    /** An edit replacing the whole import run with the given tokens. */
+    private static TokenEdit importEdit(GreenNode before, List<String> inserted) {
+        List<String> tokens = ProgramTokens.lexemes(before);
+        int start = tokens.indexOf("import");
+        int end = tokens.lastIndexOf(";");
+        for (int i = start; i < tokens.size(); i++) {
+            if (tokens.get(i).equals("class")) {
+                end = i;
+                break;
+            }
+        }
+        return new TokenEdit(
+                ImportRules.ORDER,
+                "reordered",
+                start,
+                List.copyOf(tokens.subList(start, end)),
+                inserted,
+                TokenEdit.Bias.INNERMOST_FIRST);
     }
 
     // ------------------------------------------------- through the formatter
