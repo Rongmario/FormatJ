@@ -91,12 +91,55 @@ class OptionCatalogueTest {
     }
 
     private static <T> void assertRoundTrips(Option<T> option) {
-        String rendered = option.render(option.defaultValue());
-        String unquoted =
-                rendered.startsWith("\"") && rendered.endsWith("\"")
-                        ? rendered.substring(1, rendered.length() - 1)
-                        : rendered;
-        assertEquals(option.defaultValue(), option.parse(unquoted), () -> option.key() + " did not round-trip");
+        assertEquals(
+                option.defaultValue(),
+                option.parse(option.render(option.defaultValue())),
+                () -> option.key() + " did not round-trip");
+    }
+
+    @Test
+    void stringValuesWithPunctuationRoundTrip() {
+        Option<String> option = firstOfKind(Option.Kind.STRING);
+        for (String value : List.of("plain", "a, b", "say \"hi\"", "C:\\path", "  padded  ", "")) {
+            assertEquals(value, option.parse(option.render(value)), () -> "did not round-trip: " + value);
+        }
+    }
+
+    @Test
+    void stringListElementsWithPunctuationRoundTrip() {
+        Option<List<String>> option = firstOfKind(Option.Kind.STRING_LIST);
+        List<String> value = List.of("java.*", "a, b", "say \"hi\"", "C:\\path");
+        assertEquals(value, option.parse(option.render(value)));
+    }
+
+    @Test
+    void unterminatedQuotesInAListAreRejected() {
+        Option<List<String>> option = firstOfKind(Option.Kind.STRING_LIST);
+        assertThrows(IllegalArgumentException.class, () -> option.parse("[\"a, b]"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Option<T> firstOfKind(Option.Kind kind) {
+        for (Option<?> option : OptionRegistry.all()) {
+            if (option.kind() == kind) {
+                return (Option<T>) option;
+            }
+        }
+        throw new AssertionError("no option of kind " + kind);
+    }
+
+    @Test
+    void groupsAreInCatalogueOrderWhicheverClassInitialisedFirst() {
+        assertEquals(IndentRules.SIZE, OptionRegistry.require("indent.size"));
+        assertEquals(
+                List.of("file", "indent", "wrapping", "braces", "spacing", "blank-lines", "alignment"),
+                OptionRegistry.groups().subList(0, 7));
+        assertEquals(OptionRegistry.groups(), List.copyOf(OptionRegistry.groups()));
+        List<String> keys = OptionRegistry.all().stream().map(Option::key).toList();
+        assertEquals(List.copyOf(OptionRegistry.asMap().keySet()), keys);
+        assertTrue(
+                keys.indexOf("indent.size") < keys.indexOf("wrapping.max-line-length"),
+                "indent.* must precede wrapping.* regardless of class initialisation order");
     }
 
     @Test

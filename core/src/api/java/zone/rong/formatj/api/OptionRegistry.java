@@ -35,33 +35,37 @@ public final class OptionRegistry {
 
     private static final Map<String, Option<?>> BY_KEY = new LinkedHashMap<>();
 
-    private static final List<Class<?>> GROUPS =
+    /** A rule group: the dotted prefix its keys use, and the class that declares them. */
+    private record Group(String prefix, Class<?> type) { }
+
+    private static final List<Group> GROUPS =
             List.of(
-                    FileRules.class,
-                    IndentRules.class,
-                    WrappingRules.class,
-                    BraceRules.class,
-                    SpacingRules.class,
-                    BlankLineRules.class,
-                    AlignmentRules.class,
-                    AnnotationRules.class,
-                    ImportRules.class,
-                    CommentRules.class,
-                    JavadocRules.class,
-                    SwitchRules.class,
-                    RecordRules.class,
-                    PatternRules.class,
-                    SealedRules.class,
-                    LambdaRules.class,
-                    TextBlockRules.class,
-                    PreservationRules.class);
+                    new Group("file", FileRules.class),
+                    new Group("indent", IndentRules.class),
+                    new Group("wrapping", WrappingRules.class),
+                    new Group("braces", BraceRules.class),
+                    new Group("spacing", SpacingRules.class),
+                    new Group("blank-lines", BlankLineRules.class),
+                    new Group("alignment", AlignmentRules.class),
+                    new Group("annotations", AnnotationRules.class),
+                    new Group("imports", ImportRules.class),
+                    new Group("comments", CommentRules.class),
+                    new Group("javadoc", JavadocRules.class),
+                    new Group("switch", SwitchRules.class),
+                    new Group("records", RecordRules.class),
+                    new Group("patterns", PatternRules.class),
+                    new Group("sealed", SealedRules.class),
+                    new Group("lambdas", LambdaRules.class),
+                    new Group("text-blocks", TextBlockRules.class),
+                    new Group("preservation", PreservationRules.class));
 
     static {
-        for (Class<?> group : GROUPS) {
+        for (Group group : GROUPS) {
+            Class<?> type = group.type();
             try {
-                Class.forName(group.getName(), true, group.getClassLoader());
+                Class.forName(type.getName(), true, type.getClassLoader());
             } catch (ClassNotFoundException e) {
-                throw new IllegalStateException("Rule group " + group.getName() + " could not be loaded", e);
+                throw new IllegalStateException("Rule group " + type.getName() + " could not be loaded", e);
             }
         }
     }
@@ -75,16 +79,25 @@ public final class OptionRegistry {
         }
     }
 
-    /** Every registered option, in registration order (groups in catalogue order). */
+    /**
+     * Every registered option, in catalogue order: groups in the order declared by {@link #GROUPS},
+     * and options in declaration order within each group.
+     *
+     * <p>The order deliberately does not depend on registration order. A caller touching a rule class
+     * before this one — {@code IndentRules.SIZE}, say — starts that class's initialisation first, so
+     * its options register after every group this class loads (JLS 12.4.2: the recursive
+     * {@code Class.forName} for a class already being initialised on the same thread returns at once).
+     * Ordering off {@code GROUPS} keeps the catalogue stable whichever entry point is used.
+     */
     public static List<Option<?>> all() {
-        return List.copyOf(BY_KEY.values());
+        return List.copyOf(ordered().values());
     }
 
-    /** Registered options whose key starts with {@code group + '.'}. */
+    /** Registered options whose key starts with {@code group + '.'}, in catalogue order. */
     public static List<Option<?>> group(String group) {
         String prefix = group + ".";
         List<Option<?>> matches = new ArrayList<>();
-        for (Option<?> option : BY_KEY.values()) {
+        for (Option<?> option : ordered().values()) {
             if (option.key().startsWith(prefix)) {
                 matches.add(option);
             }
@@ -95,7 +108,7 @@ public final class OptionRegistry {
     /** The distinct group prefixes present in the catalogue, in catalogue order. */
     public static List<String> groups() {
         List<String> names = new ArrayList<>();
-        for (Option<?> option : BY_KEY.values()) {
+        for (Option<?> option : ordered().values()) {
             String name = option.key().substring(0, option.key().indexOf('.'));
             if (!names.contains(name)) {
                 names.add(name);
@@ -117,9 +130,26 @@ public final class OptionRegistry {
         return option;
     }
 
-    /** Read-only view of the whole catalogue keyed by dotted key. */
+    /** Read-only view of the whole catalogue keyed by dotted key, in catalogue order. */
     public static Map<String, Option<?>> asMap() {
-        return Collections.unmodifiableMap(BY_KEY);
+        return Collections.unmodifiableMap(ordered());
     }
 
+    /** The catalogue re-ordered by group, with any option from an unlisted group kept at the end. */
+    private static Map<String, Option<?>> ordered() {
+        Map<String, Option<?>> remaining = new LinkedHashMap<>(BY_KEY);
+        Map<String, Option<?>> result = new LinkedHashMap<>(remaining.size());
+        for (Group group : GROUPS) {
+            String prefix = group.prefix() + ".";
+            remaining.values().removeIf(option -> {
+                if (!option.key().startsWith(prefix)) {
+                    return false;
+                }
+                result.put(option.key(), option);
+                return true;
+            });
+        }
+        result.putAll(remaining);
+        return result;
+    }
 }
