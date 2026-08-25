@@ -111,9 +111,6 @@ public final class SpacingRules {
                     false,
                     "Space between an annotation name and its elements");
 
-    public static final Option<Boolean> AFTER_INSTANCEOF =
-            Option.ofBoolean("spacing.after-instanceof", true, "Space between instanceof and its pattern");
-
     public static final Option<Boolean> BEFORE_ARRAY_BRACKETS =
             Option.ofBoolean("spacing.before-array-brackets", false, "Space between a type and its array brackets");
 
@@ -266,11 +263,6 @@ public final class SpacingRules {
 
         public Builder beforeAnnotationParenthesis(boolean value) {
             style.set(BEFORE_ANNOTATION_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder afterInstanceof(boolean value) {
-            style.set(AFTER_INSTANCEOF, value);
             return this;
         }
 

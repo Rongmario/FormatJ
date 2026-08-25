@@ -27,11 +27,10 @@ import java.util.Set;
  *
  * <h2>What this deliberately does not do</h2>
  *
- * <p>{@code imports.class-count-to-use-wildcard} and {@code imports.static-count-to-use-wildcard}
- * stay inert. Collapsing several single-type imports into one on-demand import is not a rearrangement
- * of what is there; it changes which names the file resolves and can quietly pick up a different type
- * of the same simple name from the wildcarded package. Deciding that needs the classpath, which a
- * formatter does not have.
+ * <p>Collapsing several single-type imports into one on-demand import is not offered at all. It is
+ * not a rearrangement of what is there; it changes which names the file resolves and can quietly pick
+ * up a different type of the same simple name from the wildcarded package. Deciding that needs the
+ * classpath, which a formatter does not have, so there is no rule for it.
  */
 public final class ImportRewrite implements Rewrite {
 

@@ -32,21 +32,6 @@ public final class ImportRules {
     public static final Option<Boolean> REMOVE_UNUSED =
             Option.ofBoolean("imports.remove-unused", false, "Delete imports the file does not reference");
 
-    public static final Option<Integer> CLASS_COUNT_TO_USE_WILDCARD =
-            Option.ofInt(
-                    "imports.class-count-to-use-wildcard",
-                    0,
-                    "Imports from one package before collapsing to a wildcard; 0 disables");
-
-    public static final Option<Integer> STATIC_COUNT_TO_USE_WILDCARD =
-            Option.ofInt(
-                    "imports.static-count-to-use-wildcard",
-                    0,
-                    "Static imports from one type before collapsing to a wildcard; 0 disables");
-
-    public static final Option<Boolean> KEEP_EXISTING_WILDCARDS =
-            Option.ofBoolean("imports.keep-existing-wildcards", true, "Leave a wildcard import the author wrote alone");
-
     public static final Option<Boolean> MODULE_IMPORTS_FIRST =
             Option.ofBoolean("imports.module-imports-first", true, "Place module imports before every other import");
 
@@ -83,21 +68,6 @@ public final class ImportRules {
 
         public Builder removeUnused(boolean value) {
             style.set(REMOVE_UNUSED, value);
-            return this;
-        }
-
-        public Builder classCountToUseWildcard(int value) {
-            style.set(CLASS_COUNT_TO_USE_WILDCARD, value);
-            return this;
-        }
-
-        public Builder staticCountToUseWildcard(int value) {
-            style.set(STATIC_COUNT_TO_USE_WILDCARD, value);
-            return this;
-        }
-
-        public Builder keepExistingWildcards(boolean value) {
-            style.set(KEEP_EXISTING_WILDCARDS, value);
             return this;
         }
 

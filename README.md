@@ -90,6 +90,13 @@ formatJ {
 ## Maven Plugin Usage
 
 ```xml
+<pluginRepositories>
+  <pluginRepository>
+    <id>cleanroom</id>
+    <url>https://maven.cleanroommc.com</url>
+  </pluginRepository>
+</pluginRepositories>
+
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
@@ -103,7 +110,7 @@ formatJ {
 </plugin>
 ```
 
-- `formatj:format` binds to `process-sources`, `formatj:check` to `verify`. No `settings.xml` changes are needed.
+- `formatj:format` binds to `process-sources`, `formatj:check` to `verify`.
 
 ## IntelliJ Plugin
 
@@ -148,8 +155,7 @@ The same `key` works in:
 - Maven: `<rules>` element
 
 1. Keys marked `†` are in the rules set and round-trip through configuration, but do not affect output yet.
-2. Keys marked `‡` are declined: they cannot be honoured correctly and are candidates for deletion.
-3. `·` denotes a significant space.
+2. `·` denotes a significant space.
 
 ### `file`
 
@@ -262,7 +268,6 @@ The same `key` works in:
 | `spacing.before-colon-in-case-label`            | `false` | Space before the colon of a case label                    | `case 1 :` / `case 1:`                                                                                  |
 | `spacing.around-case-arrow`                     | `true`  | Spaces around the arrow of a case label                   | `case 1 -> f();` / `case 1->f();`                                                                       |
 | `spacing.before-annotation-parenthesis`         | `false` | Space between an annotation name and its elements         | `@A ("x")` / `@A("x")`                                                                                  |
-| `spacing.after-instanceof` **‡**                | `true`  | Space between instanceof and its pattern                  | `x instanceof T t`; `false` would fuse `instanceof` and `T` into one token, so it can never be honoured |
 | `spacing.before-array-brackets`                 | `false` | Space between a type and its array brackets               | `int [] a` / `int[] a`                                                                                  |
 | `spacing.after-varargs-ellipsis`                | `true`  | Space between a varargs ellipsis and the parameter name   | `T... ts` / `T...ts`                                                                                    |
 
@@ -323,9 +328,6 @@ Every key here round-trips through configuration and changes nothing.
 | `imports.static-placement`                   | `first`, `last`, `inline`             | `last`                   | Where static imports sit relative to ordinary ones                                                                                               | `first`: the `import static` block precedes every ordinary import                      |
 | `imports.blank-line-between-groups`          | boolean                               | `true`                   | Separate import groups with a blank line                                                                                                         | `true`: `import java.util.List;`<br>``<br>`import org.x.Y;`                            |
 | `imports.remove-unused`                      | boolean                               | `false`                  | Delete imports the file does not reference                                                                                                       | `true`: an import named nowhere in the file, comments and Javadoc included, is dropped |
-| `imports.class-count-to-use-wildcard` **‡**  | integer                               | `0`                      | Imports from one package before collapsing to a wildcard; `0` disables                                                                           | collapsing needs the classpath to be safe, so this is declined                         |
-| `imports.static-count-to-use-wildcard` **‡** | integer                               | `0`                      | Static imports from one type before collapsing to a wildcard; `0` disables                                                                       | declined for the same reason                                                           |
-| `imports.keep-existing-wildcards` **‡**      | boolean                               | `true`                   | Leave a wildcard import the author wrote alone                                                                                                   | declined for the same reason                                                           |
 | `imports.module-imports-first`               | boolean                               | `true`                   | Place module imports before every other import                                                                                                   | `true`: `import module java.base;` heads the block                                     |
 
 ### `comments`
@@ -391,7 +393,6 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 |---------------------------------------------|--------------|----------------|----------------------------------------------|-----------------------------------------------------------------|
 | `patterns.deconstruction-wrapping`          | `WrapPolicy` | `wrap-if-long` | Wrapping of a record deconstruction pattern  | `case R(`<br>`········int a,`<br>`········int b) -> f();`       |
 | `patterns.keep-simple-pattern-inline` **†** | boolean      | `true`         | Keep a short pattern on the line of its test | `true`: `if (x instanceof T t) {`                               |
-| `patterns.guard-wrapping` **†**             | `WrapPolicy` | `wrap-if-long` | Wrapping of a `when` guard expression        | overlaps with `switch.guard-on-same-line`, which is implemented |
 | `patterns.nested-indent`                    | integer      | `8`            | Columns a wrapped nested pattern is indented | `8`: an inner deconstruction is indented 8 past its outer one   |
 
 ### `sealed`
@@ -446,4 +447,4 @@ Versions come from [Cleanroom Versioning](https://github.com/CleanroomMC/Version
 
 Local builds get a `+local.<distance>` suffix; a release is the numeric version and requires a matching git tag with no `v` prefix.
 
-Publishing is the `Publish` workflow: Gradle plugin to the Plugin Portal, `formatj` and `formatj-maven-plugin` to Maven Central, CLI zip/tar to a GitHub Release.
+Publishing is the `Publish` workflow: Gradle plugin to the Plugin Portal, `formatj` and `formatj-maven-plugin` to [maven.cleanroommc.com](https://maven.cleanroommc.com), CLI zip/tar to a GitHub Release.

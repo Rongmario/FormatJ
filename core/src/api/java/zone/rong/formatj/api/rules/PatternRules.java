@@ -18,9 +18,6 @@ public final class PatternRules {
                     true,
                     "Keep a short pattern on the line of its test");
 
-    public static final Option<WrapPolicy> GUARD_WRAPPING =
-            Option.ofEnum("patterns.guard-wrapping", WrapPolicy.WRAP_IF_LONG, "Wrapping of a when guard expression");
-
     public static final Option<Integer> NESTED_INDENT =
             Option.ofInt("patterns.nested-indent", 8, "Columns a wrapped nested pattern is indented");
 
@@ -42,11 +39,6 @@ public final class PatternRules {
 
         public Builder keepSimplePatternInline(boolean value) {
             style.set(KEEP_SIMPLE_PATTERN_INLINE, value);
-            return this;
-        }
-
-        public Builder guardWrapping(WrapPolicy value) {
-            style.set(GUARD_WRAPPING, value);
             return this;
         }
 
