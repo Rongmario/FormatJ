@@ -2,6 +2,8 @@ package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BracePlacement;
@@ -14,6 +16,7 @@ import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
+import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
@@ -46,6 +49,37 @@ abstract class EmitSupport {
 
     protected int continuation() {
         return rule(IndentRules.CONTINUATION);
+    }
+
+    // ------------------------------------------------------------ alignment
+
+    /**
+     * A zero-width mark for an alignment rule, or nothing at all when the rule is off.
+     *
+     * <p>The mark carries no width and no break, so a document with marks in it prints to exactly the
+     * text it would have printed without them. What the rule turns on is only whether the printed text
+     * is offered to {@link zone.rong.formatj.core.layout.ColumnAligner} to pad afterwards.
+     *
+     * <p>{@link AlignmentPolicy#ALIGN_ON_COLUMN} and {@link AlignmentPolicy#ALIGN_WHEN_MULTILINE} both
+     * mean the same thing here, for the reason given on the enum: alignment is padding in front of
+     * something, and padding only exists once a line has been broken.
+     */
+    protected Doc alignmentMark(AlignmentSite site) {
+        Option<AlignmentPolicy> option =
+                switch (site) {
+                    case FIELD_NAME -> AlignmentRules.CONSECUTIVE_FIELDS;
+                    case VARIABLE_NAME -> AlignmentRules.CONSECUTIVE_VARIABLES;
+                    case ASSIGNMENT -> AlignmentRules.CONSECUTIVE_ASSIGNMENTS;
+                    case ANNOTATION_VALUE -> AlignmentRules.ANNOTATION_VALUES;
+                    case SWITCH_ARROW -> AlignmentRules.SWITCH_ARROWS;
+                    case TRAILING_COMMENT -> AlignmentRules.TRAILING_COMMENTS;
+                };
+        return rule(option) == AlignmentPolicy.NONE ? Doc.EMPTY : Doc.mark(site);
+    }
+
+    /** Whether an alignment rule asks for a construct's own continuation lines to hang at its column. */
+    protected boolean alignsOnColumn(Option<AlignmentPolicy> option) {
+        return rule(option) != AlignmentPolicy.NONE;
     }
 
     // ------------------------------------------------------- author's lines
@@ -200,8 +234,12 @@ abstract class EmitSupport {
         if (token.token().kind() != TokenKind.END_OF_FILE) {
             parts.add(tokenText(token.token()));
         }
+        boolean first = true;
         for (Token comment : token.trailingComments()) {
-            parts.add(Doc.lineSuffix(Doc.concat(trailingSpacing(), commentDoc(comment))));
+            // Only the first comment of a line has a column of its own to share with its neighbours.
+            Doc mark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
+            first = false;
+            parts.add(Doc.lineSuffix(Doc.concat(mark, trailingSpacing(), commentDoc(comment))));
         }
         return Doc.concat(parts);
     }

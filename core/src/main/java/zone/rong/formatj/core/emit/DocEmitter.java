@@ -15,6 +15,7 @@ import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportOrder;
+import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import java.util.ArrayList;
 import java.util.List;
@@ -621,6 +622,7 @@ public final class DocEmitter extends StatementEmitter {
         boolean spaced = rule(SpacingRules.AROUND_ASSIGNMENT_OPERATORS);
         return Doc.concat(
                 emit(children.get(0)),
+                alignmentMark(AlignmentSite.ANNOTATION_VALUE),
                 spaceIf(spaced),
                 emit(children.get(1)),
                 spaceIf(spaced),
@@ -740,7 +742,12 @@ public final class DocEmitter extends StatementEmitter {
             if (i > 0 && is(child, ";")) {
                 parts.add(semicolonLead());
             }
-            parts.add(emit(child));
+            // A whole statement's assignment is the one an alignment rule can line up; the statement
+            // is where that is known, since the expression itself cannot see what encloses it.
+            parts.add(
+                    i == 0 && child.kind() == SyntaxKind.ASSIGNMENT_EXPRESSION
+                            ? emitAssignment(child, true)
+                            : emit(child));
         }
         return Doc.concat(parts);
     }

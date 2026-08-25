@@ -9,6 +9,8 @@ import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
@@ -123,6 +125,40 @@ class CorpusInvariantTest {
                             once.diagnostics().stream()
                                     .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
                             () -> "rewrites were dropped: " + once.diagnostics());
+
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
+    }
+
+    /**
+     * The same corpus with every column alignment rule on.
+     *
+     * <p>Alignment is applied to text that has already been laid out, so the thing worth proving over
+     * real code is that it changes nothing but the width of runs of spaces: the program still comes
+     * out token for token the same, and formatting the padded file again reproduces it. A run whose
+     * shared column moved on the second pass would show up here as a failed fixed point.
+     */
+    @TestFactory
+    Stream<DynamicTest> everySourceFileSurvivesBeingAligned() throws IOException {
+        Path repository = Path.of("..").toAbsolutePath().normalize();
+        Style aligning = Style.builder()
+                .set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.METHOD_CHAINS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.ANNOTATION_VALUES, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.SWITCH_ARROWS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.TERNARY_BRANCHES, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .build();
+        Formatter formatter = FormatJ.newFormatter().style(aligning).build();
+        return corpus().stream().map(path -> DynamicTest.dynamicTest(
+                repository.relativize(path).toString(),
+                () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
 
                     FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
                     assertEquals(once.text(), twice.text(), "formatting must be a fixed point");

@@ -12,6 +12,7 @@ import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.emit.DocEmitter;
+import zone.rong.formatj.core.layout.ColumnAligner;
 import zone.rong.formatj.core.layout.DocPrinter;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
@@ -221,9 +222,17 @@ public final class DefaultFormatter implements Formatter {
 
     }
 
-    /** Lays out a parsed file and normalises how it ends. */
+    /**
+     * Lays out a parsed file and normalises how it ends.
+     *
+     * <p>Column alignment happens after the text has been printed, not while it is being printed:
+     * where a run of lines should share a column is not known until every line in it has been laid
+     * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
+     * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
+     */
     private String layout(SyntaxNode root) {
-        String text = printer().print(new DocEmitter(style).emit(root));
+        DocPrinter.Printed printed = printer().printMarked(new DocEmitter(style).emit(root));
+        String text = new ColumnAligner(style.get(FileRules.TAB_WIDTH)).align(printed);
         String separator = lineSeparator();
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;

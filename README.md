@@ -20,20 +20,23 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
 
 ## Design
 
-- **Lossless by Construction.** The lexer emits every character exactly once, and the parser attaches
+- **Lossless by Construction:** The lexer emits every character exactly once, and the parser attaches
   every comment to exactly one token, so the tree always concatenates back to the original file.
   Everything above it can therefore be verified.
-- **Verified Output.** Formatting must be a fixed point, and must preserve the significant token
+- **Verified Output:** Formatting must be a fixed point, and must preserve the significant token
   stream. If either check fails, the original source is returned with a diagnostic.
-- **Declared Rewrites.** Rules that add or remove code runs in a separate stage that declares
+- **Declared Rewrites:** Rules that add or remove code runs in a separate stage that declares
   every token it changed. The output is checked against that declaration token for token, so an
   undeclared change fails loudly as a corrupted one. A rewrite that fails verification costs
   the file its rewrites and not its formatting.
-- **One Rule Catalogue.** Every rule is an `Option<T>` registered once. The TOML reader, the Gradle
+- **One Rule Catalogue:** Every rule is an `Option<T>` registered once. The TOML reader, the Gradle
   DSL, the Maven parameters and `--dump-config` all read from it.
-- **Author's layout matters.** The `preservation.*` rules keep blank lines, chain breaks and
+- **Author's layout matters:** The `preservation.*` rules keep blank lines, chain breaks and
   hand-arranged initializers the author chose. Refusing to do that is what makes a formatter
   correct but unpleasant.
+- **Alignment is padding:** The `alignment.*` rules run over text the layout engine has
+  already produced, because where a run of lines should share a column is not known until they have
+  all been printed. Nothing they do can move a line break.
 
 ## Library Usage
 
@@ -176,7 +179,7 @@ The same `key` works in:
 | `indent.continuation`       | integer | `8`     | Columns added to a wrapped continuation line         | `int x = a`<br>`········+ b;`                                   |
 | `indent.chained-call`       | integer | `8`     | Columns added to a wrapped method chain link         | `list.stream()`<br>`········.map(f)`                            |
 | `indent.array-initializer`  | integer | `4`     | Columns added inside a wrapped array initializer     | `int[] a = {`<br>`····1, 2,`<br>`};`                            |
-| `indent.ternary`            | integer | `8`     | Columns added to a wrapped ternary branch            | `x = c`<br>`········? a`<br>`········: b;`                      |
+| `indent.ternary`            | integer | `8`     | Columns added to a wrapped ternary branch, when `alignment.ternary-branches` is `none` | `x = c`<br>`········? a`<br>`········: b;`                      |
 | `indent.throws-clause`      | integer | `8`     | Columns added to a wrapped throws clause             | `void f()`<br>`········throws IOException {`                    |
 | `indent.switch-case-labels` | boolean | `true`  | Indent case labels one level inside the switch block | `true`: `switch (x) {`<br>`····case 1:`                         |
 | `indent.switch-case-body`   | boolean | `true`  | Indent a colon-label case body past its label        | `true`: `case 1:`<br>`····doThing();`                           |
@@ -289,23 +292,35 @@ The same `key` works in:
 | `blank-lines.before-first-enum-constant`        | `1`     | Blank lines between an enum's brace and its first constant | `1`: `enum E {`<br>``<br>`····A,`                       |
 | `blank-lines.between-switch-cases`              | `0`     | Blank lines between the cases of a switch                  | `1`: a blank line separates each `case`                 |
 
-### `alignment` **†**
+### `alignment`
 
-Column alignment is not implemented yet.
-Every key here round-trips through configuration and changes nothing.
+Alignment is applied to text that has already been laid out, so turning a rule on never moves a line
+break: a file wraps exactly where it would have wrapped with every alignment rule off. The cost of
+that is the other way round — an aligned line can end past `wrapping.max-line-length`, because the
+column it is padded to is not known while the margin is being honoured.
+
+A run is a set of lines that are consecutive, at the same indentation, and each carrying one of the
+rule's constructs. A blank line, a comment line, a line that wrapped, or a change of nesting depth
+ends a run and starts another.
 
 - `AlignmentPolicy` values are `none`, `align-on-column`, `align-when-multiline`.
+- The two aligning values mean the same thing: padding only shows on a line that follows a break, so
+  there is no construct one of them reaches and the other does not.
 
 | Key                                 | Default                | Effect                                            | Example                                          |
 |-------------------------------------|------------------------|---------------------------------------------------|--------------------------------------------------|
 | `alignment.consecutive-fields`      | `none`                 | Align the names of consecutive field declarations | `align-on-column`: `int····x;`<br>`String·name;` |
 | `alignment.consecutive-variables`   | `none`                 | Align the names of consecutive local declarations | as above, inside a method body                   |
 | `alignment.consecutive-assignments` | `none`                 | Align the `=` of consecutive assignments          | `x···= 1;`<br>`name = "a";`                      |
-| `alignment.method-chains`           | `none`                 | Align the dots of a wrapped method chain          | dots of every link land in one column            |
+| `alignment.method-chains`           | `none`                 | Align the dots of a wrapped method chain          | `people.stream()`<br>`······.filter(f)`          |
 | `alignment.annotation-values`       | `none`                 | Align the values of an annotation's elements      | `@A(name···= "x",`<br>`···timeout = 1)`          |
 | `alignment.switch-arrows`           | `none`                 | Align the arrows of a switch's case labels        | `case A··-> 1;`<br>`case BB -> 2;`               |
-| `alignment.ternary-branches`        | `align-when-multiline` | Align the branches of a wrapped conditional       | `?` and `:` start in the same column             |
+| `alignment.ternary-branches`        | `align-when-multiline` | Align the branches of a wrapped conditional       | `x = cond`<br>`····?·a`<br>`····:·b;` under `cond` |
 | `alignment.trailing-comments`       | `none`                 | Align comments trailing consecutive lines         | trailing `//` comments share a start column      |
+
+An initializer is an assignment for the purposes of `alignment.consecutive-assignments`, so a run of
+declarations lines up its `=` as well as, with `alignment.consecutive-fields`, its names. Only the
+first declarator of a declaration is aligned: a second name on the same line has no column of its own.
 
 ### `annotations`
 

@@ -1,6 +1,7 @@
 package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
@@ -17,6 +18,7 @@ import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
+import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import java.util.ArrayList;
 import java.util.List;
@@ -280,6 +282,16 @@ abstract class ExpressionEmitter extends EmitSupport {
     }
 
     protected Doc emitAssignment(GreenNode node) {
+        return emitAssignment(node, false);
+    }
+
+    /**
+     * @param alignable whether this assignment's operator is one
+     *     {@code alignment.consecutive-assignments} may line up. An assignment nested inside a larger
+     *     expression is not: it shares its line with whatever encloses it, so the column it sits at
+     *     says nothing about the lines above and below.
+     */
+    protected Doc emitAssignment(GreenNode node, boolean alignable) {
         List<GreenNode> children = node.children();
         Doc target = emit(children.getFirst());
         List<Doc> operator = new ArrayList<>();
@@ -292,6 +304,7 @@ abstract class ExpressionEmitter extends EmitSupport {
                 node,
                 Doc.concat(
                         target,
+                        alignable ? alignmentMark(AlignmentSite.ASSIGNMENT) : Doc.EMPTY,
                         spaceIf(spaced),
                         Doc.concat(operator),
                         assignedValue(children.getLast(), value, spaced)));
@@ -359,21 +372,14 @@ abstract class ExpressionEmitter extends EmitSupport {
                     spaceIf(spaced),
                     whenFalse);
         }
-        return authorGroup(
-                node,
-                Doc.concat(
-                        condition,
-                        Doc.indent(
-                                rule(IndentRules.TERNARY),
-                                Doc.concat(
-                                        Doc.line(),
-                                        question,
-                                        spaceIf(spaced),
-                                        whenTrue,
-                                        Doc.line(),
-                                        colon,
-                                        spaceIf(spaced),
-                                        whenFalse))));
+        Doc branches = Doc.concat(
+                Doc.line(), question, spaceIf(spaced), whenTrue, Doc.line(), colon, spaceIf(spaced), whenFalse);
+        if (alignsOnColumn(AlignmentRules.TERNARY_BRANCHES)) {
+            // Aligning the branches means hanging them under the condition rather than at a fixed
+            // indent, so the alignment has to start where the condition starts, not where it ends.
+            return authorGroup(node, Doc.align(Doc.concat(condition, branches)));
+        }
+        return authorGroup(node, Doc.concat(condition, Doc.indent(rule(IndentRules.TERNARY), branches)));
     }
 
     /**
@@ -527,9 +533,18 @@ abstract class ExpressionEmitter extends EmitSupport {
 
         // A plain receiver keeps its first call: people.stream() reads as one thing, and breaking
         // after the name alone wastes a line.
+        boolean alignDots = alignsOnColumn(AlignmentRules.METHOD_CHAINS);
         Doc head = emit(base);
+        Doc attached = Doc.EMPTY;
         if (isPlainReceiver(base) && linkDocs.size() > 1 && !authorBrokeBeforeDot(links.getFirst())) {
-            head = Doc.concat(head, linkDocs.removeFirst());
+            // Aligning the dots wants the same link kept on the receiver's line, but not folded into
+            // the receiver: the column the later dots hang from is this link's dot, so the alignment
+            // has to be measured in front of it rather than behind it.
+            attached = linkDocs.removeFirst();
+            if (!alignDots) {
+                head = Doc.concat(head, attached);
+                attached = Doc.EMPTY;
+            }
         }
 
         ChainPolicy policy = rule(WrappingRules.CHAINED_CALLS);
@@ -537,7 +552,7 @@ abstract class ExpressionEmitter extends EmitSupport {
         boolean forceBreak = authorBroke && (rule(PreservationRules.RESPECT_EXISTING_CHAIN_BREAKS) || !mayJoin(node));
         Doc baseDoc = head;
         if (policy == ChainPolicy.NEVER_BREAK || links.size() < threshold && !forceBreak) {
-            return Doc.concat(baseDoc, Doc.concat(linkDocs));
+            return Doc.concat(baseDoc, attached, Doc.concat(linkDocs));
         }
 
         List<Doc> parts = new ArrayList<>();
@@ -545,8 +560,17 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(Doc.softLine());
             parts.add(link);
         }
-        Doc content = Doc.concat(baseDoc, Doc.indent(rule(IndentRules.CHAINED_CALL), Doc.concat(parts)));
+        Doc hanging = alignDots
+                ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
+                : Doc.indent(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
+        Doc content = Doc.concat(baseDoc, hanging);
         if (policy == ChainPolicy.BREAK_WHEN_TOO_LONG) {
+            if (alignDots) {
+                List<Doc> filled = new ArrayList<>();
+                filled.add(attached);
+                filled.addAll(parts);
+                return Doc.concat(baseDoc, Doc.align(Doc.fill(filled)));
+            }
             List<Doc> filled = new ArrayList<>();
             filled.add(baseDoc);
             filled.addAll(parts);

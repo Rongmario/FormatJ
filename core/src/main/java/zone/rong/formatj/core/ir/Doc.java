@@ -56,6 +56,15 @@ public sealed interface Doc {
     /** Forces every enclosing group to break without printing anything itself. */
     record BreakParent() implements Doc { }
 
+    /**
+     * Prints nothing, and records where it landed so a column alignment rule can pad there.
+     *
+     * <p>Nothing about the layout depends on a mark: it has no width, so the same document prints to
+     * the same text whether the marks are there or not. That is the whole point — alignment is
+     * applied to the printed text afterwards and can never change which breaks were taken.
+     */
+    record Mark(AlignmentSite site) implements Doc { }
+
     Doc EMPTY = new Text("");
 
     static Doc text(String value) {
@@ -108,6 +117,11 @@ public sealed interface Doc {
 
     static Doc lineSuffix(Doc content) {
         return new LineSuffix(content);
+    }
+
+    /** A zero-width mark at this point in the output, for the given alignment rule. */
+    static Doc mark(AlignmentSite site) {
+        return new Mark(site);
     }
 
     /** Forces every enclosing group to break, printing nothing itself. */

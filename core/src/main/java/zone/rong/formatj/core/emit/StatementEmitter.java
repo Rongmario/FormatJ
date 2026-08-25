@@ -14,6 +14,7 @@ import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
+import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import java.util.ArrayList;
 import java.util.List;
@@ -491,17 +492,26 @@ abstract class StatementEmitter extends ExpressionEmitter {
     }
 
     protected Doc emitLocalVariableDeclaration(GreenNode node) {
-        return emitDeclarationLine(node.children(), rule(AnnotationRules.PARAMETER_PLACEMENT));
+        return emitDeclarationLine(
+                node.children(), rule(AnnotationRules.PARAMETER_PLACEMENT), AlignmentSite.VARIABLE_NAME);
     }
 
     /** Modifiers, a type, declarators and a semicolon, in one line unless something wraps. */
     protected Doc emitDeclarationLine(List<GreenNode> children) {
-        return emitDeclarationLine(children, rule(AnnotationRules.DECLARATION_PLACEMENT));
+        return emitDeclarationLine(children, rule(AnnotationRules.DECLARATION_PLACEMENT), AlignmentSite.FIELD_NAME);
     }
 
-    /** As {@link #emitDeclarationLine(List)}, with the placement rule the caller's context asks for. */
-    protected Doc emitDeclarationLine(List<GreenNode> children, AnnotationPlacement placement) {
+    /**
+     * As {@link #emitDeclarationLine(List)}, with the placement rule the caller's context asks for.
+     *
+     * @param nameSite which alignment rule, if any, may line up the declared name with its neighbours.
+     *     Only the first declarator is marked: the second name on a line has no column of its own, and
+     *     the {@code =} of the first is what the assignment rule lines up.
+     */
+    protected Doc emitDeclarationLine(
+            List<GreenNode> children, AnnotationPlacement placement, AlignmentSite nameSite) {
         List<Doc> parts = new ArrayList<>();
+        boolean firstDeclarator = true;
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (i > 0 && is(child, ";")) {
@@ -514,12 +524,29 @@ abstract class StatementEmitter extends ExpressionEmitter {
                                 && previous.children().getLast().kind() == SyntaxKind.ANNOTATION;
                 parts.add(afterAnnotation ? annotationSeparator(child, placement, children) : space());
             }
+            if (child.kind() == SyntaxKind.VARIABLE_DECLARATOR && firstDeclarator) {
+                firstDeclarator = false;
+                if (i > 0 && nameSite != null) {
+                    parts.add(alignmentMark(nameSite));
+                }
+                parts.add(emitVariableDeclarator(child, true));
+                continue;
+            }
             parts.add(emit(child));
         }
         return Doc.concat(parts);
     }
 
     protected Doc emitVariableDeclarator(GreenNode node) {
+        return emitVariableDeclarator(node, false);
+    }
+
+    /**
+     * @param alignable whether this declarator's {@code =} is one
+     *     {@code alignment.consecutive-assignments} may line up. An initialiser is an assignment; one
+     *     buried in a second declarator on the same line is not one with a column of its own.
+     */
+    protected Doc emitVariableDeclarator(GreenNode node, boolean alignable) {
         List<GreenNode> children = node.children();
         int equals = indexOf(children, "=");
         if (equals < 0) {
@@ -539,6 +566,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 node,
                 Doc.concat(
                         Doc.concat(target),
+                        alignable ? alignmentMark(AlignmentSite.ASSIGNMENT) : Doc.EMPTY,
                         spaceIf(spaced),
                         emit(children.get(equals)),
                         assignedValue(valueNode, emit(valueNode), spaced)));
@@ -577,8 +605,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
 
     protected Doc emitSwitchCase(GreenNode node) {
         List<GreenNode> children = node.children();
-        Doc labels = emit(children.getFirst());
-        if (children.size() > 1 && is(children.get(1), "->")) {
+        boolean arrow = children.size() > 1 && is(children.get(1), "->");
+        Doc labels = arrow
+                ? Doc.concat(emit(children.getFirst()), alignmentMark(AlignmentSite.SWITCH_ARROW))
+                : emit(children.getFirst());
+        if (arrow) {
             boolean spaced = rule(SpacingRules.AROUND_CASE_ARROW);
             GreenNode body = children.get(2);
             Doc bodyDoc = emit(body);

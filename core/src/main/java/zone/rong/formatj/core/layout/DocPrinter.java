@@ -1,5 +1,6 @@
 package zone.rong.formatj.core.layout;
 
+import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.ir.DocBreaks;
 import java.util.ArrayDeque;
@@ -72,15 +73,37 @@ public final class DocPrinter {
 
     private record Command(int indent, Mode mode, Doc doc) { }
 
+    /** Where one {@link Doc.Mark} ended up in the printed text. */
+    public record Mark(int offset, AlignmentSite site) { }
+
+    /** Printed text, and where the marks in it landed. */
+    public record Printed(String text, List<Mark> marks) { }
+
+    /** The printed text, for callers with no alignment to apply. */
     public String print(Doc document) {
+        return printMarked(document).text();
+    }
+
+    public Printed printMarked(Doc document) {
         Doc prepared = DocBreaks.propagate(document);
         StringBuilder out = new StringBuilder();
+        List<Mark> marks = new ArrayList<>();
         List<Doc> lineSuffixes = new ArrayList<>();
         Deque<Command> commands = new ArrayDeque<>();
         commands.push(new Command(0, Mode.BREAK, prepared));
         int column = 0;
 
-        while (!commands.isEmpty()) {
+        while (!commands.isEmpty() || !lineSuffixes.isEmpty()) {
+            if (commands.isEmpty()) {
+                // Suffixes held back past the last break: the end of the file, with no break left to
+                // flush them at. They are printed here rather than by a second printer so that a mark
+                // inside one — a comment trailing the last line — is still recorded.
+                for (int i = lineSuffixes.size() - 1; i >= 0; i--) {
+                    commands.push(new Command(0, Mode.BREAK, lineSuffixes.get(i)));
+                }
+                lineSuffixes.clear();
+                continue;
+            }
             Command command = commands.pop();
             Doc doc = command.doc();
             int indent = command.indent();
@@ -106,6 +129,7 @@ public final class DocPrinter {
                         commands.push(
                                 new Command(indent, mode, mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
                 case Doc.LineSuffix suffix -> lineSuffixes.add(suffix.content());
+                case Doc.Mark mark -> marks.add(new Mark(out.length(), mark.site()));
                 case Doc.BreakParent ignored -> {
                     // Handled by DocBreaks.propagate before printing starts.
                 }
@@ -134,18 +158,7 @@ public final class DocPrinter {
             }
         }
 
-        for (Doc suffix : lineSuffixes) {
-            out.append(
-                    new DocPrinter(
-                                    maxWidth,
-                                    useTabs,
-                                    tabWidth,
-                                    lineSeparator,
-                                    trimTrailingWhitespace,
-                                    indentBlankLines)
-                            .print(suffix));
-        }
-        return out.toString();
+        return new Printed(out.toString(), List.copyOf(marks));
     }
 
     /**
@@ -236,6 +249,9 @@ public final class DocPrinter {
                 }
                 case Doc.BreakParent ignored -> {
                     // Break propagation happens before printing.
+                }
+                case Doc.Mark ignored -> {
+                    // A mark has no width, so it can never be what pushes a line past the margin.
                 }
                 case Doc.Break lineBreak -> {
                     if (mode == Mode.BREAK || lineBreak.kind() == Doc.BreakKind.HARD) {
