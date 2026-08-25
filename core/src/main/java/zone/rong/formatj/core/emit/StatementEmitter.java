@@ -66,11 +66,26 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
 
         List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < body.size(); i++) {
+        int i = 0;
+        while (i < body.size()) {
             GreenNode statement = body.get(i);
-            int minimum = i == 0 ? blankLinesAfterOpen : minimumBetween(body.get(i - 1), statement);
+            int minimum =
+                    i == 0
+                            ? minimumAfterOpen(statement, blankLinesAfterOpen)
+                            : minimumBetween(body.get(i - 1), statement);
             parts.add(separatorBefore(statement, minimum));
+            int off = formatterOffIndex(statement);
+            if (off >= 0) {
+                int end = i + 1;
+                while (end < body.size() && !turnsFormattingOn(body.get(end))) {
+                    end++;
+                }
+                parts.add(formatterOffRegion(body.subList(i, end), off));
+                i = end;
+                continue;
+            }
             parts.add(emitBodyChild(statement, body, i));
+            i++;
         }
         if (hasLeadingComments(close)) {
             // A comment on the closing line belongs to the body, indented with it, not to the brace.
@@ -97,6 +112,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
     /** Minimum blank lines a rule demands between two neighbours in a body. */
     protected int minimumBetween(GreenNode previous, GreenNode next) {
         return 0;
+    }
+
+    /** Minimum blank lines before the first child of a body. Override where the child has its own rule. */
+    protected int minimumAfterOpen(GreenNode first, int fallback) {
+        return fallback;
     }
 
     // ---------------------------------------------------------- statements

@@ -154,18 +154,32 @@ public final class DocEmitter extends StatementEmitter {
         List<GreenNode> children = node.children();
         List<Doc> parts = new ArrayList<>();
         GreenNode previous = null;
-        for (int i = 0; i < children.size(); i++) {
+        int i = 0;
+        while (i < children.size()) {
             GreenNode child = children.get(i);
             boolean endOfFile = i == children.size() - 1 && isLeaf(child);
             if (endOfFile && !hasComments(child)) {
                 // Nothing left but the file's trailing newline, which the pipeline normalises.
+                i++;
                 continue;
             }
             if (previous != null) {
                 parts.add(separatorBefore(child, minimumAtFileLevel(previous, child)));
             }
+            int off = formatterOffIndex(child);
+            if (off >= 0) {
+                int end = i + 1;
+                while (end < children.size() && !turnsFormattingOn(children.get(end))) {
+                    end++;
+                }
+                parts.add(formatterOffRegion(children.subList(i, end), off));
+                previous = children.get(end - 1);
+                i = end;
+                continue;
+            }
             parts.add(emit(child));
             previous = child;
+            i++;
         }
         return Doc.concat(parts);
     }

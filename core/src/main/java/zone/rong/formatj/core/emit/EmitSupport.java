@@ -287,6 +287,80 @@ abstract class EmitSupport {
         return text.substring(0, end);
     }
 
+    // ------------------------------------------------------- formatter off
+
+    /**
+     * Where a node's leading comments turn formatting off.
+     *
+     * <p>The escape hatch is deliberately coarse: formatting stops at a whole member or statement and
+     * resumes at another one. A marker in the middle of an expression would leave the region with no
+     * well-defined boundaries in the tree, and reproducing half a construct verbatim is how a
+     * formatter starts emitting code that no longer parses.
+     *
+     * @return the index in the node's leading trivia of the off marker, or {@code -1}
+     */
+    protected int formatterOffIndex(GreenNode node) {
+        return markerIndex(node, rule(CommentRules.OFF_MARKER));
+    }
+
+    /** Whether a node's leading comments turn formatting back on. */
+    protected boolean turnsFormattingOn(GreenNode node) {
+        return markerIndex(node, rule(CommentRules.ON_MARKER)) >= 0;
+    }
+
+    private int markerIndex(GreenNode node, String marker) {
+        if (!rule(CommentRules.HONOUR_FORMATTER_OFF) || marker.isBlank()) {
+            return -1;
+        }
+        SyntaxToken token = firstToken(node);
+        if (token == null) {
+            return -1;
+        }
+        List<Token> leading = token.leading();
+        for (int i = 0; i < leading.size(); i++) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment() && trivia.text().contains(marker)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * A run of nodes reproduced exactly, from the off marker to the end of the last one.
+     *
+     * <p>Comments that came before the marker are still the formatter's to place, so they are emitted
+     * normally and only what follows the marker is copied through.
+     *
+     * @param run the nodes the region covers, the first of which carries the marker
+     * @param offIndex index of the marker in the first node's leading trivia
+     */
+    protected Doc formatterOffRegion(List<GreenNode> run, int offIndex) {
+        GreenNode first = run.getFirst();
+        SyntaxToken token = firstToken(first);
+        int prefix = 0;
+        for (int i = 0; i < offIndex; i++) {
+            prefix += token.leading().get(i).length();
+        }
+        StringBuilder out = new StringBuilder();
+        out.append(first.text(), prefix, first.text().length());
+        for (int i = 1; i < run.size(); i++) {
+            out.append(run.get(i).text());
+        }
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < offIndex; i++) {
+            Token trivia = token.leading().get(i);
+            if (trivia.kind().isComment()) {
+                parts.add(commentDoc(trivia));
+                parts.add(Doc.hardLine());
+            }
+        }
+        // Text with its own line structure has to break every group around it, as a text block does.
+        parts.add(Doc.breakParent());
+        parts.add(Doc.text(stripTrailing(out.toString())));
+        return Doc.concat(parts);
+    }
+
     // ------------------------------------------------------------ verbatim
 
     /** A region reproduced exactly, used for unparsed and formatter-off code. */
