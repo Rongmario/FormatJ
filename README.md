@@ -24,11 +24,10 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
   Everything above it can therefore be verified.
 - **Verified Output.** Formatting must be a fixed point, and must preserve the significant token
   stream. If either check fails, the original source is returned with a diagnostic.
-- **Declared Rewrites.** Rules that add or remove code — braces around a one-line `if`, import
-  ordering and removal, and the rules that will follow them — run in a separate stage that declares
+- **Declared Rewrites.** Rules that add or remove code runs in a separate stage that declares
   every token it changed. The output is checked against that declaration token for token, so an
-  undeclared change fails just as loudly as a corrupted one. A rewrite that fails verification costs
-  the file its rewrites, not its formatting.
+  undeclared change fails loudly as a corrupted one. A rewrite that fails verification costs
+  the file its rewrites and not its formatting.
 - **One Rule Catalogue.** Every rule is an `Option<T>` registered once. The TOML reader, the Gradle
   DSL, the Maven parameters and `--dump-config` all read from it.
 - **Author's layout matters.** The `preservation.*` rules keep blank lines, chain breaks and
