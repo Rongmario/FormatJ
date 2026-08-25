@@ -31,13 +31,13 @@ public final class BraceRules {
                     "Opening brace position for a lambda block body");
 
     public static final Option<BracePolicy> IF_ELSE =
-            Option.ofEnum("braces.if-else", BracePolicy.ALWAYS, "Braces around if and else bodies");
+            Option.ofEnum("braces.if-else", BracePolicy.PRESERVE, "Braces around if and else bodies");
 
     public static final Option<BracePolicy> FOR_LOOP =
-            Option.ofEnum("braces.for-loop", BracePolicy.ALWAYS, "Braces around for and enhanced-for bodies");
+            Option.ofEnum("braces.for-loop", BracePolicy.PRESERVE, "Braces around for and enhanced-for bodies");
 
     public static final Option<BracePolicy> WHILE_LOOP =
-            Option.ofEnum("braces.while-loop", BracePolicy.ALWAYS, "Braces around while and do-while bodies");
+            Option.ofEnum("braces.while-loop", BracePolicy.PRESERVE, "Braces around while and do-while bodies");
 
     public static final Option<Boolean> ELSE_ON_NEW_LINE =
             Option.ofBoolean("braces.else-on-new-line", false, "Put else on the line after the closing brace");

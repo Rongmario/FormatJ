@@ -1,0 +1,4 @@
+[braces]
+if-else = "never"
+for-loop = "never"
+while-loop = "never"

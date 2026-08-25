@@ -19,8 +19,9 @@ import java.util.List;
  *
  * <p>Most tokens are laid out as the parser found them, comments travelling with the token they
  * are attached to. The optional semicolon after a no-argument enum constant list is a style choice
- * and is written or omitted here. Rules that would rewrite other code — braces on a one-line
- * {@code if}, lambda parentheses, import order — are not applied yet.
+ * and is written or omitted here. Rules that add or remove other code have already been applied by
+ * the rewrite stage before the tree gets here, so this class never has to decide whether a body
+ * should have braces — only how to lay out the shape it was handed.
  */
 public final class DocEmitter extends StatementEmitter {
 

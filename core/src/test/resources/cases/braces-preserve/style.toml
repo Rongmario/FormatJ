@@ -1,0 +1,4 @@
+[braces]
+if-else = "preserve"
+for-loop = "preserve"
+while-loop = "preserve"

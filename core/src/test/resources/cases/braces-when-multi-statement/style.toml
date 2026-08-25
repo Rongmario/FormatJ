@@ -1,0 +1,4 @@
+[braces]
+if-else = "when-multi-statement"
+for-loop = "when-multi-statement"
+while-loop = "when-multi-statement"
