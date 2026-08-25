@@ -1,0 +1,28 @@
+<idea-plugin require-restart="true">
+    <id>zone.rong.formatj</id>
+    <name>FormatJ</name>
+    <vendor url="https://github.com/Rongmario/FormatJ">zone.rong</vendor>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <description><![CDATA[
+        <p>Formats Java with FormatJ, using the same engine and <code>formatj.toml</code> as the
+        CLI, Gradle plugin and Maven plugin.</p>
+        <p>When enabled (the default), <b>Reformat Code</b> and <b>Optimize Imports</b> on Java
+        files run FormatJ instead of the built-in Java formatter.</p>
+    ]]></description>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <formattingService implementation="zone.rong.formatj.idea.FormatJFormattingService"/>
+        <projectConfigurable
+                parentId="tools"
+                id="zone.rong.formatj.settings"
+                instance="zone.rong.formatj.idea.FormatJConfigurable"
+                displayName="FormatJ"/>
+        <projectService serviceImplementation="zone.rong.formatj.idea.FormatJSettings"/>
+        <codeStyleSettingsModifier implementation="zone.rong.formatj.idea.FormatJCodeStyleModifier"/>
+        <notificationGroup id="FormatJ" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>

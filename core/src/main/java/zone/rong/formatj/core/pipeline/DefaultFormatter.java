@@ -47,10 +47,20 @@ public final class DefaultFormatter implements Formatter {
     private final LanguageLevel languageLevel;
     private final boolean previewFeatures;
     private final boolean verify;
+    private final boolean rewritesEnabled;
     private final List<Rewrite> rewrites;
 
     public DefaultFormatter(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean verify) {
-        this(style, languageLevel, previewFeatures, verify, RewriteStage.defaults());
+        this(style, languageLevel, previewFeatures, verify, true, RewriteStage.defaults());
+    }
+
+    public DefaultFormatter(
+            Style style,
+            LanguageLevel languageLevel,
+            boolean previewFeatures,
+            boolean verify,
+            boolean rewritesEnabled) {
+        this(style, languageLevel, previewFeatures, verify, rewritesEnabled, RewriteStage.defaults());
     }
 
     /**
@@ -65,10 +75,21 @@ public final class DefaultFormatter implements Formatter {
             boolean previewFeatures,
             boolean verify,
             List<Rewrite> rewrites) {
+        this(style, languageLevel, previewFeatures, verify, true, rewrites);
+    }
+
+    DefaultFormatter(
+            Style style,
+            LanguageLevel languageLevel,
+            boolean previewFeatures,
+            boolean verify,
+            boolean rewritesEnabled,
+            List<Rewrite> rewrites) {
         this.style = style;
         this.languageLevel = languageLevel;
         this.previewFeatures = previewFeatures;
         this.verify = verify;
+        this.rewritesEnabled = rewritesEnabled;
         this.rewrites = List.copyOf(rewrites);
     }
 
@@ -105,7 +126,7 @@ public final class DefaultFormatter implements Formatter {
             return FormatResult.unchanged(source).withDiagnostics(diagnostics);
         }
 
-        Attempt attempt = attempt(parsed, true);
+        Attempt attempt = attempt(parsed, rewritesEnabled);
         if (attempt.failed() && attempt.rewrote()) {
             Attempt withoutRewrites = attempt(parsed, false);
             if (withoutRewrites.failed()) {

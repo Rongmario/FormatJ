@@ -220,7 +220,7 @@ class MavenPluginDescriptorTest {
         assertEquals(
                 System.getProperty("formatj.version"),
                 text(document.getDocumentElement(), "version"),
-                "bump the version in src/main/resources/META-INF/maven/plugin.xml to match the build");
+                "the processed plugin.xml version must match the build");
     }
 
     @Test

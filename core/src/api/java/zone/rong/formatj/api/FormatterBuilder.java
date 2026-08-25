@@ -30,6 +30,14 @@ public interface FormatterBuilder {
      */
     FormatterBuilder verify(boolean verify);
 
+    /**
+     * Whether rules that add or remove code may run. Defaults to {@code true}.
+     *
+     * <p>A whitespace-only formatting request, such as IntelliJ's reformat-on-paste, turns this off
+     * so a layout pass cannot add braces or reorder imports.
+     */
+    FormatterBuilder rewrites(boolean rewrites);
+
     /** Builds an immutable, thread-safe formatter. */
     Formatter build();
 

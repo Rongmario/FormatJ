@@ -2,6 +2,7 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 
 plugins {
     `java-library`
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 java {
@@ -9,6 +10,14 @@ java {
         languageVersion = JavaLanguageVersion.of(25)
     }
     withSourcesJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
+}
+
+base {
+    archivesName.set("formatj")
 }
 
 val apiSources: SourceSet = sourceSets.create("apiSources")
@@ -33,6 +42,10 @@ tasks.jar {
 
 tasks.named<Jar>("sourcesJar") {
     from(apiSources.allJava)
+}
+
+tasks.javadoc {
+    source(apiSources.allJava)
 }
 
 // Consumers resolve a project dependency to its class directories, not its jar, so the api source

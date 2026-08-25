@@ -5,7 +5,16 @@ plugins {
 
 allprojects {
     group = "zone.rong.formatj"
-    version = "0.1.0"
+}
+
+subprojects {
+    version = rootProject.version
+    plugins.withType<JavaPlugin>().configureEach {
+        tasks.withType<Javadoc>().configureEach {
+            options.encoding = "UTF-8"
+            (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+        }
+    }
 }
 
 val formatjCli = configurations.create("formatjCli") {

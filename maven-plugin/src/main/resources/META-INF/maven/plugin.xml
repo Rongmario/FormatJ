@@ -2,15 +2,15 @@
 <!--
   The FormatJ Maven plugin descriptor.
 
-  Hand-written and kept in sync with the mojo annotations, and with the project version, by
-  MavenPluginDescriptorTest, so that building this plugin needs nothing but a JDK and Gradle.
+  Hand-written and kept in sync with the mojo annotations by MavenPluginDescriptorTest.
+  The version token is replaced with the computed project version at processResources.
 -->
 <plugin>
   <name>FormatJ Maven Plugin</name>
   <description>Formats Java sources with FormatJ, using the same rules as the CLI and Gradle plugin.</description>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.1.0</version>
+  <version>@version@</version>
   <goalPrefix>formatj</goalPrefix>
   <isolatedRealm>false</isolatedRealm>
   <inheritedByDefault>true</inheritedByDefault>

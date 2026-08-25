@@ -37,6 +37,7 @@ public final class FormatJ {
         private LanguageLevel languageLevel = LanguageLevel.LATEST;
         private boolean previewFeatures;
         private boolean verify = true;
+        private boolean rewrites = true;
 
         @Override
         public FormatterBuilder style(Style style) {
@@ -63,8 +64,14 @@ public final class FormatJ {
         }
 
         @Override
+        public FormatterBuilder rewrites(boolean rewrites) {
+            this.rewrites = rewrites;
+            return this;
+        }
+
+        @Override
         public Formatter build() {
-            return new DefaultFormatter(style, languageLevel, previewFeatures, verify);
+            return new DefaultFormatter(style, languageLevel, previewFeatures, verify, rewrites);
         }
 
     }

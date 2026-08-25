@@ -1,11 +1,19 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 plugins {
     `java-library`
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
     }
+    withSourcesJar()
+}
+
+base {
+    archivesName.set("formatj-maven-plugin")
 }
 
 description = "Formats Java sources with FormatJ, using the same rules as the CLI and Gradle plugin."
@@ -23,11 +31,20 @@ dependencies {
 // generates it from annotations does not run on Gradle 9, and shelling out to Maven would defeat the
 // point of a build that needs nothing but a JDK. MavenPluginDescriptorTest keeps it honest by
 // checking it against the @Mojo and @Parameter annotations on every build.
+val projectVersion = version.toString()
+tasks.processResources {
+    val tokens = mapOf("version" to projectVersion)
+    inputs.property("version", projectVersion)
+    filesMatching("META-INF/maven/plugin.xml") {
+        filter(mapOf("tokens" to tokens), ReplaceTokens::class.java)
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     systemProperty(
         "formatj.descriptor",
-        layout.projectDirectory.file("src/main/resources/META-INF/maven/plugin.xml").asFile.path,
+        layout.buildDirectory.file("resources/main/META-INF/maven/plugin.xml").get().asFile.absolutePath,
     )
-    systemProperty("formatj.version", project.version.toString())
+    systemProperty("formatj.version", projectVersion)
 }
