@@ -1,0 +1,18 @@
+# FormatJ's own style. Every rule not listed here keeps its built-in default;
+# run `formatj --dump-config` to see the whole catalogue with its effective values.
+
+[indent]
+size = 4
+continuation = 8
+
+[wrapping]
+max-line-length = 120
+chained-calls = "break-all-if-multiline"
+
+[imports]
+groups = ["java", "javax", "*"]
+static-placement = "last"
+
+[preservation]
+keep-author-blank-lines = true
+max-preserved-blank-lines = 1

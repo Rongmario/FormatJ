@@ -1,0 +1,4 @@
+preset = "formatj"
+
+[wrapping]
+max-line-length = 80

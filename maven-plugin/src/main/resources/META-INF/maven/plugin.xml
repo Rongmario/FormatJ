@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The FormatJ Maven plugin descriptor.
+
+  Hand-written and kept in sync with the mojo annotations, and with the project version, by
+  MavenPluginDescriptorTest, so that building this plugin needs nothing but a JDK and Gradle.
+-->
+<plugin>
+  <name>FormatJ Maven Plugin</name>
+  <description>Formats Java sources with FormatJ, using the same rules as the CLI and Gradle plugin.</description>
+  <groupId>zone.rong.formatj</groupId>
+  <artifactId>formatj-maven-plugin</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <goalPrefix>formatj</goalPrefix>
+  <isolatedRealm>false</isolatedRealm>
+  <inheritedByDefault>true</inheritedByDefault>
+  <mojos>
+    <mojo>
+      <goal>format</goal>
+      <description>Formats the project&apos;s Java sources in place.</description>
+      <requiresDependencyResolution>none</requiresDependencyResolution>
+      <requiresDirectInvocation>false</requiresDirectInvocation>
+      <requiresProject>true</requiresProject>
+      <requiresReports>false</requiresReports>
+      <aggregator>false</aggregator>
+      <requiresOnline>false</requiresOnline>
+      <inheritedByDefault>true</inheritedByDefault>
+      <phase>process-sources</phase>
+      <implementation>zone.rong.formatj.maven.FormatMojo</implementation>
+      <language>java</language>
+      <instantiationStrategy>per-lookup</instantiationStrategy>
+      <executionStrategy>once-per-session</executionStrategy>
+      <threadSafe>true</threadSafe>
+      <parameters>
+        <parameter>
+          <name>project</name>
+          <type>org.apache.maven.project.MavenProject</type>
+          <required>true</required>
+          <editable>false</editable>
+          <description>The project being built.</description>
+        </parameter>
+        <parameter>
+          <name>styleFile</name>
+          <type>java.io.File</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Style file to read rules from, usually formatj.toml in the project root.</description>
+        </parameter>
+        <parameter>
+          <name>preset</name>
+          <type>java.lang.String</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Preset to start from: formatj or google.</description>
+        </parameter>
+        <parameter>
+          <name>rules</name>
+          <type>java.util.Map</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Individual rule overrides keyed by dotted option key, applied last.</description>
+        </parameter>
+        <parameter>
+          <name>includes</name>
+          <type>java.util.List</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Globs limiting which files are formatted. Empty means every Java source.</description>
+        </parameter>
+        <parameter>
+          <name>excludes</name>
+          <type>java.util.List</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Globs excluding files from formatting.</description>
+        </parameter>
+        <parameter>
+          <name>includeTestSources</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Whether to format test sources as well as main sources.</description>
+        </parameter>
+        <parameter>
+          <name>languageLevel</name>
+          <type>java.lang.Integer</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Java syntax level to parse, e.g. 21. Defaults to the newest FormatJ knows.</description>
+        </parameter>
+        <parameter>
+          <name>previewFeatures</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Whether preview syntax is accepted for that language level.</description>
+        </parameter>
+        <parameter>
+          <name>encoding</name>
+          <type>java.lang.String</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Encoding of the source files.</description>
+        </parameter>
+        <parameter>
+          <name>skip</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Skips the goal entirely.</description>
+        </parameter>
+      </parameters>
+      <configuration>
+        <project implementation="org.apache.maven.project.MavenProject" default-value="${project}"/>
+        <styleFile implementation="java.io.File">${formatj.styleFile}</styleFile>
+        <preset implementation="java.lang.String" default-value="formatj">${formatj.preset}</preset>
+        <rules implementation="java.util.Map"></rules>
+        <includes implementation="java.util.List"></includes>
+        <excludes implementation="java.util.List"></excludes>
+        <includeTestSources implementation="boolean" default-value="true">${formatj.includeTestSources}</includeTestSources>
+        <languageLevel implementation="java.lang.Integer">${formatj.languageLevel}</languageLevel>
+        <previewFeatures implementation="boolean" default-value="false">${formatj.previewFeatures}</previewFeatures>
+        <encoding implementation="java.lang.String" default-value="${project.build.sourceEncoding}">${formatj.encoding}</encoding>
+        <skip implementation="boolean" default-value="false">${formatj.skip}</skip>
+      </configuration>
+    </mojo>
+    <mojo>
+      <goal>check</goal>
+      <description>Fails the build when a Java source is not formatted to the configured style.</description>
+      <requiresDependencyResolution>none</requiresDependencyResolution>
+      <requiresDirectInvocation>false</requiresDirectInvocation>
+      <requiresProject>true</requiresProject>
+      <requiresReports>false</requiresReports>
+      <aggregator>false</aggregator>
+      <requiresOnline>false</requiresOnline>
+      <inheritedByDefault>true</inheritedByDefault>
+      <phase>verify</phase>
+      <implementation>zone.rong.formatj.maven.CheckMojo</implementation>
+      <language>java</language>
+      <instantiationStrategy>per-lookup</instantiationStrategy>
+      <executionStrategy>once-per-session</executionStrategy>
+      <threadSafe>true</threadSafe>
+      <parameters>
+        <parameter>
+          <name>project</name>
+          <type>org.apache.maven.project.MavenProject</type>
+          <required>true</required>
+          <editable>false</editable>
+          <description>The project being built.</description>
+        </parameter>
+        <parameter>
+          <name>styleFile</name>
+          <type>java.io.File</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Style file to read rules from, usually formatj.toml in the project root.</description>
+        </parameter>
+        <parameter>
+          <name>preset</name>
+          <type>java.lang.String</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Preset to start from: formatj or google.</description>
+        </parameter>
+        <parameter>
+          <name>rules</name>
+          <type>java.util.Map</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Individual rule overrides keyed by dotted option key, applied last.</description>
+        </parameter>
+        <parameter>
+          <name>includes</name>
+          <type>java.util.List</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Globs limiting which files are formatted. Empty means every Java source.</description>
+        </parameter>
+        <parameter>
+          <name>excludes</name>
+          <type>java.util.List</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Globs excluding files from formatting.</description>
+        </parameter>
+        <parameter>
+          <name>includeTestSources</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Whether to format test sources as well as main sources.</description>
+        </parameter>
+        <parameter>
+          <name>languageLevel</name>
+          <type>java.lang.Integer</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Java syntax level to parse, e.g. 21. Defaults to the newest FormatJ knows.</description>
+        </parameter>
+        <parameter>
+          <name>previewFeatures</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Whether preview syntax is accepted for that language level.</description>
+        </parameter>
+        <parameter>
+          <name>encoding</name>
+          <type>java.lang.String</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Encoding of the source files.</description>
+        </parameter>
+        <parameter>
+          <name>skip</name>
+          <type>boolean</type>
+          <required>false</required>
+          <editable>true</editable>
+          <description>Skips the goal entirely.</description>
+        </parameter>
+      </parameters>
+      <configuration>
+        <project implementation="org.apache.maven.project.MavenProject" default-value="${project}"/>
+        <styleFile implementation="java.io.File">${formatj.styleFile}</styleFile>
+        <preset implementation="java.lang.String" default-value="formatj">${formatj.preset}</preset>
+        <rules implementation="java.util.Map"></rules>
+        <includes implementation="java.util.List"></includes>
+        <excludes implementation="java.util.List"></excludes>
+        <includeTestSources implementation="boolean" default-value="true">${formatj.includeTestSources}</includeTestSources>
+        <languageLevel implementation="java.lang.Integer">${formatj.languageLevel}</languageLevel>
+        <previewFeatures implementation="boolean" default-value="false">${formatj.previewFeatures}</previewFeatures>
+        <encoding implementation="java.lang.String" default-value="${project.build.sourceEncoding}">${formatj.encoding}</encoding>
+        <skip implementation="boolean" default-value="false">${formatj.skip}</skip>
+      </configuration>
+    </mojo>
+  </mojos>
+</plugin>
