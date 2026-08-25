@@ -34,11 +34,6 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
 - **Author's layout matters.** The `preservation.*` rules keep blank lines, chain breaks and
   hand-arranged initializers the author chose. Refusing to do that is what makes a formatter
   correct but unpleasant.
-- **One answer about the author's lines.** Ten rules across four groups turn on the same question —
-  did the author write this on one line? — so it is answered in one place and they cannot disagree.
-  A rule only ever makes the single line possible; whether it is taken is still the layout engine's
-  decision against `wrapping.max-line-length`, and what comes out when it is not taken is exactly
-  what an already-expanded construct produces.
 
 ## Library Usage
 
@@ -432,15 +427,19 @@ Every rule here is a rewrite despite looking like a normal layout pass. None is 
 
 These are the rules that keep what the author wrote.
 
-`keep-line-break-after-open-paren`, `keep-simple-blocks-inline` and `never-join-lines` read the
-author's line structure, as do `wrapping.keep-simple-{methods,lambdas,classes}-on-one-line`,
-`patterns.keep-simple-pattern-inline`, `switch.null-default-on-one-line` and
-`wrapping.throws-clause = preserve`. All of them ask one question, answered once: a construct is on
-one line when no line terminator falls between its first token and its last character. A comment the
-author kept inline is part of that line; a comment that ended one is not, so a body carrying a `//`
-comment was never on one line and is laid out as any other. `never-join-lines` applies wherever the
-layout engine has an optional break to keep, which is every wrapping decision; where the emitter
-writes a fixed space there is no break for it to keep.
+- `keep-line-break-after-open-paren`
+- `keep-simple-blocks-inline`
+- `never-join-lines`
+- `wrapping.keep-simple-{methods,lambdas,classes}-on-one-line`
+- `patterns.keep-simple-pattern-inline`
+- `switch.null-default-on-one-line`
+- `wrapping.throws-clause = preserve`
+
+- A construct is on one line when no line terminator falls between its first token and its last character.
+- A comment the author kept inline is part of that line but a comment that ended one is not
+  - Therefore, a body carrying a `//` comment was never on one line and is laid out as any other.
+  
+- `never-join-lines` applies when there is a wrapping decision
 
 | Key                                                   | Values  | Default | Effect                                                   | Example                                                      |
 |-------------------------------------------------------|---------|---------|----------------------------------------------------------|--------------------------------------------------------------|
