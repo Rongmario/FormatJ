@@ -63,7 +63,7 @@ Rules resolve strongest-first: `--set key=value`, then `--preset` or `--style`, 
 
 Build it with `./gradlew :app:installDist` and the launcher lands in `app/build/install/formatj/bin`.
 
-## Using the Gradle plugin
+## Gradle Plugin Usage
 
 ```kotlin
 plugins {

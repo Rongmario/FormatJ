@@ -11,10 +11,8 @@ public record Diagnostic(Diagnostic.Severity severity, String message, int line,
 
         /** Formatting was abandoned; the source is returned untouched. */
         ERROR,
-
         /** Formatting completed, but something about the input is suspect. */
         WARNING,
-
         /** Informational only. */
         INFO
 

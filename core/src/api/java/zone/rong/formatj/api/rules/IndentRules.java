@@ -36,7 +36,7 @@ public final class IndentRules {
     public static final Option<Boolean> BLANK_LINES =
             Option.ofBoolean("indent.blank-lines", false, "Emit indentation whitespace on otherwise blank lines");
 
-    private IndentRules() {}
+    private IndentRules() { }
 
     /** Fluent view of the {@code indent.*} rules. */
     public static final class Builder {

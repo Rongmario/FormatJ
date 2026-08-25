@@ -46,7 +46,7 @@ public final class ImportRules {
     public static final Option<Boolean> MODULE_IMPORTS_FIRST =
             Option.ofBoolean("imports.module-imports-first", true, "Place module imports before every other import");
 
-    private ImportRules() {}
+    private ImportRules() { }
 
     /** Fluent view of the {@code imports.*} rules. */
     public static final class Builder {

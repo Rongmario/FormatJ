@@ -21,7 +21,7 @@ public final class TextBlockRules {
     public static final Option<Boolean> ESCAPE_TRAILING_SPACES =
             Option.ofBoolean("text-blocks.escape-trailing-spaces", true, "Escape significant trailing spaces with \\s");
 
-    private TextBlockRules() {}
+    private TextBlockRules() { }
 
     /** Fluent view of the {@code text-blocks.*} rules. */
     public static final class Builder {

@@ -42,7 +42,7 @@ public final class PreservationRules {
     public static final Option<Boolean> NEVER_JOIN_LINES =
             Option.ofBoolean("preservation.never-join-lines", false, "Never merge two lines the author kept apart");
 
-    private PreservationRules() {}
+    private PreservationRules() { }
 
     /** Fluent view of the {@code preservation.*} rules. */
     public static final class Builder {

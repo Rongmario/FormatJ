@@ -123,7 +123,7 @@ public final class SpacingRules {
                     true,
                     "Space between a varargs ellipsis and the parameter name");
 
-    private SpacingRules() {}
+    private SpacingRules() { }
 
     /** Fluent view of the {@code spacing.*} rules. */
     public static final class Builder {

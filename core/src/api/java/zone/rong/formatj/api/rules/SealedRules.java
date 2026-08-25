@@ -15,7 +15,7 @@ public final class SealedRules {
     public static final Option<Boolean> PERMITS_ON_NEW_LINE =
             Option.ofBoolean("sealed.permits-on-new-line", false, "Start the permits clause on its own line");
 
-    private SealedRules() {}
+    private SealedRules() { }
 
     /** Fluent view of the {@code sealed.*} rules. */
     public static final class Builder {

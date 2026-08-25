@@ -56,7 +56,7 @@ public final class DocPrinter {
 
     }
 
-    private record Command(int indent, Mode mode, Doc doc) {}
+    private record Command(int indent, Mode mode, Doc doc) { }
 
     public String print(Doc document) {
         Doc prepared = DocBreaks.propagate(document);

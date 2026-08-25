@@ -14,7 +14,7 @@ import java.util.List;
  */
 public final class TokenEquivalence {
 
-    private TokenEquivalence() {}
+    private TokenEquivalence() { }
 
     /** Whether the two sources differ only in whitespace and comments. */
     public static boolean equivalent(String before, String after) {

@@ -114,7 +114,7 @@ public final class WrappingRules {
                     false,
                     "Allow a short class body to stay on one line");
 
-    private WrappingRules() {}
+    private WrappingRules() { }
 
     /** Fluent view of the {@code wrapping.*} rules. */
     public static final class Builder {

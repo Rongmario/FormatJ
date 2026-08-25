@@ -66,7 +66,7 @@ public final class OptionRegistry {
         }
     }
 
-    private OptionRegistry() {}
+    private OptionRegistry() { }
 
     static void register(Option<?> option) {
         Option<?> previous = BY_KEY.putIfAbsent(option.key(), option);

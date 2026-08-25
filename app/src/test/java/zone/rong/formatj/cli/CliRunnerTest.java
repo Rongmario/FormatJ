@@ -24,7 +24,7 @@ class CliRunnerTest {
             }
             """;
 
-    private record Run(int exitCode, String out, String err) {}
+    private record Run(int exitCode, String out, String err) { }
 
     private static Run run(String stdin, String... arguments) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();

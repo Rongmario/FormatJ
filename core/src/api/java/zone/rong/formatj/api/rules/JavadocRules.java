@@ -30,7 +30,7 @@ public final class JavadocRules {
     public static final Option<Integer> TAG_CONTINUATION_INDENT =
             Option.ofInt("javadoc.tag-continuation-indent", 8, "Columns a wrapped block tag description is indented");
 
-    private JavadocRules() {}
+    private JavadocRules() { }
 
     /** Fluent view of the {@code javadoc.*} rules. */
     public static final class Builder {

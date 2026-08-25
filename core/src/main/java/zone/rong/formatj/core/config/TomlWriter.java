@@ -13,7 +13,7 @@ import java.util.List;
  */
 public final class TomlWriter {
 
-    private TomlWriter() {}
+    private TomlWriter() { }
 
     /** The whole catalogue with this style's effective values, grouped and commented. */
     public static String write(Style style) {

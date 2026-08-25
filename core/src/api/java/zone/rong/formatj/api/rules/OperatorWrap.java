@@ -5,7 +5,6 @@ public enum OperatorWrap {
 
     /** Operator starts the continuation line. */
     BEFORE_OPERATOR,
-
     /** Operator ends the line being broken. */
     AFTER_OPERATOR
 

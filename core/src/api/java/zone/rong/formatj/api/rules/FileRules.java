@@ -21,7 +21,7 @@ public final class FileRules {
     public static final Option<Integer> TAB_WIDTH =
             Option.ofInt("file.tab-width", 4, "Columns a tab character occupies when measuring line length");
 
-    private FileRules() {}
+    private FileRules() { }
 
     /** Fluent view of the {@code file.*} rules. */
     public static final class Builder {

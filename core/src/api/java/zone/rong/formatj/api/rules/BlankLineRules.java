@@ -57,7 +57,7 @@ public final class BlankLineRules {
     public static final Option<Integer> BETWEEN_SWITCH_CASES =
             Option.ofInt("blank-lines.between-switch-cases", 0, "Blank lines between the cases of a switch");
 
-    private BlankLineRules() {}
+    private BlankLineRules() { }
 
     /** Fluent view of the {@code blank-lines.*} rules. */
     public static final class Builder {

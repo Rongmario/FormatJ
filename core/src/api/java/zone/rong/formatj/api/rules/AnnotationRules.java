@@ -24,7 +24,7 @@ public final class AnnotationRules {
                     false,
                     "Keep a lone marker annotation on the line of its declaration");
 
-    private AnnotationRules() {}
+    private AnnotationRules() { }
 
     /** Fluent view of the {@code annotations.*} rules. */
     public static final class Builder {

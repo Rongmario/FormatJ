@@ -24,7 +24,7 @@ public final class PatternRules {
     public static final Option<Integer> NESTED_INDENT =
             Option.ofInt("patterns.nested-indent", 8, "Columns a wrapped nested pattern is indented");
 
-    private PatternRules() {}
+    private PatternRules() { }
 
     /** Fluent view of the {@code patterns.*} rules. */
     public static final class Builder {

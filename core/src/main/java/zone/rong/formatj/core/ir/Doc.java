@@ -19,44 +19,42 @@ public sealed interface Doc {
 
         /** Renders as a single space when flat, a line break when broken. */
         LINE,
-
         /** Renders as nothing when flat, a line break when broken. */
         SOFT,
-
         /** Always a line break; forces every enclosing group to break. */
         HARD
 
     }
 
     /** Literal text; must not contain a line terminator. */
-    record Text(String value) implements Doc {}
+    record Text(String value) implements Doc { }
 
     /** A sequence of documents. */
-    record Concat(List<Doc> parts) implements Doc {}
+    record Concat(List<Doc> parts) implements Doc { }
 
     /** A place a line break may be taken. */
-    record Break(BreakKind kind) implements Doc {}
+    record Break(BreakKind kind) implements Doc { }
 
     /** A unit that is printed flat if it fits, or broken as a whole if it does not. */
-    record Group(Doc content, boolean shouldBreak) implements Doc {}
+    record Group(Doc content, boolean shouldBreak) implements Doc { }
 
     /** Adds {@code columns} of indentation to line breaks inside {@code content}. */
-    record Indent(int columns, Doc content) implements Doc {}
+    record Indent(int columns, Doc content) implements Doc { }
 
     /** Indents {@code content} to the current column rather than by a fixed amount. */
-    record Align(Doc content) implements Doc {}
+    record Align(Doc content) implements Doc { }
 
     /** Fills as many parts onto each line as fit, breaking between them as needed. */
-    record Fill(List<Doc> parts) implements Doc {}
+    record Fill(List<Doc> parts) implements Doc { }
 
     /** Prints {@code broken} when the enclosing group breaks, {@code flat} when it does not. */
-    record IfBreak(Doc broken, Doc flat) implements Doc {}
+    record IfBreak(Doc broken, Doc flat) implements Doc { }
 
     /** Defers {@code content} to the end of the current line; how trailing comments are placed. */
-    record LineSuffix(Doc content) implements Doc {}
+    record LineSuffix(Doc content) implements Doc { }
 
     /** Forces every enclosing group to break without printing anything itself. */
-    record BreakParent() implements Doc {}
+    record BreakParent() implements Doc { }
 
     Doc EMPTY = new Text("");
 

@@ -36,7 +36,7 @@ public final class SwitchRules {
                     true,
                     "Move a long arrow case body to the next line");
 
-    private SwitchRules() {}
+    private SwitchRules() { }
 
     /** Fluent view of the {@code switch.*} rules. */
     public static final class Builder {

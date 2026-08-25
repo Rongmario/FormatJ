@@ -17,7 +17,6 @@ public enum LanguageLevel {
     JAVA_23(23),
     JAVA_24(24),
     JAVA_25(25)
-
     ;
 
     /** The newest release FormatJ knows about. */

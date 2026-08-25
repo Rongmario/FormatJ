@@ -46,9 +46,14 @@ class MavenPluginDescriptorTest {
                     Pattern.DOTALL);
     private static final Pattern ATTRIBUTE = Pattern.compile("(\\w+)\\s*=\\s*(\"[^\"]*\"|[\\w.]+)");
 
-    private record MojoSource(String goal, String phase, String resolution, String threadSafe, String implementation) {}
+    private record MojoSource(
+            String goal,
+            String phase,
+            String resolution,
+            String threadSafe,
+            String implementation) { }
 
-    private record ParameterSource(String name, String property, String defaultValue) {}
+    private record ParameterSource(String name, String property, String defaultValue) { }
 
     private static Document descriptor() throws Exception {
         Path path = Path.of(System.getProperty("formatj.descriptor"));

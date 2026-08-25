@@ -13,14 +13,14 @@ import java.util.List;
  */
 public final class DocBreaks {
 
-    private DocBreaks() {}
+    private DocBreaks() { }
 
     /** Returns an equivalent document with every group that must break marked as breaking. */
     public static Doc propagate(Doc doc) {
         return rewrite(doc).doc();
     }
 
-    private record Rewritten(Doc doc, boolean forcesBreak) {}
+    private record Rewritten(Doc doc, boolean forcesBreak) { }
 
     private static Rewritten rewrite(Doc doc) {
         return switch (doc) {

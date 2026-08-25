@@ -26,7 +26,7 @@ public final class StyleFiles {
 
     private static final String PRESET_KEY = "preset";
 
-    private StyleFiles() {}
+    private StyleFiles() { }
 
     /** Reads a style file. */
     public static Style load(Path file) {

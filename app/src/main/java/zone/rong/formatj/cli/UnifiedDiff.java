@@ -13,7 +13,7 @@ public final class UnifiedDiff {
 
     private static final int CONTEXT = 3;
 
-    private UnifiedDiff() {}
+    private UnifiedDiff() { }
 
     /** A unified diff of two texts, or an empty string when they are identical. */
     public static String between(String name, String before, String after) {

@@ -21,7 +21,7 @@ public final class LambdaRules {
                     true,
                     "Keep a single-expression body on the arrow's line");
 
-    private LambdaRules() {}
+    private LambdaRules() { }
 
     /** Fluent view of the {@code lambdas.*} rules. */
     public static final class Builder {

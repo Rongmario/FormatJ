@@ -45,7 +45,7 @@ public final class CommentRules {
     public static final Option<String> ON_MARKER =
             Option.ofString("comments.on-marker", "formatj:on", "Marker that resumes formatting");
 
-    private CommentRules() {}
+    private CommentRules() { }
 
     /** Fluent view of the {@code comments.*} rules. */
     public static final class Builder {

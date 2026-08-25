@@ -21,10 +21,8 @@ public final class TriviaAttacher {
 
         /** On its own line or lines, before the owning token. */
         LEADING,
-
         /** After the owning token, on the same line. */
         TRAILING,
-
         /** Inside an otherwise empty construct, owned by nothing in particular. */
         DANGLING
 
@@ -37,9 +35,9 @@ public final class TriviaAttacher {
      * @param ownerIndex index in the token list of the token the comment attaches to
      * @param attachment how it relates to that token
      */
-    public record AttachedComment(Token comment, int ownerIndex, Attachment attachment) {}
+    public record AttachedComment(Token comment, int ownerIndex, Attachment attachment) { }
 
-    private TriviaAttacher() {}
+    private TriviaAttacher() { }
 
     /** Classifies every comment in a token stream. */
     public static List<AttachedComment> attach(List<Token> tokens) {

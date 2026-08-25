@@ -30,7 +30,7 @@ public final class RecordRules {
     public static final Option<Boolean> SPACE_BEFORE_WITH_BLOCK =
             Option.ofBoolean("records.space-before-with-block", true, "Space between the with keyword and its block");
 
-    private RecordRules() {}
+    private RecordRules() { }
 
     /** Fluent view of the {@code records.*} rules. */
     public static final class Builder {

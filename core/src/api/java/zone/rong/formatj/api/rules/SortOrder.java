@@ -5,10 +5,8 @@ public enum SortOrder {
 
     /** Leave the author's order. */
     PRESERVE,
-
     /** Lexicographic ascending. */
     ASCENDING,
-
     /** Lexicographic descending. */
     DESCENDING
 

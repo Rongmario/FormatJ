@@ -51,7 +51,7 @@ public final class AlignmentRules {
                     AlignmentPolicy.NONE,
                     "Align comments trailing consecutive lines");
 
-    private AlignmentRules() {}
+    private AlignmentRules() { }
 
     /** Fluent view of the {@code alignment.*} rules. */
     public static final class Builder {

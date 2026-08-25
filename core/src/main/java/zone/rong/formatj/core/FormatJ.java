@@ -19,7 +19,7 @@ import java.util.Objects;
  */
 public final class FormatJ {
 
-    private FormatJ() {}
+    private FormatJ() { }
 
     /** A builder for a formatter using default rules and the newest language level. */
     public static FormatterBuilder newFormatter() {

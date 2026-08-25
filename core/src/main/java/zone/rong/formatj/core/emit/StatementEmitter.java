@@ -58,9 +58,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<GreenNode> body = children.subList(1, children.size() - 1);
 
         if (body.isEmpty() && !hasLeadingComments(close)) {
-            return emptyStyle == EmptyBodyStyle.COMPACT
-                    ? Doc.concat(emit(open), emit(close))
-                    : Doc.concat(emit(open), Doc.hardLine(), closeBrace(close));
+            return switch (emptyStyle) {
+                case COMPACT -> Doc.concat(emit(open), emit(close));
+                case SPACED -> Doc.concat(emit(open), space(), emit(close));
+                case EXPANDED -> Doc.concat(emit(open), Doc.hardLine(), closeBrace(close));
+            };
         }
 
         List<Doc> parts = new ArrayList<>();

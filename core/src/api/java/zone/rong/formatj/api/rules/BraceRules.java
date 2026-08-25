@@ -49,18 +49,18 @@ public final class BraceRules {
             Option.ofBoolean("braces.finally-on-new-line", false, "Put finally on the line after the closing brace");
 
     public static final Option<EmptyBodyStyle> EMPTY_CLASS_BODY =
-            Option.ofEnum("braces.empty-class-body", EmptyBodyStyle.COMPACT, "Rendering of an empty type body");
+            Option.ofEnum("braces.empty-class-body", EmptyBodyStyle.SPACED, "Rendering of an empty type body");
 
     public static final Option<EmptyBodyStyle> EMPTY_METHOD_BODY =
-            Option.ofEnum("braces.empty-method-body", EmptyBodyStyle.COMPACT, "Rendering of an empty method body");
+            Option.ofEnum("braces.empty-method-body", EmptyBodyStyle.SPACED, "Rendering of an empty method body");
 
     public static final Option<EmptyBodyStyle> EMPTY_CONTROL_BODY =
             Option.ofEnum(
                     "braces.empty-control-body",
-                    EmptyBodyStyle.COMPACT,
+                    EmptyBodyStyle.SPACED,
                     "Rendering of an empty control statement body");
 
-    private BraceRules() {}
+    private BraceRules() { }
 
     /** Fluent view of the {@code braces.*} rules. */
     public static final class Builder {
