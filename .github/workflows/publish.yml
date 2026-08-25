@@ -1,0 +1,92 @@
+# Publishes a tagged release.
+#
+# The git tag must equal the numeric `version` in gradle.properties (no `v` prefix)
+# and sit on that commit (distance 0). Then:
+#   - Gradle plugin → Plugin Portal
+#   - formatj + formatj-maven-plugin → maven.cleanroommc.com
+#   - CLI distribution → GitHub Release
+#
+# Secrets: GRADLE_PUBLISH_KEY, GRADLE_PUBLISH_SECRET, SIGNING_KEY, SIGNING_PASSWORD,
+# MAVEN_NAME, MAVEN_PASSWORD.
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      validate-only:
+        description: Validate publication metadata without uploading
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "*.*.*"
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Test
+        run: ./gradlew check -Pversioning.publish
+
+      - name: Print version
+        id: version
+        run: echo "version=$(./gradlew -q printVersion -Pversioning.publish)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Plugin Portal
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew publishPlugins --no-configuration-cache -Pversioning.publish ${{ inputs.validate-only && '--validate-only' || '' }}
+
+      - name: Publish to Cleanroom Maven
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.validate-only }}
+        env:
+          ORG_GRADLE_PROJECT_CleanroomMavenUsername: ${{ secrets.MAVEN_NAME }}
+          ORG_GRADLE_PROJECT_CleanroomMavenPassword: ${{ secrets.MAVEN_PASSWORD }}
+        run: ./gradlew :core:publish :maven-plugin:publish --no-configuration-cache -Pversioning.publish
+
+      - name: Build CLI
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.validate-only }}
+        run: ./gradlew :app:distZip :app:distTar -Pversioning.publish
+
+      - name: GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.validate-only }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          assets=(
+            "app/build/distributions/formatj-${VERSION}.zip"
+            "app/build/distributions/formatj-${VERSION}.tar"
+          )
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" "${assets[@]}" --clobber
+          else
+            gh release create "$VERSION" \
+              --title "FormatJ ${VERSION}" \
+              --generate-notes \
+              "${assets[@]}"
+          fi
