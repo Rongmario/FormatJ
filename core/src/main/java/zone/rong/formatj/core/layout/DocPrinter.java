@@ -23,6 +23,7 @@ public final class DocPrinter {
     private final int tabWidth;
     private final String lineSeparator;
     private final boolean trimTrailingWhitespace;
+    private final boolean indentBlankLines;
 
     /**
      * @param maxWidth columns a line may occupy before groups must break
@@ -30,19 +31,28 @@ public final class DocPrinter {
      * @param tabWidth columns one tab occupies, used both to write and to measure indentation
      * @param lineSeparator the terminator written at every line break
      * @param trimTrailingWhitespace whether a line's trailing spaces are dropped as it is closed
+     * @param indentBlankLines whether a line with nothing on it still carries its indentation. The
+     *     two settings meet on exactly those lines: trimming would strip the indentation away again,
+     *     so this exempts a blank line from it and leaves every other line trimmed as before.
      */
     public DocPrinter(
-            int maxWidth, boolean useTabs, int tabWidth, String lineSeparator, boolean trimTrailingWhitespace) {
+            int maxWidth,
+            boolean useTabs,
+            int tabWidth,
+            String lineSeparator,
+            boolean trimTrailingWhitespace,
+            boolean indentBlankLines) {
         this.maxWidth = maxWidth;
         this.useTabs = useTabs;
         this.tabWidth = tabWidth;
         this.lineSeparator = lineSeparator;
         this.trimTrailingWhitespace = trimTrailingWhitespace;
+        this.indentBlankLines = indentBlankLines;
     }
 
     /** A printer indenting with spaces and ending lines with a newline. */
     public static DocPrinter ofSpaces(int maxWidth) {
-        return new DocPrinter(maxWidth, false, 4, "\n", true);
+        return new DocPrinter(maxWidth, false, 4, "\n", true, false);
     }
 
     /** Indentation text for a column count, honouring the tab settings. */
@@ -115,7 +125,7 @@ public final class DocPrinter {
                         lineSuffixes.clear();
                         break;
                     }
-                    if (trimTrailingWhitespace) {
+                    if (trimTrailingWhitespace && !(indentBlankLines && lineIsAllWhitespace(out))) {
                         trimTrailingSpaces(out);
                     }
                     out.append(lineSeparator).append(indentation(indent));
@@ -125,8 +135,15 @@ public final class DocPrinter {
         }
 
         for (Doc suffix : lineSuffixes) {
-            out.append(new DocPrinter(maxWidth, useTabs, tabWidth, lineSeparator, trimTrailingWhitespace)
-                    .print(suffix));
+            out.append(
+                    new DocPrinter(
+                                    maxWidth,
+                                    useTabs,
+                                    tabWidth,
+                                    lineSeparator,
+                                    trimTrailingWhitespace,
+                                    indentBlankLines)
+                            .print(suffix));
         }
         return out.toString();
     }
@@ -232,6 +249,18 @@ public final class DocPrinter {
             }
         }
         return false;
+    }
+
+    /** Whether nothing but whitespace has been written since the last line separator. */
+    private boolean lineIsAllWhitespace(StringBuilder out) {
+        int start = out.lastIndexOf(lineSeparator);
+        for (int i = start < 0 ? 0 : start + lineSeparator.length(); i < out.length(); i++) {
+            char current = out.charAt(i);
+            if (current != ' ' && current != '\t') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void trimTrailingSpaces(StringBuilder out) {

@@ -1,0 +1,3 @@
+[wrapping]
+keep-simple-methods-on-one-line = true
+keep-simple-classes-on-one-line = true

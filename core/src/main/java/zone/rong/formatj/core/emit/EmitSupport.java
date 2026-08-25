@@ -48,6 +48,37 @@ abstract class EmitSupport {
         return rule(IndentRules.CONTINUATION);
     }
 
+    // ------------------------------------------------------- author's lines
+
+    /**
+     * Whether a construct the author wrote on one line may stay on one line.
+     *
+     * <p>This is the seam every rule in the keep-on-one-line group goes through: the rule says
+     * whether the style tolerates the shape at all, {@link AuthorLines} says whether the author
+     * actually chose it, and the layout engine still decides whether it fits. Answering "yes" only
+     * makes the single line <em>possible</em>; it never widens a line past the margin.
+     */
+    protected boolean keepsOnOneLine(GreenNode node, Option<Boolean> option) {
+        return rule(option) && AuthorLines.onOneLine(node);
+    }
+
+    /**
+     * Whether lines the author kept apart inside this node may be joined.
+     *
+     * <p>The dual reading of the same question, and what {@code preservation.never-join-lines} turns
+     * on. It is consulted wherever the layout engine has an optional break to take, which is every
+     * wrapping decision; where the emitter writes a fixed space there is no break to keep and the
+     * author's own one is gone whatever this says.
+     */
+    protected boolean mayJoin(GreenNode node) {
+        return !rule(PreservationRules.NEVER_JOIN_LINES) || AuthorLines.onOneLine(node);
+    }
+
+    /** A group that starts out broken when the author's own line breaks have to survive. */
+    protected Doc authorGroup(GreenNode node, Doc content) {
+        return mayJoin(node) ? Doc.group(content) : Doc.breakingGroup(content);
+    }
+
     /** What separates a construct's header from its opening brace. */
     protected Doc braceLead(BracePlacement placement) {
         return switch (placement) {

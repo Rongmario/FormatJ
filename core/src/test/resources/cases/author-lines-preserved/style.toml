@@ -1,0 +1,6 @@
+[preservation]
+never-join-lines = true
+keep-line-break-after-open-paren = true
+
+[wrapping]
+throws-clause = "preserve"

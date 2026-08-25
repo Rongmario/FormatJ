@@ -7,7 +7,8 @@ What is real today:
   a half-typed file formats everywhere except the broken part.
 - Layout driven by the rule catalogue: indentation, line length, wrapping of arguments, parameters,
   chains, binary runs, conditions and lists, brace placement, blank lines, spacing, and the
-  preservation rules that keep the author's blank lines, chain breaks and array layouts.
+  preservation rules that keep the author's blank lines, chain breaks, array layouts and the
+  constructs they wrote on a single line.
 - `formatj:off` / `formatj:on` comment markers (`comments.honour-formatter-off`, and the marker text
   itself, are configurable). A marked region is reproduced byte for byte. The escape hatch works at
   whole members, whole statements and whole top-level declarations; a marker in the middle of an
@@ -69,17 +70,46 @@ Defaults: every rule that adds or removes code defaults to the value that change
 the rewrite stage changed no output for anyone. Choosing a house style is a separate decision from
 building the machinery to enforce one.
 
+The rules that read the author's line structure have landed, designed together because they overlap:
+`preservation.keep-simple-blocks-inline`, `preservation.never-join-lines`,
+`preservation.keep-line-break-after-open-paren`, `wrapping.keep-simple-methods-on-one-line`,
+`wrapping.keep-simple-lambdas-on-one-line`, `wrapping.keep-simple-classes-on-one-line`,
+`patterns.keep-simple-pattern-inline`, `switch.null-default-on-one-line`, and two more the earlier
+list had missed, `wrapping.throws-clause` and `indent.blank-lines`.
+
+- They share one question, answered in `AuthorLines`: a construct is on one line when no line
+  terminator falls between its first significant token and its last character. A comment the author
+  kept inline belongs to that line; one that ended a line does not, so a body carrying a `//` comment
+  was never on one line. A text block never is either, since it carries its own line structure.
+- Nothing asks whether a construct is *simple*. How long a line may be is already the layout engine's
+  decision, made against `wrapping.max-line-length` with the whole surrounding line in hand; a
+  statement count or a character budget here would give two answers to one question. A rule only
+  makes the single line possible, never mandatory.
+- A body that may stay on one line is emitted as one group whose breaks are `IfBreak`, with the
+  ordinary layout on the broken side. That is what keeps formatting a fixed point: a body that turned
+  out too long comes back on the next pass as an ordinary multi-line body — blank line padding
+  included — and lays out identically. The same reasoning is why `switch.null-default-on-one-line`
+  asks about the case's labels rather than the whole case: a body too long to sit beside them would
+  answer differently the second time round.
+- `never-join-lines` is the same question read backwards, and applies wherever the layout engine has
+  an optional break to keep, which is every wrapping decision. It also has to suppress a fill and a
+  nested group at those sites: both re-measure what they hold and would quietly rejoin it. Where the
+  emitter writes a fixed space rather than a break there is nothing for the rule to keep.
+- `wrapping.throws-clause = preserve` reproduces the author's decisions rather than making one: the
+  keyword goes on a new line only where they put it, and so does each exception after it.
+
 Layout rules still without an implementation, none of which need the rewrite stage:
 
 - Column alignment: the whole of `alignment.*`.
 - `comments.trailing-comment-column`, `comments.keep-first-column-comments`,
   `comments.indent-with-code`.
-- `preservation.keep-line-break-after-open-paren`, `preservation.keep-simple-blocks-inline`,
-  `preservation.never-join-lines`.
-- `wrapping.keep-simple-methods-on-one-line`, `wrapping.keep-simple-lambdas-on-one-line`,
-  `wrapping.keep-simple-classes-on-one-line`, which overlap with the preservation rules above and
-  should be designed together with them.
-- `patterns.keep-simple-pattern-inline`, `switch.null-default-on-one-line`, `records.with-style`.
+- `records.with-style`.
+- `javadoc.keep-single-line`, which has nothing to guard against until `javadoc.wrap` lands.
+
+One thing found on the way and not fixed: at narrow line lengths a method chain inside a binary
+expression can fail the fixed point check, so the file is returned unchanged with a diagnostic. It
+reproduces with every rule above turned off and predates them. `wrapping.max-line-length = 60` over
+this repository's own sources is enough to see it.
 
 Five entries have been deleted from the catalogue rather than implemented, taking it from 160 rules to
 155. `spacing.after-instanceof` could never be honoured: `instanceof` is always followed by a type

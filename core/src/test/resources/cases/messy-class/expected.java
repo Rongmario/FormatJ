@@ -14,9 +14,7 @@ public class Messy {
 
     public int total() {
         int sum = 0;
-        for (String item : items) {
-            sum += item.length();
-        }
+        for (String item : items) { sum += item.length(); }
         return sum;
     }
 

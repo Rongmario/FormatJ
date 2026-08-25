@@ -34,6 +34,9 @@ abstract class ExpressionEmitter extends EmitSupport {
     /** Implemented by the statement layer; a block whose empty form follows {@code emptyStyle}. */
     protected abstract Doc emitBlockLike(GreenNode node, EmptyBodyStyle emptyStyle);
 
+    /** Implemented by the statement layer; a lambda's block body, which may stay on one line. */
+    protected abstract Doc emitLambdaBody(GreenNode node, EmptyBodyStyle emptyStyle);
+
     // ---------------------------------------------------------------- lists
 
     /**
@@ -87,7 +90,7 @@ abstract class ExpressionEmitter extends EmitSupport {
 
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         Doc inner =
-                policy == WrapPolicy.WRAP_IF_LONG
+                policy == WrapPolicy.WRAP_IF_LONG && mayJoin(node)
                         ? Doc.fill(interleave(elements, separator))
                         : Doc.join(separator, elements);
         Doc edge = spaceInside ? Doc.line() : Doc.softLine();
@@ -95,11 +98,16 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc body = Doc.concat(Doc.indent(indentColumns, Doc.concat(edge, inner)), closingEdge);
         Doc content = Doc.concat(emit(open), body, emit(close));
 
+        // The author's break after the opening delimiter is the one this rule is named for; it is the
+        // same break the PRESERVE policy reads, so a list under either policy keeps it.
+        boolean keepOpenBreak =
+                rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN) && AuthorLines.brokeAfterFirstToken(node);
+
         return switch (policy) {
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
             case PRESERVE -> authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content);
-            default -> Doc.group(content);
+            default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content);
         };
     }
 
@@ -207,10 +215,17 @@ abstract class ExpressionEmitter extends EmitSupport {
             }
         }
         // A run of && or || reads as a list of conditions, so it breaks all at once; arithmetic and
-        // string concatenation read as prose and fill the line instead.
+        // string concatenation read as prose and fill the line instead. A run whose breaks have to
+        // survive gets neither: a fill decides each break by what fits and a nested group is measured
+        // on its own, so either would quietly rejoin it. It is left bare for the group around it.
         boolean logical = !operators.isEmpty() && isLogicalRun(node);
-        Doc body = policy == WrapPolicy.WRAP_IF_LONG && !logical ? Doc.fill(parts) : Doc.group(Doc.concat(parts));
-        return Doc.group(Doc.indent(continuation(), body));
+        Doc run;
+        if (!mayJoin(node)) {
+            run = Doc.concat(parts);
+        } else {
+            run = policy == WrapPolicy.WRAP_IF_LONG && !logical ? Doc.fill(parts) : Doc.group(Doc.concat(parts));
+        }
+        return authorGroup(node, Doc.indent(continuation(), run));
     }
 
     private static boolean isLogicalRun(GreenNode node) {
@@ -273,7 +288,8 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         Doc value = emit(children.getLast());
         boolean spaced = rule(SpacingRules.AROUND_ASSIGNMENT_OPERATORS);
-        return Doc.group(
+        return authorGroup(
+                node,
                 Doc.concat(
                         target,
                         spaceIf(spaced),
@@ -343,7 +359,8 @@ abstract class ExpressionEmitter extends EmitSupport {
                     spaceIf(spaced),
                     whenFalse);
         }
-        return Doc.group(
+        return authorGroup(
+                node,
                 Doc.concat(
                         condition,
                         Doc.indent(
@@ -359,16 +376,42 @@ abstract class ExpressionEmitter extends EmitSupport {
                                         whenFalse))));
     }
 
+    /**
+     * An {@code instanceof} test and the pattern it binds.
+     *
+     * <p>{@code patterns.keep-simple-pattern-inline} decides whether the pattern is tied to the line
+     * of the test it belongs to. Tied, the whole thing is one unbreakable run, and a long condition
+     * has to wrap somewhere else; untied, the pattern may take a line of its own when the test does
+     * not fit, indented under it. A pattern the author had already put on its own line is untied
+     * whatever the rule says, because there is no single line left to keep.
+     */
     protected Doc emitInstanceof(GreenNode node) {
-        List<Doc> parts = new ArrayList<>();
         List<GreenNode> children = node.children();
-        for (int i = 0; i < children.size(); i++) {
-            if (i > 0) {
-                parts.add(space());
+        if (children.size() < 3 || keepsOnOneLine(node, PatternRules.KEEP_SIMPLE_PATTERN_INLINE)) {
+            List<Doc> parts = new ArrayList<>();
+            for (int i = 0; i < children.size(); i++) {
+                if (i > 0) {
+                    parts.add(space());
+                }
+                parts.add(emit(children.get(i)));
             }
-            parts.add(emit(children.get(i)));
+            return Doc.concat(parts);
         }
-        return Doc.concat(parts);
+        // The children are the operand, the instanceof keyword, then the type or pattern it tests for.
+        List<Doc> pattern = new ArrayList<>();
+        for (int i = 2; i < children.size(); i++) {
+            if (i > 2) {
+                pattern.add(space());
+            }
+            pattern.add(emit(children.get(i)));
+        }
+        return authorGroup(
+                node,
+                Doc.concat(
+                        emit(children.get(0)),
+                        space(),
+                        emit(children.get(1)),
+                        Doc.indent(continuation(), Doc.concat(Doc.line(), Doc.concat(pattern)))));
     }
 
     protected Doc emitUnary(GreenNode node) {
@@ -491,7 +534,7 @@ abstract class ExpressionEmitter extends EmitSupport {
 
         ChainPolicy policy = rule(WrappingRules.CHAINED_CALLS);
         int threshold = rule(WrappingRules.CHAIN_THRESHOLD);
-        boolean forceBreak = authorBroke && rule(PreservationRules.RESPECT_EXISTING_CHAIN_BREAKS);
+        boolean forceBreak = authorBroke && (rule(PreservationRules.RESPECT_EXISTING_CHAIN_BREAKS) || !mayJoin(node));
         Doc baseDoc = head;
         if (policy == ChainPolicy.NEVER_BREAK || links.size() < threshold && !forceBreak) {
             return Doc.concat(baseDoc, Doc.concat(linkDocs));
@@ -577,7 +620,7 @@ abstract class ExpressionEmitter extends EmitSupport {
                     spaceIf(spaced),
                     arrow,
                     lead,
-                    emitBlockLike(bodyNode, rule(BraceRules.EMPTY_METHOD_BODY)));
+                    emitLambdaBody(bodyNode, rule(BraceRules.EMPTY_METHOD_BODY)));
         }
         Doc body = emit(bodyNode);
         if (rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {

@@ -7,6 +7,7 @@ import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
@@ -31,16 +32,37 @@ abstract class StatementEmitter extends ExpressionEmitter {
 
     @Override
     protected Doc emitBlockLike(GreenNode node, EmptyBodyStyle emptyStyle) {
-        return emitBracedBody(node, emptyStyle, 0, 0);
+        return emitBracedBody(node, emptyStyle, 0, 0, false);
+    }
+
+    /** A lambda's block body, which has a keep-on-one-line rule of its own. */
+    @Override
+    protected Doc emitLambdaBody(GreenNode node, EmptyBodyStyle emptyStyle) {
+        return emitBracedBody(
+                node,
+                emptyStyle,
+                0,
+                0,
+                keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE));
     }
 
     protected Doc emitBlock(GreenNode node) {
-        return emitBracedBody(node, rule(BraceRules.EMPTY_CONTROL_BODY), 0, 0);
+        return emitBracedBody(
+                node,
+                rule(BraceRules.EMPTY_CONTROL_BODY),
+                0,
+                0,
+                keepsOnOneLine(node, PreservationRules.KEEP_SIMPLE_BLOCKS_INLINE));
     }
 
     /** The block that forms a method, constructor or initializer body. */
     protected Doc emitMethodBody(GreenNode node) {
-        return emitBracedBody(node, rule(BraceRules.EMPTY_METHOD_BODY), 0, 0);
+        return emitBracedBody(
+                node,
+                rule(BraceRules.EMPTY_METHOD_BODY),
+                0,
+                0,
+                keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE));
     }
 
     /**
@@ -54,6 +76,24 @@ abstract class StatementEmitter extends ExpressionEmitter {
             EmptyBodyStyle emptyStyle,
             int blankLinesAfterOpen,
             int blankLinesBeforeClose) {
+        return emitBracedBody(node, emptyStyle, blankLinesAfterOpen, blankLinesBeforeClose, false);
+    }
+
+    /**
+     * @param mayInline whether this body is allowed to print on one line, because the author wrote it
+     *     that way and the rule governing the construct permits it. The single line is only ever an
+     *     option: the body is one group, and the layout engine still breaks it if it does not fit, or
+     *     if anything inside it forces a break. What it prints when broken is byte for byte what the
+     *     ordinary path prints, which is what keeps formatting a fixed point — a body that was too
+     *     long to stay inline comes back on the next pass as an ordinary multi-line body and lays out
+     *     identically.
+     */
+    protected Doc emitBracedBody(
+            GreenNode node,
+            EmptyBodyStyle emptyStyle,
+            int blankLinesAfterOpen,
+            int blankLinesBeforeClose,
+            boolean mayInline) {
         List<GreenNode> children = node.children();
         GreenNode open = children.getFirst();
         GreenNode close = children.getLast();
@@ -67,6 +107,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
             };
         }
 
+        // A comment before the closing brace has to be indented with the body, which needs a line of
+        // its own; and a formatter-off region is copied through with its own line structure. Neither
+        // can be squeezed onto one line, so both fall back to the ordinary path.
+        boolean inline = mayInline && !hasLeadingComments(close) && !turnsFormattingOff(body);
+
         List<Doc> parts = new ArrayList<>();
         int i = 0;
         while (i < body.size()) {
@@ -75,7 +120,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
                     i == 0
                             ? minimumAfterOpen(statement, blankLinesAfterOpen)
                             : minimumBetween(body.get(i - 1), statement);
-            parts.add(separatorBefore(statement, minimum));
+            parts.add(optional(separatorBefore(statement, minimum), inline));
             int off = formatterOffIndex(statement);
             if (off >= 0) {
                 int end = i + 1;
@@ -97,8 +142,35 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(emit(open), contents, Doc.hardLine(), closeBrace(close));
         }
         Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
-        Doc closing = Doc.concat(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), emit(close));
-        return Doc.concat(emit(open), contents, closing);
+        Doc closing =
+                Doc.concat(
+                        optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline),
+                        emit(close));
+        Doc braced = Doc.concat(emit(open), contents, closing);
+        return inline ? Doc.group(braced) : braced;
+    }
+
+    /**
+     * A hard break, or the choice between it and a space.
+     *
+     * <p>{@link Doc.IfBreak} is what lets one body serve both shapes: its two branches are never
+     * scanned for forced breaks, so the hard breaks of the ordinary layout can sit inside it without
+     * forcing the group they are in to break. Whatever else in the body does force a break — a nested
+     * multi-line statement, a text block, a comment that ends a line — breaks the group, and the
+     * ordinary branch is what prints.
+     */
+    private static Doc optional(Doc broken, boolean inline) {
+        return inline ? Doc.ifBreak(broken, Doc.line()) : broken;
+    }
+
+    /** Whether any statement of this body turns formatting off. */
+    private boolean turnsFormattingOff(List<GreenNode> body) {
+        for (GreenNode statement : body) {
+            if (formatterOffIndex(statement) >= 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** One child of a braced body. Override to pass neighbour context into a layout rule. */
@@ -187,7 +259,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
      */
     protected Doc emitCondition(GreenNode open, GreenNode expression, GreenNode close) {
         boolean inside = rule(SpacingRules.WITHIN_PARENTHESES);
-        return Doc.concat(emit(open), spaceIf(inside), Doc.group(emit(expression)), spaceIf(inside), emit(close));
+        return Doc.concat(
+                emit(open),
+                spaceIf(inside),
+                authorGroup(expression, emit(expression)),
+                spaceIf(inside),
+                emit(close));
     }
 
     protected Doc emitWhile(GreenNode node) {
@@ -243,7 +320,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
         Doc inner =
                 rule(WrappingRules.FOR_STATEMENT) == WrapPolicy.NEVER
                         ? Doc.concat(header)
-                        : Doc.group(Doc.indent(continuation(), Doc.concat(header)));
+                        : authorGroup(node, Doc.indent(continuation(), Doc.concat(header)));
         return Doc.concat(
                 emit(children.get(0)),
                 spaceIf(rule(SpacingRules.BEFORE_FOR_PARENTHESIS)),
@@ -328,7 +405,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         Doc edge = inside ? Doc.line() : Doc.softLine();
         Doc body = Doc.concat(emit(open), Doc.indent(continuation(), Doc.concat(edge, resources)), edge, emit(close));
-        return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(body) : Doc.group(body);
+        return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(body) : authorGroup(node, body);
     }
 
     protected Doc emitResource(GreenNode node) {
@@ -458,7 +535,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         boolean spaced = rule(SpacingRules.AROUND_ASSIGNMENT_OPERATORS);
         GreenNode valueNode = children.get(equals + 1);
-        return Doc.group(
+        return authorGroup(
+                node,
                 Doc.concat(
                         Doc.concat(target),
                         spaceIf(spaced),
@@ -507,8 +585,15 @@ abstract class StatementEmitter extends ExpressionEmitter {
             if (body.kind() == SyntaxKind.BLOCK) {
                 return Doc.concat(labels, spaceIf(spaced), emit(children.get(1)), space(), bodyDoc);
             }
+            // The question is asked of the labels rather than the whole case: a body that turned out
+            // too long to sit beside them would otherwise answer it differently on the second pass,
+            // and formatting has to be a fixed point.
+            GreenNode labelNode = children.getFirst();
+            boolean onOneLine =
+                    isNullDefault(labelNode.children())
+                            && keepsOnOneLine(labelNode, SwitchRules.NULL_DEFAULT_ON_ONE_LINE);
             Doc tail =
-                    rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG)
+                    rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
                             ? Doc.group(
                                     Doc.indent(
                                             continuation(),
@@ -558,12 +643,47 @@ abstract class StatementEmitter extends ExpressionEmitter {
         if (!current.isEmpty()) {
             elements.add(Doc.concat(current));
         }
+        if (isNullDefault(children) && keepsOnOneLine(node, SwitchRules.NULL_DEFAULT_ON_ONE_LINE)) {
+            // Two words that mean one thing. Splitting them across lines reads as two separate cases.
+            Doc pair = Doc.join(spaceIf(rule(SpacingRules.AFTER_COMMA)), elements);
+            return Doc.concat(keyword, space(), pair, guard);
+        }
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         Doc labels =
                 rule(SwitchRules.MULTI_LABEL_WRAPPING) == WrapPolicy.WRAP_IF_LONG
                         ? Doc.fill(withSeparator(elements, separator))
                         : Doc.join(separator, elements);
-        return Doc.group(Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
+        return authorGroup(node, Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
+    }
+
+    /**
+     * Whether these case labels are exactly {@code null} and {@code default}.
+     *
+     * <p>The pair is one idea rather than a list of two, which is why it has a rule of its own.
+     */
+    private static boolean isNullDefault(List<GreenNode> children) {
+        boolean nullLabel = false;
+        boolean defaultLabel = false;
+        for (GreenNode child : children.subList(1, children.size())) {
+            if (is(child, ",") || child.kind() == SyntaxKind.CASE_GUARD) {
+                continue;
+            }
+            if (is(child, "default")) {
+                defaultLabel = true;
+            } else if (lexeme(child).equals("null") || child.kind() != SyntaxKind.TOKEN && isNullLiteral(child)) {
+                nullLabel = true;
+            } else {
+                return false;
+            }
+        }
+        return nullLabel && defaultLabel;
+    }
+
+    /** Whether a label node is the literal {@code null}. */
+    private static boolean isNullLiteral(GreenNode node) {
+        return node.kind() == SyntaxKind.LITERAL
+                && node.children().size() == 1
+                && is(node.children().getFirst(), "null");
     }
 
     private static List<Doc> withSeparator(List<Doc> elements, Doc separator) {

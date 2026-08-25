@@ -34,6 +34,11 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
 - **Author's layout matters.** The `preservation.*` rules keep blank lines, chain breaks and
   hand-arranged initializers the author chose. Refusing to do that is what makes a formatter
   correct but unpleasant.
+- **One answer about the author's lines.** Ten rules across four groups turn on the same question —
+  did the author write this on one line? — so it is answered in one place and they cannot disagree.
+  A rule only ever makes the single line possible; whether it is taken is still the layout engine's
+  decision against `wrapping.max-line-length`, and what comes out when it is not taken is exactly
+  what an already-expanded construct produces.
 
 ## Library Usage
 
@@ -180,7 +185,7 @@ The same `key` works in:
 | `indent.throws-clause`      | integer | `8`     | Columns added to a wrapped throws clause             | `void f()`<br>`········throws IOException {`                    |
 | `indent.switch-case-labels` | boolean | `true`  | Indent case labels one level inside the switch block | `true`: `switch (x) {`<br>`····case 1:`                         |
 | `indent.switch-case-body`   | boolean | `true`  | Indent a colon-label case body past its label        | `true`: `case 1:`<br>`····doThing();`                           |
-| `indent.blank-lines` **†**  | boolean | `false` | Emit indentation whitespace on otherwise blank lines | `false`: a blank line inside a method is empty, not four spaces |
+| `indent.blank-lines`        | boolean | `false` | Emit indentation whitespace on otherwise blank lines | `false`: a blank line inside a method is empty, not four spaces |
 
 ### `wrapping`
 
@@ -203,16 +208,16 @@ The same `key` works in:
 | `wrapping.assignment`                            | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of the right hand side of an assignment                  | `wrap-if-long`: `int x =`<br>`········compute();`                                |
 | `wrapping.array-initializers`                    | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of an array initializer                                  | `wrap-if-long`: `{ 1, 2,`<br>`····3 }`                                           |
 | `wrapping.extends-implements`                    | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of extends and implements clauses                        | `class A`<br>`········implements B, C {`                                         |
-| `wrapping.throws-clause` **†**                   | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of a throws clause                                       | `void f()`<br>`········throws A, B {`                                            |
+| `wrapping.throws-clause`                         | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of a throws clause                                       | `void f()`<br>`········throws A, B {`                                            |
 | `wrapping.type-parameters`                       | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of a type parameter or type argument list                | `Map<`<br>`········String, Integer> m;`                                          |
 | `wrapping.annotation-arguments`                  | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of an annotation's element list                          | `@A(`<br>`········name = "x")`                                                   |
 | `wrapping.enum-constants`                        | `WrapPolicy`                                                               | `chop-down-if-long`      | Wrapping of the constant list of an enum                          | `chop-down-if-long`: `A,`<br>`B,`<br>`C;`                                        |
 | `wrapping.require-enum-constant-semicolon`       | boolean                                                                    | `false`                  | Always write a semicolon after the last no-argument enum constant | `true`: `enum E { A, B; }` — `false`: `enum E { A, B }`                          |
 | `wrapping.for-statement`                         | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of the header of a basic for statement                   | `for (int i = 0;`<br>`········i < n;`<br>`········i++) {`                        |
 | `wrapping.try-resources`                         | `WrapPolicy`                                                               | `chop-down-if-long`      | Wrapping of a try-with-resources resource list                    | `try (`<br>`········A a = x();`<br>`········B b = y()) {`                        |
-| `wrapping.keep-simple-methods-on-one-line` **†** | boolean                                                                    | `false`                  | Allow a whole short method to stay on one line                    | `true`: `int x() { return x; }`                                                  |
-| `wrapping.keep-simple-lambdas-on-one-line` **†** | boolean                                                                    | `true`                   | Allow a short lambda body to stay on one line                     | `true`: `x -> { return x + 1; }`                                                 |
-| `wrapping.keep-simple-classes-on-one-line` **†** | boolean                                                                    | `false`                  | Allow a short class body to stay on one line                      | `true`: `class A { int x; }`                                                     |
+| `wrapping.keep-simple-methods-on-one-line`       | boolean                                                                    | `false`                  | Allow a whole short method to stay on one line                    | `true`: `int x() { return x; }`                                                  |
+| `wrapping.keep-simple-lambdas-on-one-line`       | boolean                                                                    | `true`                   | Allow a short lambda body to stay on one line                     | `true`: `x -> { return x + 1; }`                                                 |
+| `wrapping.keep-simple-classes-on-one-line`       | boolean                                                                    | `false`                  | Allow a short class body to stay on one line                      | `true`: `class A { int x; }`                                                     |
 
 ### `braces`
 
@@ -373,7 +378,7 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 | `switch.arrow-case-braces` **†**          | `BracePolicy`                                          | `when-multi-statement` | Braces around the body of an arrow case            | `when-multi-statement`: a one-statement arrow case has no braces            |
 | `switch.yield-style` **†**                | `preserve`, `expression-when-possible`, `always-block` | `preserve`             | How the value of an arrow case body is written     | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;` |
 | `switch.multi-label-wrapping`             | `WrapPolicy`                                           | `wrap-if-long`         | Wrapping of a case label listing several constants | `case A, B,`<br>`········C -> f();`                                         |
-| `switch.null-default-on-one-line` **†**   | boolean                                                | `true`                 | Keep `case null, default` on a single line         | `true`: `case null, default -> f();`                                        |
+| `switch.null-default-on-one-line`         | boolean                                                | `true`                 | Keep `case null, default` on a single line         | `true`: `case null, default -> f();`                                        |
 | `switch.guard-on-same-line`               | boolean                                                | `true`                 | Keep a `when` guard on the line of its pattern     | `true`: `case T t when t.ok() -> f();`                                      |
 | `switch.arrow-body-on-new-line-when-long` | boolean                                                | `true`                 | Move a long arrow case body to the next line       | `true`: `case A ->`<br>`········someVeryLongCall();`                        |
 
@@ -392,7 +397,7 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 | Key                                         | Values       | Default        | Effect                                       | Example                                                         |
 |---------------------------------------------|--------------|----------------|----------------------------------------------|-----------------------------------------------------------------|
 | `patterns.deconstruction-wrapping`          | `WrapPolicy` | `wrap-if-long` | Wrapping of a record deconstruction pattern  | `case R(`<br>`········int a,`<br>`········int b) -> f();`       |
-| `patterns.keep-simple-pattern-inline` **†** | boolean      | `true`         | Keep a short pattern on the line of its test | `true`: `if (x instanceof T t) {`                               |
+| `patterns.keep-simple-pattern-inline`       | boolean      | `true`         | Keep a short pattern on the line of its test | `true`: `if (x instanceof T t) {`                               |
 | `patterns.nested-indent`                    | integer      | `8`            | Columns a wrapped nested pattern is indented | `8`: an inner deconstruction is indented 8 past its outer one   |
 
 ### `sealed`
@@ -427,15 +432,25 @@ Every rule here is a rewrite despite looking like a normal layout pass. None is 
 
 These are the rules that keep what the author wrote.
 
+`keep-line-break-after-open-paren`, `keep-simple-blocks-inline` and `never-join-lines` read the
+author's line structure, as do `wrapping.keep-simple-{methods,lambdas,classes}-on-one-line`,
+`patterns.keep-simple-pattern-inline`, `switch.null-default-on-one-line` and
+`wrapping.throws-clause = preserve`. All of them ask one question, answered once: a construct is on
+one line when no line terminator falls between its first token and its last character. A comment the
+author kept inline is part of that line; a comment that ended one is not, so a body carrying a `//`
+comment was never on one line and is laid out as any other. `never-join-lines` applies wherever the
+layout engine has an optional break to keep, which is every wrapping decision; where the emitter
+writes a fixed space there is no break for it to keep.
+
 | Key                                                   | Values  | Default | Effect                                                   | Example                                                      |
 |-------------------------------------------------------|---------|---------|----------------------------------------------------------|--------------------------------------------------------------|
 | `preservation.keep-author-blank-lines`                | boolean | `true`  | Keep blank lines the author placed inside bodies         | `true`: a blank line splitting two statement groups survives |
 | `preservation.max-preserved-blank-lines`              | integer | `1`     | Most consecutive author blank lines kept                 | `1`: two author blank lines collapse to one                  |
-| `preservation.keep-line-break-after-open-paren` **†** | boolean | `false` | Keep a break the author put after an opening parenthesis | `true`: `f(`<br>`········a, b)` stays broken                 |
-| `preservation.keep-simple-blocks-inline` **†**        | boolean | `true`  | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                   |
+| `preservation.keep-line-break-after-open-paren`       | boolean | `false` | Keep a break the author put after an opening parenthesis | `true`: `f(`<br>`········a, b)` stays broken                 |
+| `preservation.keep-simple-blocks-inline`              | boolean | `true`  | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                   |
 | `preservation.keep-array-initializer-layout`          | boolean | `true`  | Keep the row layout of a hand-arranged array initializer | `true`: a matrix written as one row per line stays that way  |
 | `preservation.respect-existing-chain-breaks`          | boolean | `true`  | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken                |
-| `preservation.never-join-lines` **†**                 | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |
+| `preservation.never-join-lines`                       | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |
 
 ## Building
 

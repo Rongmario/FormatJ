@@ -305,7 +305,8 @@ public final class DocEmitter extends StatementEmitter {
                 node,
                 rule(BraceRules.EMPTY_CLASS_BODY),
                 rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
-                rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE));
+                rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE),
+                keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE));
     }
 
     /** A record body, whose empty form has a rule of its own. */
@@ -527,20 +528,54 @@ public final class DocEmitter extends StatementEmitter {
         return Doc.group(Doc.indent(continuation(), Doc.concat(lead, keyword, space(), list)));
     }
 
+    /**
+     * A {@code throws} clause, which wraps as {@code wrapping.throws-clause} asks.
+     *
+     * <p>The clause owns the break in front of its own keyword as well as the ones between the types
+     * it lists: a signature that does not fit puts {@code throws} on the next line rather than
+     * leaving it stranded at the margin with its first exception below it.
+     */
     private Doc emitThrows(GreenNode node) {
+        WrapPolicy policy = rule(WrappingRules.THROWS_CLAUSE);
         List<GreenNode> children = node.children();
+        Doc keyword = emit(children.getFirst());
+        int indent = rule(IndentRules.THROWS_CLAUSE);
+
+        if (policy == WrapPolicy.PRESERVE) {
+            // Reproduce the author's own decisions rather than making one: the keyword goes on a new
+            // line only where they put it there, and so does each exception after it.
+            List<Doc> parts = new ArrayList<>();
+            for (int i = 1; i < children.size(); i++) {
+                GreenNode child = children.get(i);
+                if (i > 1 && !is(child, ",")) {
+                    parts.add(authorBrokeBefore(child) ? Doc.hardLine() : spaceIf(rule(SpacingRules.AFTER_COMMA)));
+                }
+                parts.add(emit(child));
+            }
+            Doc lead = authorBrokeBefore(node) ? Doc.hardLine() : space();
+            return Doc.indent(indent, Doc.concat(lead, keyword, space(), Doc.concat(parts)));
+        }
+
+        Doc separator =
+                policy == WrapPolicy.NEVER
+                        ? spaceIf(rule(SpacingRules.AFTER_COMMA))
+                        : rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         List<Doc> parts = new ArrayList<>();
         for (int i = 1; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (i > 1 && !is(child, ",")) {
-                parts.add(rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine());
+                parts.add(separator);
             }
             parts.add(emit(child));
         }
-        return Doc.group(
-                Doc.indent(
-                        rule(IndentRules.THROWS_CLAUSE),
-                        Doc.concat(Doc.line(), emit(children.getFirst()), space(), Doc.concat(parts))));
+        Doc types = Doc.concat(parts);
+        if (policy == WrapPolicy.NEVER) {
+            return Doc.concat(space(), keyword, space(), types);
+        }
+        Doc content = Doc.indent(indent, Doc.concat(Doc.line(), keyword, space(), types));
+        return policy == WrapPolicy.CHOP_DOWN_ALWAYS
+                ? Doc.breakingGroup(content)
+                : authorGroup(node, content);
     }
 
     private Doc emitModifiers(GreenNode node) {
@@ -638,7 +673,13 @@ public final class DocEmitter extends StatementEmitter {
             if (child.kind() == SyntaxKind.BLOCK) {
                 int padding = rule(RecordRules.COMPACT_CONSTRUCTOR_BLANK_LINE) ? 1 : 0;
                 parts.add(braceLead(rule(BraceRules.METHOD_PLACEMENT)));
-                parts.add(emitBracedBody(child, rule(BraceRules.EMPTY_METHOD_BODY), padding, padding));
+                parts.add(
+                        emitBracedBody(
+                                child,
+                                rule(BraceRules.EMPTY_METHOD_BODY),
+                                padding,
+                                padding,
+                                keepsOnOneLine(child, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)));
                 continue;
             }
             if (i > 0) {

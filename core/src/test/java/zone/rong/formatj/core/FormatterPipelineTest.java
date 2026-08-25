@@ -63,11 +63,7 @@ class FormatterPipelineTest {
                 class A {
                 
                     void run() {
-                        if (x) {
-                            g();
-                        } else {
-                            h();
-                        }
+                        if (x) { g(); } else { h(); }
                     }
                     
                 }

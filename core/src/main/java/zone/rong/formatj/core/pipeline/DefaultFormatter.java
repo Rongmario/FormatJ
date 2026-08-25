@@ -243,7 +243,8 @@ public final class DefaultFormatter implements Formatter {
                 style.get(IndentRules.USE_TABS),
                 style.get(FileRules.TAB_WIDTH),
                 lineSeparator(),
-                style.get(FileRules.TRIM_TRAILING_WHITESPACE));
+                style.get(FileRules.TRIM_TRAILING_WHITESPACE),
+                style.get(IndentRules.BLANK_LINES));
     }
 
     private String lineSeparator() {
