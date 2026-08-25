@@ -126,7 +126,7 @@ public final class Option<T> {
         return switch (kind) {
             case BOOLEAN -> cast(parseBoolean(trimmed));
             case INTEGER -> cast(parseInt(trimmed));
-            case STRING -> cast(trimmed);
+            case STRING -> cast(unquote(trimmed));
             case ENUM -> cast(parseEnum(trimmed));
             case STRING_LIST -> cast(parseList(trimmed));
         };
@@ -140,12 +140,12 @@ public final class Option<T> {
         if (value instanceof List<?> list) {
             List<String> quoted = new ArrayList<>(list.size());
             for (Object element : list) {
-                quoted.add("\"" + element + "\"");
+                quoted.add(quote(String.valueOf(element)));
             }
             return "[" + String.join(", ", quoted) + "]";
         }
         if (value instanceof String string) {
-            return "\"" + string + "\"";
+            return quote(string);
         }
         return String.valueOf(value);
     }
@@ -179,22 +179,70 @@ public final class Option<T> {
     }
 
     private List<String> parseList(String raw) {
-        String body = raw;
+        String body = raw.trim();
         if (body.startsWith("[") && body.endsWith("]")) {
             body = body.substring(1, body.length() - 1);
         }
         List<String> values = new ArrayList<>();
-        for (String piece : body.split(",")) {
-            String element = piece.trim();
-            if (element.isEmpty()) {
-                continue;
+        StringBuilder element = new StringBuilder();
+        boolean quoted = false;
+        for (int i = 0; i < body.length(); i++) {
+            char c = body.charAt(i);
+            if (quoted && c == '\\' && i + 1 < body.length()) {
+                element.append(c).append(body.charAt(++i));
+            } else if (c == '"') {
+                quoted = !quoted;
+                element.append(c);
+            } else if (c == ',' && !quoted) {
+                addElement(values, element);
+                element.setLength(0);
+            } else {
+                element.append(c);
             }
-            if (element.length() >= 2 && element.startsWith("\"") && element.endsWith("\"")) {
-                element = element.substring(1, element.length() - 1);
-            }
-            values.add(element);
         }
+        if (quoted) {
+            throw new IllegalArgumentException(key + " has an unterminated quote: '" + raw + "'");
+        }
+        addElement(values, element);
         return List.copyOf(values);
+    }
+
+    private static void addElement(List<String> values, StringBuilder element) {
+        String piece = element.toString().trim();
+        if (piece.isEmpty()) {
+            return;
+        }
+        values.add(unquote(piece));
+    }
+
+    /** Wraps a value in double quotes, escaping backslashes and quotes so {@link #unquote} inverts it. */
+    private static String quote(String value) {
+        StringBuilder out = new StringBuilder(value.length() + 2).append('"');
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '"' || c == '\\') {
+                out.append('\\');
+            }
+            out.append(c);
+        }
+        return out.append('"').toString();
+    }
+
+    /** Strips one layer of surrounding double quotes and their escapes; bare text is returned as is. */
+    private static String unquote(String raw) {
+        if (raw.length() < 2 || !raw.startsWith("\"") || !raw.endsWith("\"")) {
+            return raw;
+        }
+        String body = raw.substring(1, raw.length() - 1);
+        StringBuilder out = new StringBuilder(body.length());
+        for (int i = 0; i < body.length(); i++) {
+            char c = body.charAt(i);
+            if (c == '\\' && i + 1 < body.length()) {
+                c = body.charAt(++i);
+            }
+            out.append(c);
+        }
+        return out.toString();
     }
 
     private static String renderEnum(Enum<?> constant) {
