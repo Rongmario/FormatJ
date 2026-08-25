@@ -26,7 +26,7 @@ public interface FormatterBuilder {
 
     /**
      * Verifies every result before returning it: formatting must reach a fixed point and must not
-     * change the token stream. Costs a second pass. Defaults to {@code true}.
+     * change the program. Costs a second pass. Defaults to {@code true}.
      */
     FormatterBuilder verify(boolean verify);
 

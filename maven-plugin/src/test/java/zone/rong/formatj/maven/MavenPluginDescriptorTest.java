@@ -37,7 +37,7 @@ import org.w3c.dom.NodeList;
  */
 class MavenPluginDescriptorTest {
 
-    private static final Path SOURCES = Path.of("src/main/java/dev/formatj/maven");
+    private static final Path SOURCES = Path.of("src/main/java/zone/rong/formatj/maven");
 
     private static final Pattern MOJO = Pattern.compile("@Mojo\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern PARAMETER =

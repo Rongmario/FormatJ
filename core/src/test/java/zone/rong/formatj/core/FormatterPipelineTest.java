@@ -11,6 +11,9 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.core.parser.JavaParser;
+import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.pipeline.TokenEquivalence;
 import org.junit.jupiter.api.Test;
 
@@ -95,6 +98,9 @@ class FormatterPipelineTest {
         assertFalse(TokenEquivalence.equivalent("int x = 1;", "int x = 1"));
         assertEquals(null, TokenEquivalence.firstDifference("class A {}", "class  A  {\n}\n"));
         assertTrue(TokenEquivalence.firstDifference("int x;", "int y;").contains("changed from 'x'"));
+        ParseResult noSemi = JavaParser.parse("enum Color { RED, GREEN, BLUE }\n", LanguageLevel.LATEST, false);
+        ParseResult withSemi = JavaParser.parse("enum Color { RED, GREEN, BLUE; }\n", LanguageLevel.LATEST, false);
+        assertEquals(null, TokenEquivalence.firstDifference(noSemi.root().green(), withSemi.root().green()));
     }
 
     @Test
@@ -107,6 +113,86 @@ class FormatterPipelineTest {
     void aStyleIsCarriedThroughUnchanged() {
         Style style = Style.builder().indent(indent -> indent.size(2)).build();
         assertEquals(style, FormatJ.newFormatter().style(style).build().style());
+    }
+
+    @Test
+    void enumTerminatorStaysOnTheLastConstant() {
+        FormatResult result = format("""
+                public enum LanguageLevel {
+                    JAVA_17(17),
+                    JAVA_25(25)
+                    ;
+                    public static final LanguageLevel LATEST = JAVA_25;
+                    LanguageLevel(int release) {}
+                }
+                """);
+
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("JAVA_25(25);"), result.text());
+        assertFalse(result.text().contains("25)\n    ;"), result.text());
+    }
+
+    @Test
+    void aNoArgumentEnumOmitsTheOptionalSemicolonByDefault() {
+        FormatResult without = format("enum Color { RED, GREEN, BLUE }\n");
+        FormatResult with = format("enum Color { RED, GREEN, BLUE; }\n");
+
+        assertFalse(without.hasErrors(), () -> without.diagnostics().toString());
+        assertFalse(with.hasErrors(), () -> with.diagnostics().toString());
+        assertEquals(without.text(), with.text());
+        assertFalse(without.text().contains(";"), without.text());
+    }
+
+    @Test
+    void requiringTheOptionalSemicolonInsertsItOnNoArgumentEnums() {
+        Style style = Style.builder().wrapping(wrapping -> wrapping.requireEnumConstantSemicolon(true)).build();
+        Formatter formatter = FormatJ.newFormatter().style(style).build();
+
+        FormatResult result = formatter.format(FormatRequest.of("enum Color { RED, GREEN, BLUE }\n"));
+
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("BLUE;"), result.text());
+    }
+
+    @Test
+    void parameterizedEnumsAlwaysKeepTheSemicolon() {
+        FormatResult result = format("""
+                enum Named { A(1), B(2); Named(int n) { } }
+                """);
+
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("B(2);"), result.text());
+    }
+
+    @Test
+    void parameterizedConstantsGetASemicolonEvenWhenTheOptionIsOff() {
+        FormatResult result = format("enum Named { A(1), B(2) }\n");
+
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("B(2);"), result.text());
+    }
+
+    @Test
+    void aCommentOnTheOptionalSemicolonKeepsIt() {
+        FormatResult result = format("enum Color { RED, GREEN, BLUE; // keep\n}\n");
+
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains(";"), result.text());
+        assertTrue(result.text().contains("keep"), result.text());
+    }
+
+    @Test
+    void requiringTheOptionalSemicolonIsAFixedPoint() {
+        Style style = Style.builder().wrapping(wrapping -> wrapping.requireEnumConstantSemicolon(true)).build();
+        Formatter formatter = FormatJ.newFormatter().style(style).build();
+        String once = formatter.format(FormatRequest.of("enum Color { RED, GREEN, BLUE }\n")).text();
+        String twice = formatter.format(FormatRequest.of(once)).text();
+        assertEquals(once, twice);
+        assertEquals(true, style.get(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON));
+    }
+
+    private static FormatResult format(String source) {
+        return FormatJ.defaultFormatter().format(FormatRequest.of(source).withName("E.java"));
     }
 
 }

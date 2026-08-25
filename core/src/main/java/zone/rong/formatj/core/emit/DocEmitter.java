@@ -17,12 +17,10 @@ import java.util.List;
 /**
  * Turns a concrete syntax tree into a {@link Doc}, consulting the {@link Style} at every decision.
  *
- * <p>The emitter never invents or drops a token: it lays out the tokens the parser found, and every
- * one of them is emitted from the tree so that the comments attached to it travel with it. Rules that
- * would add or remove code — inserting braces around a one-line {@code if}, dropping redundant lambda
- * parentheses, sorting imports — are deliberately not applied here, because the pipeline verifies
- * that formatting leaves the token stream untouched. Those need an explicit rewrite stage with its
- * own verification.
+ * <p>Most tokens are laid out as the parser found them, comments travelling with the token they
+ * are attached to. The optional semicolon after a no-argument enum constant list is a style choice
+ * and is written or omitted here. Rules that would rewrite other code — braces on a one-line
+ * {@code if}, lambda parentheses, import order — are not applied yet.
  */
 public final class DocEmitter extends StatementEmitter {
 
@@ -54,7 +52,7 @@ public final class DocEmitter extends StatementEmitter {
                     emitTypeDeclaration(node);
             case RECORD_DECLARATION -> emitTypeDeclaration(node);
             case CLASS_BODY -> emitClassBody(node);
-            case ENUM_CONSTANTS -> emitEnumConstants(node);
+            case ENUM_CONSTANTS -> emitEnumConstants(node, null);
             case ENUM_CONSTANT -> emitEnumConstant(node);
             case RECORD_HEADER ->
                     delimitedList(
@@ -264,8 +262,25 @@ public final class DocEmitter extends StatementEmitter {
     }
 
     @Override
+    protected Doc emitBodyChild(GreenNode statement, List<GreenNode> body, int index) {
+        if (statement.kind() == SyntaxKind.ENUM_CONSTANTS) {
+            return emitEnumConstants(statement, membersFollow(body, index));
+        }
+        return emit(statement);
+    }
+
+    private static boolean membersFollow(List<GreenNode> body, int enumConstantsIndex) {
+        for (int i = enumConstantsIndex + 1; i < body.size(); i++) {
+            if (body.get(i).kind().isMember()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     protected int minimumBetween(GreenNode previous, GreenNode next) {
-        if (previous.kind() == SyntaxKind.ENUM_CONSTANTS || is(previous, ";") && !next.kind().isMember()) {
+        if (previous.kind() == SyntaxKind.ENUM_CONSTANTS) {
             return rule(BlankLineRules.AFTER_ENUM_CONSTANTS);
         }
         if (previous.kind() == SyntaxKind.INITIALIZER_BLOCK || next.kind() == SyntaxKind.INITIALIZER_BLOCK) {
@@ -282,8 +297,62 @@ public final class DocEmitter extends StatementEmitter {
         };
     }
 
-    private Doc emitEnumConstants(GreenNode node) {
+    /**
+     * @param membersFollow whether the enum body continues after the constant list; {@code null}
+     *     when the caller has no neighbour context
+     */
+    private Doc emitEnumConstants(GreenNode node, Boolean membersFollow) {
         List<GreenNode> children = node.children();
+        GreenNode semicolon = null;
+        if (!children.isEmpty() && is(children.getLast(), ";")) {
+            semicolon = children.getLast();
+            children = children.subList(0, children.size() - 1);
+        }
+        Doc list = emitEnumConstantList(children);
+        boolean parameterized = hasParameterizedConstant(children);
+        boolean required = parameterized
+                || Boolean.TRUE.equals(membersFollow)
+                || rule(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON);
+        boolean mayOmit = Boolean.FALSE.equals(membersFollow)
+                && !parameterized
+                && !rule(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON);
+
+        if (semicolon != null) {
+            if (mayOmit && !hasComments(semicolon)) {
+                return list;
+            }
+            return Doc.concat(list, emit(semicolon));
+        }
+        if (required && hasEnumConstant(children)) {
+            return Doc.concat(list, Doc.text(";"));
+        }
+        return list;
+    }
+
+    private static boolean hasEnumConstant(List<GreenNode> children) {
+        for (GreenNode child : children) {
+            if (child.kind() == SyntaxKind.ENUM_CONSTANT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasParameterizedConstant(List<GreenNode> children) {
+        for (GreenNode child : children) {
+            if (child.kind() != SyntaxKind.ENUM_CONSTANT) {
+                continue;
+            }
+            for (GreenNode part : child.children()) {
+                if (part.kind() == SyntaxKind.ARGUMENTS) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private Doc emitEnumConstantList(List<GreenNode> children) {
         List<GreenNode> starts = new ArrayList<>();
         List<Doc> elements = new ArrayList<>();
         List<Doc> current = new ArrayList<>();
@@ -305,7 +374,7 @@ public final class DocEmitter extends StatementEmitter {
             starts.add(start);
         }
 
-        if (authorBrokeInside(node)) {
+        if (authorBrokeInside(children)) {
             // Constants the author put on separate lines stay that way, blank lines and all;
             // collapsing them reads as churn in a diff.
             List<Doc> parts = new ArrayList<>();

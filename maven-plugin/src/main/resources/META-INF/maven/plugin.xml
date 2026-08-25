@@ -10,7 +10,7 @@
   <description>Formats Java sources with FormatJ, using the same rules as the CLI and Gradle plugin.</description>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <goalPrefix>formatj</goalPrefix>
   <isolatedRealm>false</isolatedRealm>
   <inheritedByDefault>true</inheritedByDefault>

@@ -78,6 +78,19 @@ public final class WrappingRules {
                     WrapPolicy.CHOP_DOWN_IF_LONG,
                     "Wrapping of the constant list of an enum");
 
+    /**
+     * Whether a no-argument enum must end its constant list with {@code ;}.
+     *
+     * <p>The language already requires the semicolon when any constant has arguments, or when
+     * fields, methods or nested types follow. This option only governs the optional case: a
+     * no-argument constant list with nothing after it.
+     */
+    public static final Option<Boolean> REQUIRE_ENUM_CONSTANT_SEMICOLON =
+            Option.ofBoolean(
+                    "wrapping.require-enum-constant-semicolon",
+                    false,
+                    "Always write a semicolon after the last no-argument enum constant");
+
     public static final Option<WrapPolicy> RECORD_COMPONENTS =
             Option.ofEnum(
                     "wrapping.record-components",
@@ -197,6 +210,11 @@ public final class WrappingRules {
 
         public Builder enumConstants(WrapPolicy value) {
             style.set(ENUM_CONSTANTS, value);
+            return this;
+        }
+
+        public Builder requireEnumConstantSemicolon(boolean value) {
+            style.set(REQUIRE_ENUM_CONSTANT_SEMICOLON, value);
             return this;
         }
 

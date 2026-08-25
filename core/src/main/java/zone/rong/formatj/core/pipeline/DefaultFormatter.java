@@ -9,6 +9,7 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.emit.DocEmitter;
 import zone.rong.formatj.core.layout.DocPrinter;
 import zone.rong.formatj.core.lexer.JavaLexer;
@@ -22,12 +23,9 @@ import java.util.List;
  * The formatting pipeline: lex, parse, emit, lay out, verify.
  *
  * <p>Verification is not optional decoration. Formatting must be a fixed point (formatting twice
- * changes nothing the second time) and must preserve the token stream; when either check fails the
- * original source is returned with a diagnostic, so a bug in a layout rule can cost a user a badly
- * formatted file but never a broken one.
- *
- * <p>The emitter and parser are still stubs, so today every file comes back unchanged. The pipeline
- * around them is real and is what the CLI, Gradle plugin and Maven plugin already run.
+ * changes nothing the second time) and must preserve the program's tokens; when either check fails
+ * the original source is returned with a diagnostic. The optional semicolon after a no-argument
+ * enum constant list is a style choice and is allowed to appear or disappear.
  */
 public final class DefaultFormatter implements Formatter {
 
@@ -76,16 +74,17 @@ public final class DefaultFormatter implements Formatter {
             return FormatResult.unchanged(source).withDiagnostics(diagnostics);
         }
 
-        String formatted = layout(parsed);
+        String formatted = layout(parsed.root());
 
         if (verify) {
-            String problem = TokenEquivalence.firstDifference(source, formatted);
+            ParseResult formattedTree = JavaParser.parse(formatted, languageLevel, previewFeatures);
+            String problem = TokenEquivalence.firstDifference(parsed.root().green(), formattedTree.root().green());
             if (problem != null) {
                 return FormatResult.failed(
                         source,
                         List.of(Diagnostic.error("Formatting would change the program: " + problem)));
             }
-            String twice = layout(JavaParser.parse(formatted, languageLevel, previewFeatures));
+            String twice = layout(formattedTree.root());
             if (!twice.equals(formatted)) {
                 return FormatResult.failed(
                         source,
@@ -97,8 +96,8 @@ public final class DefaultFormatter implements Formatter {
     }
 
     /** Lays out a parsed file and normalises how it ends. */
-    private String layout(ParseResult parsed) {
-        String text = printer().print(new DocEmitter(style).emit(parsed.root()));
+    private String layout(SyntaxNode root) {
+        String text = printer().print(new DocEmitter(style).emit(root));
         String separator = lineSeparator();
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;

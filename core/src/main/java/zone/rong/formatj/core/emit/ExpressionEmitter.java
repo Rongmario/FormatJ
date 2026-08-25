@@ -442,7 +442,11 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** Whether the author spread this node over more than one line. */
     protected static boolean authorBrokeInside(GreenNode node) {
-        List<GreenNode> children = node.children();
+        return authorBrokeInside(node.children());
+    }
+
+    /** Whether the author spread these siblings over more than one line. */
+    protected static boolean authorBrokeInside(List<GreenNode> children) {
         for (int i = 1; i < children.size(); i++) {
             if (authorBrokeBefore(children.get(i))) {
                 return true;

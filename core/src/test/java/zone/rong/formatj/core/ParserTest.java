@@ -147,4 +147,51 @@ class ParserTest {
         assertTrue(green.width() > 0);
     }
 
+    @Test
+    void enumTerminatorSitsInsideTheConstantList() {
+        ParseResult result = parse("enum Color { RED, GREEN, BLUE; int x; }\n");
+        GreenNode constants = find(result.root().green(), SyntaxKind.ENUM_CONSTANTS);
+        GreenNode body = find(result.root().green(), SyntaxKind.CLASS_BODY);
+
+        assertEquals(SyntaxKind.ENUM_CONSTANTS, constants.kind());
+        assertTrue(constants.children().getLast() instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";"));
+        assertTrue(
+                body.children().stream()
+                        .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")),
+                "the body must not hold the terminator as a sibling of the constant list");
+        assertTrue(
+                body.children().stream().anyMatch(child -> child.kind() == SyntaxKind.FIELD_DECLARATION),
+                "members after the terminator stay in the body");
+    }
+
+    @Test
+    void enumWithoutTerminatorHasNoSemicolonChild() {
+        ParseResult result = parse("enum Color { RED, GREEN, BLUE }\n");
+        GreenNode constants = find(result.root().green(), SyntaxKind.ENUM_CONSTANTS);
+        assertTrue(
+                constants.children().stream()
+                        .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")));
+    }
+
+    private static GreenNode find(GreenNode node, SyntaxKind kind) {
+        GreenNode match = findOrNull(node, kind);
+        if (match == null) {
+            throw new AssertionError("no " + kind + " in tree");
+        }
+        return match;
+    }
+
+    private static GreenNode findOrNull(GreenNode node, SyntaxKind kind) {
+        if (node.kind() == kind) {
+            return node;
+        }
+        for (GreenNode child : node.children()) {
+            GreenNode match = findOrNull(child, kind);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
 }

@@ -41,7 +41,9 @@ class FormatJPluginFunctionalTest {
                 package sample;
 
                 class Sample {
-                    void run() {}
+                
+                    void run() { }
+                    
                 }
                 """);
     }

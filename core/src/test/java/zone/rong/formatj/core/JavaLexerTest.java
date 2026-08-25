@@ -22,14 +22,16 @@ class JavaLexerTest {
             public sealed interface Shape permits Circle, Square {
 
                 record Circle(double radius) implements Shape {
+                
                     Circle {
                         if (radius < 0) {
                             throw new IllegalArgumentException("negative");
                         }
                     }
+                    
                 }
 
-                record Square(double side) implements Shape {}
+                record Square(double side) implements Shape { }
 
                 static String describe(Object value) {
                     return switch (value) {

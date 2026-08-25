@@ -70,7 +70,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             GreenNode statement = body.get(i);
             int minimum = i == 0 ? blankLinesAfterOpen : minimumBetween(body.get(i - 1), statement);
             parts.add(separatorBefore(statement, minimum));
-            parts.add(emit(statement));
+            parts.add(emitBodyChild(statement, body, i));
         }
         if (hasLeadingComments(close)) {
             // A comment on the closing line belongs to the body, indented with it, not to the brace.
@@ -82,6 +82,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
         Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
         Doc closing = Doc.concat(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), emit(close));
         return Doc.concat(emit(open), contents, closing);
+    }
+
+    /** One child of a braced body. Override to pass neighbour context into a layout rule. */
+    protected Doc emitBodyChild(GreenNode statement, List<GreenNode> body, int index) {
+        return emit(statement);
     }
 
     /** The closing brace itself, without the comments that lead it. */

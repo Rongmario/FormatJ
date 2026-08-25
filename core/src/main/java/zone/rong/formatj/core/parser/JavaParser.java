@@ -280,8 +280,8 @@ public final class JavaParser extends StatementParser {
     private GreenNode parseEnumBody(String enclosingName) {
         List<GreenNode> children = new ArrayList<>();
         children.add(expect("{"));
+        List<GreenNode> constants = new ArrayList<>();
         if (!at(";") && !at("}")) {
-            List<GreenNode> constants = new ArrayList<>();
             constants.add(parseEnumConstant(enclosingName));
             while (at(",")) {
                 constants.add(advance());
@@ -290,10 +290,18 @@ public final class JavaParser extends StatementParser {
                 }
                 constants.add(parseEnumConstant(enclosingName));
             }
+        }
+        boolean bodyDeclarations = false;
+        if (at(";")) {
+            // The terminator belongs to the constant list so the emitter can glue it to the last
+            // constant instead of treating it as a body member that always starts a new line.
+            constants.add(advance());
+            bodyDeclarations = true;
+        }
+        if (!constants.isEmpty()) {
             children.add(branch(SyntaxKind.ENUM_CONSTANTS, constants));
         }
-        if (at(";")) {
-            children.add(advance());
+        if (bodyDeclarations) {
             while (!at("}") && !atEnd()) {
                 children.add(parseMemberWithRecovery(enclosingName, false));
             }

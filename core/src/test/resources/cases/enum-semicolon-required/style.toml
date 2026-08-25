@@ -1,0 +1,2 @@
+[wrapping]
+require-enum-constant-semicolon = true
