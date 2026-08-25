@@ -1,7 +1,10 @@
 package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.BracePlacement;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.OperatorWrap;
@@ -27,6 +30,9 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** Implemented by the statement layer. */
     protected abstract Doc emitBlockLike(GreenNode node);
+
+    /** Implemented by the statement layer; a block whose empty form follows {@code emptyStyle}. */
+    protected abstract Doc emitBlockLike(GreenNode node, EmptyBodyStyle emptyStyle);
 
     // ---------------------------------------------------------------- lists
 
@@ -562,8 +568,19 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc arrow = emit(children.get(1));
         GreenNode bodyNode = children.get(2);
         boolean spaced = rule(SpacingRules.AROUND_LAMBDA_ARROW);
+        if (bodyNode.kind() == SyntaxKind.BLOCK) {
+            BracePlacement placement = rule(BraceRules.LAMBDA_PLACEMENT);
+            // On the same line the arrow's own spacing rule decides the gap; a placed brace brings its own.
+            Doc lead = placement == BracePlacement.END_OF_LINE ? spaceIf(spaced) : braceLead(placement);
+            return Doc.concat(
+                    parameters,
+                    spaceIf(spaced),
+                    arrow,
+                    lead,
+                    emitBlockLike(bodyNode, rule(BraceRules.EMPTY_METHOD_BODY)));
+        }
         Doc body = emit(bodyNode);
-        if (bodyNode.kind() == SyntaxKind.BLOCK || rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {
+        if (rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {
             return Doc.concat(parameters, spaceIf(spaced), arrow, spaceIf(spaced), body);
         }
         return Doc.group(
@@ -660,6 +677,25 @@ abstract class ExpressionEmitter extends EmitSupport {
                 rule(PatternRules.DECONSTRUCTION_WRAPPING),
                 rule(PatternRules.NESTED_INDENT),
                 rule(SpacingRules.WITHIN_PARENTHESES));
+    }
+
+    /** An index or dimension expression, with the spaces the bracket rule asks for inside it. */
+    protected Doc emitBracketed(GreenNode node) {
+        List<GreenNode> children = node.children();
+        boolean inside = rule(SpacingRules.WITHIN_BRACKETS);
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (i > 0) {
+                boolean afterOpen = is(children.get(i - 1), "[");
+                boolean beforeClose = is(child, "]");
+                // An empty pair such as new int[] keeps no space of its own.
+                boolean empty = afterOpen && beforeClose;
+                parts.add(spaceIf(inside && !empty && (afterOpen || beforeClose)));
+            }
+            parts.add(emit(child));
+        }
+        return Doc.concat(parts);
     }
 
     protected static int indexOf(List<GreenNode> children, String lexeme) {

@@ -1,8 +1,9 @@
 package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AnnotationPlacement;
+import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
-import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -28,17 +29,18 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return emitBlock(node);
     }
 
-    /** What separates a construct's header from its opening brace. */
-    protected Doc braceLead(BracePlacement placement) {
-        return switch (placement) {
-            case END_OF_LINE -> space();
-            case NEXT_LINE -> Doc.hardLine();
-            case NEXT_LINE_INDENTED -> Doc.indent(indentSize(), Doc.hardLine());
-        };
+    @Override
+    protected Doc emitBlockLike(GreenNode node, EmptyBodyStyle emptyStyle) {
+        return emitBracedBody(node, emptyStyle, 0, 0);
     }
 
     protected Doc emitBlock(GreenNode node) {
         return emitBracedBody(node, rule(BraceRules.EMPTY_CONTROL_BODY), 0, 0);
+    }
+
+    /** The block that forms a method, constructor or initializer body. */
+    protected Doc emitMethodBody(GreenNode node) {
+        return emitBracedBody(node, rule(BraceRules.EMPTY_METHOD_BODY), 0, 0);
     }
 
     /**
@@ -209,6 +211,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 emit(children.get(2)),
                 spaceIf(rule(SpacingRules.BEFORE_WHILE_PARENTHESIS)),
                 emitCondition(children.get(3), children.get(4), children.get(5)),
+                semicolonLead(),
                 emit(children.get(6)));
     }
 
@@ -302,11 +305,15 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<GreenNode> children = node.children();
         GreenNode open = children.getFirst();
         GreenNode close = children.getLast();
+        WrapPolicy policy = rule(WrappingRules.TRY_RESOURCES);
+        boolean inside = rule(SpacingRules.WITHIN_PARENTHESES);
+        Doc separator = policy == WrapPolicy.NEVER ? space() : Doc.line();
+
         List<Doc> parts = new ArrayList<>();
         boolean afterSemicolon = false;
         for (GreenNode child : children.subList(1, children.size() - 1)) {
             if (afterSemicolon) {
-                parts.add(Doc.line());
+                parts.add(separator);
                 afterSemicolon = false;
             }
             parts.add(emit(child));
@@ -314,13 +321,14 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 afterSemicolon = true;
             }
         }
-        Doc edge = rule(SpacingRules.WITHIN_PARENTHESES) ? Doc.line() : Doc.softLine();
-        return Doc.group(
-                Doc.concat(
-                        emit(open),
-                        Doc.indent(continuation(), Doc.concat(edge, Doc.concat(parts))),
-                        edge,
-                        emit(close)));
+        Doc resources = Doc.concat(parts);
+
+        if (policy == WrapPolicy.NEVER) {
+            return Doc.concat(emit(open), spaceIf(inside), resources, spaceIf(inside), emit(close));
+        }
+        Doc edge = inside ? Doc.line() : Doc.softLine();
+        Doc body = Doc.concat(emit(open), Doc.indent(continuation(), Doc.concat(edge, resources)), edge, emit(close));
+        return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(body) : Doc.group(body);
     }
 
     protected Doc emitResource(GreenNode node) {
@@ -369,8 +377,13 @@ abstract class StatementEmitter extends ExpressionEmitter {
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (i > 0) {
+                GreenNode previous = children.get(i - 1);
                 boolean bracket = is(child, "[") || is(child, "]");
-                parts.add(spaceIf(!bracket));
+                if (previous.kind() == SyntaxKind.ANNOTATION) {
+                    parts.add(annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children));
+                } else {
+                    parts.add(spaceIf(!bracket));
+                }
             }
             parts.add(emit(child));
         }
@@ -383,8 +396,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<Doc> parts = new ArrayList<>();
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
-            if (i > 0 && !is(child, ";")) {
-                parts.add(space());
+            if (i > 0) {
+                parts.add(is(child, ";") ? semicolonLead() : space());
             }
             if (is(child, ":") && rule(SpacingRules.AROUND_TERNARY_OPERATORS)) {
                 parts.add(Doc.EMPTY);
@@ -401,21 +414,28 @@ abstract class StatementEmitter extends ExpressionEmitter {
     }
 
     protected Doc emitLocalVariableDeclaration(GreenNode node) {
-        return emitDeclarationLine(node.children());
+        return emitDeclarationLine(node.children(), rule(AnnotationRules.PARAMETER_PLACEMENT));
     }
 
     /** Modifiers, a type, declarators and a semicolon, in one line unless something wraps. */
     protected Doc emitDeclarationLine(List<GreenNode> children) {
+        return emitDeclarationLine(children, rule(AnnotationRules.DECLARATION_PLACEMENT));
+    }
+
+    /** As {@link #emitDeclarationLine(List)}, with the placement rule the caller's context asks for. */
+    protected Doc emitDeclarationLine(List<GreenNode> children, AnnotationPlacement placement) {
         List<Doc> parts = new ArrayList<>();
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
-            if (i > 0 && !is(child, ";") && !is(child, ",")) {
+            if (i > 0 && is(child, ";")) {
+                parts.add(semicolonLead());
+            } else if (i > 0 && !is(child, ",")) {
                 GreenNode previous = children.get(i - 1);
                 boolean afterAnnotation = previous.kind() == SyntaxKind.ANNOTATION
                         || previous.kind() == SyntaxKind.MODIFIERS
                                 && !previous.children().isEmpty()
                                 && previous.children().getLast().kind() == SyntaxKind.ANNOTATION;
-                parts.add(afterAnnotation ? annotationSeparator(child) : space());
+                parts.add(afterAnnotation ? annotationSeparator(child, placement, children) : space());
             }
             parts.add(emit(child));
         }

@@ -2,12 +2,15 @@ package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
+import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
+import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -43,6 +46,20 @@ abstract class EmitSupport {
 
     protected int continuation() {
         return rule(IndentRules.CONTINUATION);
+    }
+
+    /** What separates a construct's header from its opening brace. */
+    protected Doc braceLead(BracePlacement placement) {
+        return switch (placement) {
+            case END_OF_LINE -> space();
+            case NEXT_LINE -> Doc.hardLine();
+            case NEXT_LINE_INDENTED -> Doc.indent(indentSize(), Doc.hardLine());
+        };
+    }
+
+    /** What separates a statement from its terminating semicolon. */
+    protected Doc semicolonLead() {
+        return spaceIf(rule(SpacingRules.BEFORE_SEMICOLON));
     }
 
     // --------------------------------------------------------- tree queries
@@ -377,14 +394,56 @@ abstract class EmitSupport {
         return Doc.concat(parts);
     }
 
-    /** What separates an annotation from what follows it, per the annotation placement rules. */
-    protected Doc annotationSeparator(GreenNode next) {
-        return switch (rule(AnnotationRules.DECLARATION_PLACEMENT)) {
+    /** What separates an annotation on a declaration from what follows it. */
+    protected Doc annotationSeparator(GreenNode next, List<GreenNode> siblings) {
+        return annotationSeparator(next, rule(AnnotationRules.DECLARATION_PLACEMENT), siblings);
+    }
+
+    /** What separates an annotation from what follows it, per the given placement rule. */
+    protected Doc annotationSeparator(GreenNode next, AnnotationPlacement placement, List<GreenNode> siblings) {
+        if (rule(AnnotationRules.SINGLE_MARKER_INLINE) && isLoneMarkerAnnotation(siblings)) {
+            // One bare @Override reads as part of the signature, not as a line of its own.
+            return space();
+        }
+        return switch (placement) {
             case NEW_LINE -> Doc.hardLine();
             case SAME_LINE -> space();
             case SAME_LINE_WHEN_SHORT -> Doc.line();
             case PRESERVE -> startsNewLine(next) ? Doc.hardLine() : space();
         };
+    }
+
+    /**
+     * Whether the only annotation among these siblings is a marker.
+     *
+     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
+     * sit; a second annotation anywhere means the set is no longer a lone marker.
+     */
+    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
+        GreenNode only = null;
+        int count = 0;
+        for (GreenNode sibling : siblings) {
+            if (sibling.kind() == SyntaxKind.ANNOTATION) {
+                count++;
+                only = sibling;
+            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
+                for (GreenNode modifier : sibling.children()) {
+                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
+                        count++;
+                        only = modifier;
+                    }
+                }
+            }
+        }
+        if (count != 1) {
+            return false;
+        }
+        for (GreenNode part : only.children()) {
+            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected static boolean startsNewLine(GreenNode node) {
