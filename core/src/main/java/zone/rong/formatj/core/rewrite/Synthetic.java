@@ -21,6 +21,16 @@ final class Synthetic {
         return leaf(TokenKind.SEPARATOR, lexeme);
     }
 
+    /** An operator such as {@code ->}. */
+    static GreenNode operator(String lexeme) {
+        return leaf(TokenKind.OPERATOR, lexeme);
+    }
+
+    /** A reserved word such as {@code break}. */
+    static GreenNode keyword(String lexeme) {
+        return leaf(TokenKind.KEYWORD, lexeme);
+    }
+
     /** A contextual keyword, which the lexer reads as an identifier. */
     static GreenNode contextualKeyword(String lexeme) {
         return leaf(TokenKind.IDENTIFIER, lexeme);

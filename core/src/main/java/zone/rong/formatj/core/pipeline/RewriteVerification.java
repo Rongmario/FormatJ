@@ -6,6 +6,7 @@ import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
+import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -13,6 +14,7 @@ import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.rewrite.TokenEdit;
+import zone.rong.formatj.core.text.TextBlocks;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -192,7 +194,64 @@ public final class RewriteVerification {
         if (authority == SwitchRules.YIELD_STYLE) {
             return checkYieldLaw(edit);
         }
+        if (authority == SwitchRules.CASE_STYLE) {
+            return checkCaseStyleLaw(edit);
+        }
+        if (authority == TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE
+                || authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
+            return checkTextBlockLaw(edit);
+        }
         return null;
+    }
+
+    /**
+     * A text block rule may change where the string ends and nothing else.
+     *
+     * <p>The two rules that rewrite a text block both change the string it denotes, which is the
+     * reason they are rewrites rather than layout, and the reason the law is stated over the value
+     * rather than over the characters. What they are allowed to change is the white space at the end
+     * of a line and the line terminator at the end of the block — the two places the language throws
+     * something away that the author may have meant. Everything else must survive: comparing both
+     * values with those two allowances normalised out leaves a comparison in which a lost line, a
+     * changed word or a mangled escape is still a difference.
+     *
+     * <p>Stated once for both rules because they act on one token, so they arrive as one edit. Which
+     * of the two an edit names says which rule was reached for first; it cannot buy the edit any
+     * latitude the other would not also have had.
+     */
+    private static String checkTextBlockLaw(TokenEdit edit) {
+        if (edit.removed().size() != 1
+                || edit.inserted().size() != 1
+                || !TextBlocks.isTextBlock(edit.removed().getFirst())
+                || !TextBlocks.isTextBlock(edit.inserted().getFirst())) {
+            return edit.authority().key() + " may only rewrite one whole text block";
+        }
+        String before = endings(TextBlocks.value(edit.removed().getFirst()));
+        String after = endings(TextBlocks.value(edit.inserted().getFirst()));
+        if (before.equals(after)) {
+            return null;
+        }
+        return edit.authority().key() + " changed what the text block says, not only where it ends";
+    }
+
+    /** A value with the two differences a text block rule may make normalised away. */
+    private static String endings(String value) {
+        String[] lines = value.split("\n", -1);
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                out.append('\n');
+            }
+            int end = lines[i].length();
+            while (end > 0 && Character.isWhitespace(lines[i].charAt(end - 1))) {
+                end--;
+            }
+            out.append(lines[i], 0, end);
+        }
+        while (!out.isEmpty() && out.charAt(out.length() - 1) == '\n') {
+            out.setLength(out.length() - 1);
+        }
+        return out.toString();
     }
 
     /**
@@ -386,6 +445,20 @@ public final class RewriteVerification {
         return SwitchRules.YIELD_STYLE.key() + " changed " + changed + ", which is not a yield block";
     }
 
+    /**
+     * A case style rule may spell a label and its terminator differently, and nothing else.
+     *
+     * <p>Deliberately a weaker law than the others here, and said so out loud. Whether a colon case
+     * may become an arrow case is a question about fall-through and about the scope a colon switch
+     * shares, and neither is readable in the tokens that changed; the check that makes this rule safe
+     * is the precondition {@code SwitchCaseRewrite} applies before it changes anything, not this.
+     * What this does is keep the rule inside its own vocabulary, so an edit that reached for a piece
+     * of the case body while claiming to be restyling a label still fails.
+     */
+    private static String checkCaseStyleLaw(TokenEdit edit) {
+        return checkOnly(edit, "case labels and their terminators", ":", "->", "case", ",", "break", ";", "yield", "{", "}");
+    }
+
     /** A rule that may touch the named tokens and no others. */
     private static String checkOnly(TokenEdit edit, String what, String... allowed) {
         List<String> permitted = List.of(allowed);
@@ -482,7 +555,7 @@ public final class RewriteVerification {
     private static String firstDifference(List<String> expected, List<String> actual) {
         int shared = Math.min(expected.size(), actual.size());
         for (int i = 0; i < shared; i++) {
-            if (!expected.get(i).equals(actual.get(i))) {
+            if (!TokenEquivalence.sameToken(expected.get(i), actual.get(i))) {
                 return "expected '" + expected.get(i) + "' at position " + i + " but found '" + actual.get(i) + "'";
             }
         }

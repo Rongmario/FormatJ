@@ -4,6 +4,7 @@ import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.text.TextBlocks;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +14,12 @@ import java.util.List;
  * <p>Two sources are equivalent when their significant tokens, ignoring whitespace, comments, and
  * the optional semicolon after a no-argument enum constant list, match one for one. That semicolon
  * is a style choice, not a program change.
+ *
+ * <p>A text block is compared by the string it denotes rather than by its characters. It is the one
+ * token whose own layout the formatter is allowed to change — the language throws away the
+ * indentation every line of it shares, so moving all of them together says nothing about the program
+ * — and comparing the characters would forbid re-indenting one at all. Comparing the value forbids
+ * exactly the changes that matter: see {@link TextBlocks}.
  */
 public final class TokenEquivalence {
 
@@ -40,10 +47,25 @@ public final class TokenEquivalence {
         return firstDifference(programTokens(before), programTokens(after));
     }
 
+    /**
+     * Whether two lexemes are the same token.
+     *
+     * <p>Character for character, except for a text block, whose incidental indentation the layout
+     * engine may change without changing the program.
+     */
+    public static boolean sameToken(String left, String right) {
+        if (left.equals(right)) {
+            return true;
+        }
+        return TextBlocks.isTextBlock(left)
+                && TextBlocks.isTextBlock(right)
+                && TextBlocks.value(left).equals(TextBlocks.value(right));
+    }
+
     private static String firstDifference(List<String> left, List<String> right) {
         int shared = Math.min(left.size(), right.size());
         for (int i = 0; i < shared; i++) {
-            if (!left.get(i).equals(right.get(i))) {
+            if (!sameToken(left.get(i), right.get(i))) {
                 return "token " + (i + 1) + " changed from '" + left.get(i) + "' to '" + right.get(i) + "'";
             }
         }

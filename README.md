@@ -25,6 +25,10 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
   Everything above it can therefore be verified.
 - **Verified Output:** Formatting must be a fixed point, and must preserve the significant token
   stream. If either check fails, the original source is returned with a diagnostic.
+- **Prose is Checked Too:** Comments are not significant tokens, so the token check is blind to
+  them. The `comments.reflow` and `javadoc.*` rules are allowed to move words between lines, and are
+  held to moving them and nothing else: the same words in the same order, and every `{@code}`,
+  `<pre>` and `@snippet` region character for character.
 - **Declared Rewrites:** Rules that add or remove code runs in a separate stage that declares
   every token it changed. The output is checked against that declaration token for token, so an
   undeclared change fails loudly as a corrupted one. A rewrite that fails verification costs
@@ -349,7 +353,7 @@ first declarator of a declaration is aligned: a second name on the same line has
 
 | Key                                         | Values                              | Default         | Effect                                                 | Example                                                                       |
 |---------------------------------------------|-------------------------------------|-----------------|--------------------------------------------------------|-------------------------------------------------------------------------------|
-| `comments.reflow` **†**                     | `preserve`, `reflow-to-line-length` | `preserve`      | Whether line and block comment prose may be re-wrapped | `reflow-to-line-length` would refill paragraphs to `wrapping.max-line-length` |
+| `comments.reflow`                           | `preserve`, `reflow-to-line-length` | `preserve`      | Whether line and block comment prose may be re-wrapped | `reflow-to-line-length` refills paragraphs to `wrapping.max-line-length`      |
 | `comments.block-comment-star-alignment`     | boolean                             | `true`          | Align the leading stars of a block comment             | `true`: `/*`<br>`·* text`<br>`·*/`                                            |
 | `comments.trailing-comment-min-spaces`      | integer                             | `1`             | Spaces between code and a comment trailing it          | `2`: `int x = 1;··// note`                                                    |
 | `comments.trailing-comment-column` **†**    | integer                             | `0`             | Column trailing comments are padded to; `0` disables   | `40`: every trailing comment starts at column 40                              |
@@ -362,21 +366,34 @@ first declarator of a declaration is aligned: a second name on the same line has
 The markers work at whole members, whole statements and whole top-level declarations. A marker in the
 middle of an expression has no boundary in the tree to latch onto and is ignored.
 
-### `javadoc` **†**
+`comments.reflow` refills a run of `//` lines as one paragraph, and refuses four things: a comment
+trailing code, which has one line to live on; a comment holding a `{@code}`, `<pre>` or `@snippet`
+region, whose own whitespace is content; a run of `//` lines with no space after the slashes, which
+is what commented-out code looks like; and anything carrying a formatter-off or formatter-on marker.
 
-No Javadoc rule affects output yet.
+### `javadoc`
 
-Re-wrapping prose needs a preservation check that the token check cannot provide and since comments are not significant tokens, they wait on a check to be implemented.
+Every rule here rearranges prose, and every one of them is checked afterwards against the words that
+went in: same words, same order, and any `{@code}`, `<pre>` or `@snippet` region untouched. A comment
+no rule here has anything to say about is reproduced character for character, so turning one of them
+on does not re-space every other comment in the file.
 
 - `JavadocTagOrder` values are `preserve` and `canonical`.
+- `canonical` is `@author`, `@version`, `@param`, `@return`, `@throws`, `@exception`, `@see`,
+  `@since`, `@serial`, `@serialField`, `@serialData`, `@deprecated`; tags outside that list keep to
+  the end in the order the author had them. The sort is stable, so two `@param` tags never swap.
+- Wrapping declines a paragraph holding a code sample, block markup or a table row: those are laid
+  out by their own lines rather than by the margin.
+- `javadoc.align-tag-descriptions` aligns each kind of tag with its own kind. A lone long `@throws`
+  does not push every `@param` description across the line.
 
 | Key                               | Values            | Default    | Effect                                                     | Example                                                       |
 |-----------------------------------|-------------------|------------|------------------------------------------------------------|---------------------------------------------------------------|
-| `javadoc.wrap`                    | boolean           | `false`    | Wrap Javadoc prose to the configured line length           | `true` would refill description paragraphs                    |
+| `javadoc.wrap`                    | boolean           | `false`    | Wrap Javadoc prose to the configured line length           | `true`: description paragraphs are refilled to the margin      |
 | `javadoc.tag-order`               | `JavadocTagOrder` | `preserve` | Ordering of Javadoc block tags                             | `canonical`: `@param`, then `@return`, then `@throws`         |
 | `javadoc.blank-line-before-tags`  | boolean           | `true`     | Blank line between the description and the first block tag | `true`: `·* text`<br>`·*`<br>`·* @param a x`                  |
 | `javadoc.align-tag-descriptions`  | boolean           | `false`    | Align the descriptions following block tags                | `true`: `@param a··x`<br>`@param bb y`                        |
-| `javadoc.add-paragraph-tags`      | boolean           | `false`    | Insert `<p>` on blank description lines                    | `true`: a blank description line becomes `·* <p>`             |
+| `javadoc.add-paragraph-tags`      | boolean           | `false`    | Write `<p>` on blank description lines                     | `true`: a blank description line becomes `·* <p>`             |
 | `javadoc.keep-single-line`        | boolean           | `true`     | Leave a one-line Javadoc comment on one line               | `true`: `/** Text. */` stays as written                       |
 | `javadoc.tag-continuation-indent` | integer           | `8`        | Columns a wrapped block tag description is indented        | `8`: the second line of a long `@param` is indented 8 columns |
 
@@ -395,9 +412,26 @@ is what keeps one token from having two rules with an opinion about it.
 - `yield-style = always-block` leaves a `throw` body alone: a `throw` produces no value, so there is
   no expression for a `yield` to be written round.
 
+`switch.case-style` is the one rule whose safety is a precondition rather than a check afterwards.
+Whether `case A: f(); break;` means what `case A -> f();` means is a question about fall-through,
+about the single scope a colon switch shares between its groups, and about where a bare `break`
+binds — none of it visible in the tokens the edit changed, so no law over that edit could check it.
+The switch is therefore read whole first, and converted only if every one of these holds. Mixing the
+two forms does not compile, so a switch is converted wholly or left wholly alone.
+
+- Every group ends where it cannot fall through: an unlabelled `break` the rule then removes, or a
+  `return`, `throw`, `yield` or `continue` it keeps. The last group needs no terminator.
+- No `break` belonging to the switch is buried inside a group. One inside a nested loop or switch
+  binds to that and does not count.
+- No group declares a local variable or local type at its own level, because the groups of a colon
+  switch share one scope and arrow cases do not.
+- A `default`, and a label carrying a `when` guard, are never merged with the empty cases above them.
+- `colon` converts only expression and `throw` bodies. A block body would need a `break` after it,
+  and whether a block can complete normally is the same flow question this rule declines to guess at.
+
 | Key                                       | Values                                                 | Default                | Effect                                             | Example                                                                     |
 |-------------------------------------------|--------------------------------------------------------|------------------------|----------------------------------------------------|-----------------------------------------------------------------------------|
-| `switch.case-style` **†**                 | `preserve`, `arrow`, `colon`                           | `preserve`             | Arrow or colon case labels                         | `arrow` would turn `case 1: f(); break;` into `case 1 -> f();`              |
+| `switch.case-style`                       | `preserve`, `arrow`, `colon`                           | `preserve`             | Arrow or colon case labels                         | `arrow`: `case 1: f(); break;` becomes `case 1 -> f();`                    |
 | `switch.arrow-case-braces`                | `BracePolicy`                                          | `preserve`             | Braces around the body of an arrow case            | `never`: `case 1 -> { f(); }` becomes `case 1 -> f();`; statement switches only |
 | `switch.yield-style`                      | `preserve`, `expression-when-possible`, `always-block` | `preserve`             | How the value of an arrow case body is written     | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;` |
 | `switch.multi-label-wrapping`             | `WrapPolicy`                                           | `wrap-if-long`         | Wrapping of a case label listing several constants | `case A, B,`<br>`········C -> f();`                                         |
@@ -459,17 +493,28 @@ rather than guessed at.
 | `lambdas.body-braces`                   | `BracePolicy`                                           | `preserve` | Braces around a lambda body                       | `never`: `x -> { return x; }` becomes `x -> x`; `always` is declined |
 | `lambdas.keep-single-expression-inline` | boolean                                                 | `true`     | Keep a single-expression body on the arrow's line | `true`: `x -> x + 1`                              |
 
-### `text-blocks` **†**
+### `text-blocks`
 
-Changing a text block's indentation or its closing delimiter changes the string the program produces.
+A text block is the one token whose layout is also its meaning, so the three rules here divide along
+that line rather than along the one they look like they should.
 
-Every rule here is a rewrite despite looking like a normal layout pass. None is applied yet.
+- `indent-policy` is layout. The language throws away the indentation every line of a block shares,
+  so moving all of them together says nothing about the program, and the layout engine does it with
+  the column in hand. Verification compares text blocks by the string they denote rather than by
+  their characters, which is what makes re-indenting one checkable instead of merely plausible.
+- `closing-delimiter-on-own-line` and `escape-trailing-spaces` are rewrites, because each changes the
+  string: the first adds the line terminator that a delimiter on its own line implies, the second
+  makes trailing spaces the language would discard significant. Both declare the edit and are held to
+  a law that permits a change to a line's trailing white space and to the final line terminator, and
+  nothing else — a rule that lost a word of the content fails it however it described itself.
+- Both are off by default. A formatter that altered a string constant without being asked is not one
+  anybody could run over a codebase they had not read.
 
-| Key                                         | Values                                     | Default    | Effect                                       | Example                                                             |
-|---------------------------------------------|--------------------------------------------|------------|----------------------------------------------|---------------------------------------------------------------------|
-| `text-blocks.indent-policy`                 | `preserve`, `reindent-to-block`, `minimal` | `preserve` | How incidental indentation is handled        | `minimal` would strip incidental indentation to the shallowest line |
-| `text-blocks.closing-delimiter-on-own-line` | boolean                                    | `true`     | Keep the closing delimiter on its own line   | `true`: `····text`<br>`····"""`                                     |
-| `text-blocks.escape-trailing-spaces`        | boolean                                    | `true`     | Escape significant trailing spaces with `\s` | `true`: `text··` becomes `text·\s`                                  |
+| Key                                         | Values                                     | Default    | Effect                                                 | Example                                                                   |
+|---------------------------------------------|--------------------------------------------|------------|--------------------------------------------------------|---------------------------------------------------------------------------|
+| `text-blocks.indent-policy`                 | `preserve`, `reindent-to-block`, `minimal` | `preserve` | How incidental indentation is handled                  | `minimal` strips incidental indentation to the opening delimiter's column |
+| `text-blocks.closing-delimiter-on-own-line` | boolean                                    | `false`    | Put the closing delimiter on its own line              | `true`: the value gains the trailing newline that implies                 |
+| `text-blocks.escape-trailing-spaces`        | boolean                                    | `false`    | Make trailing spaces significant by escaping with `\s`  | `true`: `text··` becomes `text·\s`                                            |
 
 ### `preservation`
 

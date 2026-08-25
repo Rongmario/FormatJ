@@ -13,6 +13,9 @@ import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.SpacingRules;
+import zone.rong.formatj.api.rules.TextBlockIndentPolicy;
+import zone.rong.formatj.api.rules.TextBlockRules;
+import zone.rong.formatj.core.comment.CommentFormatter;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -20,6 +23,7 @@ import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
+import zone.rong.formatj.core.text.TextBlocks;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,9 +34,11 @@ import java.util.List;
 abstract class EmitSupport {
 
     protected final Style style;
+    private final CommentFormatter comments;
 
     EmitSupport(Style style) {
         this.style = style;
+        this.comments = new CommentFormatter(style);
     }
 
     protected abstract Doc emit(GreenNode node);
@@ -239,7 +245,7 @@ abstract class EmitSupport {
             // Only the first comment of a line has a column of its own to share with its neighbours.
             Doc mark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
             first = false;
-            parts.add(Doc.lineSuffix(Doc.concat(mark, trailingSpacing(), commentDoc(comment))));
+            parts.add(Doc.lineSuffix(Doc.concat(mark, trailingSpacing(), comments.trailing(comment))));
         }
         return Doc.concat(parts);
     }
@@ -259,13 +265,13 @@ abstract class EmitSupport {
         if (token == null) {
             return Doc.EMPTY;
         }
-        List<Token> comments = token.leadingComments();
+        List<Token> attached = token.leadingComments();
         List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < comments.size(); i++) {
+        for (int i = 0; i < attached.size(); i++) {
             if (i > 0) {
                 parts.add(Doc.hardLine());
             }
-            parts.add(commentDoc(comments.get(i)));
+            parts.add(comments.ownLine(List.of(attached.get(i))));
         }
         return Doc.concat(parts);
     }
@@ -284,9 +290,26 @@ abstract class EmitSupport {
             if (!trivia.kind().isComment()) {
                 continue;
             }
-            parts.add(commentDoc(trivia));
-            int newlines = newlinesAfter(leading, i);
-            if (newlines == 0 && trivia.kind() != TokenKind.LINE_COMMENT) {
+            // A paragraph of // lines is one unit: refilling them one at a time could only ever make
+            // each line shorter, never move a word from the end of one onto the next.
+            int last = i;
+            List<Token> run = new ArrayList<>();
+            run.add(trivia);
+            while (comments.joinsLineComments()
+                    && trivia.kind() == TokenKind.LINE_COMMENT
+                    && newlinesAfter(leading, last) == 1) {
+                int next = nextComment(leading, last);
+                if (next < 0 || leading.get(next).kind() != TokenKind.LINE_COMMENT) {
+                    break;
+                }
+                run.add(leading.get(next));
+                last = next;
+            }
+            parts.add(comments.ownLine(run));
+            i = last;
+
+            int newlines = newlinesAfter(leading, last);
+            if (newlines == 0 && leading.get(last).kind() != TokenKind.LINE_COMMENT) {
                 // A block comment the author kept inline stays inline.
                 parts.add(Doc.text(" "));
             } else {
@@ -298,6 +321,16 @@ abstract class EmitSupport {
             }
         }
         return Doc.concat(parts);
+    }
+
+    /** The index of the next comment in a trivia list, or -1 when there is none. */
+    private static int nextComment(List<Token> leading, int index) {
+        for (int i = index + 1; i < leading.size(); i++) {
+            if (leading.get(i).kind().isComment()) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** Line breaks between the trivia at {@code index} and the next comment or the token itself. */
@@ -328,37 +361,50 @@ abstract class EmitSupport {
 
     /** A comment, re-indented but never re-worded. */
     protected Doc commentDoc(Token comment) {
-        if (comment.kind() == TokenKind.LINE_COMMENT) {
-            return Doc.text(stripTrailing(comment.text()));
-        }
-        String[] lines = comment.text().split("\r\n|\r|\n", -1);
-        if (lines.length == 1) {
-            return Doc.text(stripTrailing(comment.text()));
-        }
-        boolean alignStars = rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT);
-        List<Doc> parts = new ArrayList<>();
-        parts.add(Doc.text(stripTrailing(lines[0])));
-        for (int i = 1; i < lines.length; i++) {
-            String line = stripTrailing(lines[i]);
-            String trimmed = line.strip();
-            parts.add(Doc.hardLine());
-            if (alignStars && trimmed.startsWith("*")) {
-                parts.add(Doc.text(" " + trimmed));
-            } else {
-                parts.add(Doc.text(line.stripLeading().isEmpty() ? "" : line.strip()));
-            }
-        }
-        return Doc.concat(parts);
+        return comments.verbatim(comment);
     }
 
     /** Token text; multi-line tokens such as text blocks are emitted exactly as written. */
     protected Doc tokenText(Token token) {
         String text = token.text();
+        if (token.kind() == TokenKind.TEXT_BLOCK
+                && rule(TextBlockRules.INDENT_POLICY) != TextBlockIndentPolicy.PRESERVE
+                && TextBlocks.isTextBlock(text)) {
+            return textBlock(text);
+        }
         if (text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
             return Doc.text(text);
         }
         // A text block carries its own line structure, so it must break every group around it.
         return Doc.concat(Doc.breakParent(), Doc.text(text));
+    }
+
+    /**
+     * A text block re-indented by the layout engine.
+     *
+     * <p>Safe to do here, and only here, because the amount of indentation a text block carries is
+     * incidental: the language strips whatever every line of it shares. Shifting all of them by the
+     * same amount therefore denotes the same string, which is why re-indenting is layout and the
+     * other two {@code text-blocks.*} rules — which do change the string — are rewrites.
+     *
+     * <p>The two policies differ only in what "the same amount" is measured from.
+     * {@code reindent-to-block} lets the ordinary indentation of the enclosing block carry the block,
+     * so it moves with the code it belongs to. {@code minimal} pins it to the column the opening
+     * delimiter landed in, which is the least indentation the content can be given without the
+     * incidental whitespace becoming somebody's problem.
+     */
+    private Doc textBlock(String text) {
+        List<String> lines = TextBlocks.strippedLines(text);
+        List<Doc> parts = new ArrayList<>();
+        parts.add(Doc.breakParent());
+        parts.add(Doc.text("\"\"\"" + TextBlocks.openingTail(text)));
+        for (int i = 0; i < lines.size(); i++) {
+            parts.add(Doc.hardLine());
+            String line = lines.get(i);
+            parts.add(Doc.text(i == lines.size() - 1 ? line + "\"\"\"" : line));
+        }
+        Doc block = Doc.concat(parts);
+        return rule(TextBlockRules.INDENT_POLICY) == TextBlockIndentPolicy.MINIMAL ? Doc.align(block) : block;
     }
 
     /** Drops the trailing spaces of a comment or verbatim line, unless the file rule keeps them. */

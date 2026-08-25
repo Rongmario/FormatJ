@@ -38,6 +38,10 @@ import java.util.List;
  * Either way the optional semicolon after a no-argument enum constant list is a style choice and is
  * allowed to appear or disappear.
  *
+ * <p>Comments are checked separately, because they are not significant tokens and the check above
+ * cannot see them: the words of every comment must come out in the same order, and a code sample
+ * inside one character for character; see {@link ProsePreservation}.
+ *
  * <p>When a rewrite fails verification the file is not abandoned. The pipeline runs again with
  * rewriting switched off and returns that result with a warning, so an unsound rule costs the file
  * its rewrites rather than all of its formatting.
@@ -186,6 +190,16 @@ public final class DefaultFormatter implements Formatter {
                         : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
             return Attempt.failure("Formatting would change the program: " + problem, rewrote);
+        }
+
+        // Comments are not significant tokens, so nothing above has looked at a word of them. This
+        // is anchored at the rewritten tree rather than the original because rewriting is allowed to
+        // move a comment and has already been held to keeping every one of them; what is left to
+        // check is that laying the file out did not reword one.
+        String prose =
+                ProsePreservation.firstDifference(rewritten.root(), formattedTree.root().green(), style);
+        if (prose != null) {
+            return Attempt.failure("Formatting would change what a comment says: " + prose, rewrote);
         }
 
         GreenNode second =

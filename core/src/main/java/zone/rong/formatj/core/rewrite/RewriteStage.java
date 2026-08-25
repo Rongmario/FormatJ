@@ -22,7 +22,8 @@ import java.util.List;
  * opinion about them. A fixed point would hide rules that disagree with each other; running once in a stated
  * order means two rules that fight produce a stable, explainable result. The order matters as more
  * rules land: a rule that turns colon cases into arrow cases creates bodies that the brace rules have
- * an opinion about, so it has to come first.
+ * an opinion about, so it runs before them. Text blocks come last because nothing else can produce
+ * one and they can produce nothing else.
  *
  * <p>Within a rewrite, nodes are visited innermost first, so a construct's own children are settled
  * before it is asked about itself.
@@ -39,9 +40,11 @@ public final class RewriteStage {
             List.of(
                     new ImportRewrite(),
                     new SealedRewrite(),
+                    new SwitchCaseRewrite(),
                     new SwitchRewrite(),
                     new LambdaRewrite(),
-                    new BraceRewrite());
+                    new BraceRewrite(),
+                    new TextBlockRewrite());
 
     private RewriteStage() { }
 

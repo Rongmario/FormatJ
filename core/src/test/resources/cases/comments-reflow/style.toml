@@ -1,0 +1,5 @@
+[comments]
+reflow = "reflow-to-line-length"
+
+[wrapping]
+max-line-length = 70

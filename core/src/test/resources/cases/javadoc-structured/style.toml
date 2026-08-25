@@ -1,0 +1,8 @@
+[javadoc]
+wrap = true
+tag-order = "canonical"
+align-tag-descriptions = true
+add-paragraph-tags = true
+
+[wrapping]
+max-line-length = 70
