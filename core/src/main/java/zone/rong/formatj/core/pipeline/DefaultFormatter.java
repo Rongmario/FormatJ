@@ -221,7 +221,8 @@ public final class DefaultFormatter implements Formatter {
                 style.get(WrappingRules.MAX_LINE_LENGTH),
                 style.get(IndentRules.USE_TABS),
                 style.get(FileRules.TAB_WIDTH),
-                lineSeparator());
+                lineSeparator(),
+                style.get(FileRules.TRIM_TRAILING_WHITESPACE));
     }
 
     private String lineSeparator() {

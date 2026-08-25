@@ -5,6 +5,7 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.CommentRules;
+import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -274,7 +275,11 @@ abstract class EmitSupport {
         return Doc.concat(Doc.breakParent(), Doc.text(text));
     }
 
-    private static String stripTrailing(String text) {
+    /** Drops the trailing spaces of a comment or verbatim line, unless the file rule keeps them. */
+    private String stripTrailing(String text) {
+        if (!rule(FileRules.TRIM_TRAILING_WHITESPACE)) {
+            return text;
+        }
         int end = text.length();
         while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t')) {
             end--;

@@ -22,23 +22,27 @@ public final class DocPrinter {
     private final boolean useTabs;
     private final int tabWidth;
     private final String lineSeparator;
+    private final boolean trimTrailingWhitespace;
 
     /**
      * @param maxWidth columns a line may occupy before groups must break
      * @param useTabs whether indentation is written with tab characters
      * @param tabWidth columns one tab occupies, used both to write and to measure indentation
      * @param lineSeparator the terminator written at every line break
+     * @param trimTrailingWhitespace whether a line's trailing spaces are dropped as it is closed
      */
-    public DocPrinter(int maxWidth, boolean useTabs, int tabWidth, String lineSeparator) {
+    public DocPrinter(
+            int maxWidth, boolean useTabs, int tabWidth, String lineSeparator, boolean trimTrailingWhitespace) {
         this.maxWidth = maxWidth;
         this.useTabs = useTabs;
         this.tabWidth = tabWidth;
         this.lineSeparator = lineSeparator;
+        this.trimTrailingWhitespace = trimTrailingWhitespace;
     }
 
     /** A printer indenting with spaces and ending lines with a newline. */
     public static DocPrinter ofSpaces(int maxWidth) {
-        return new DocPrinter(maxWidth, false, 4, "\n");
+        return new DocPrinter(maxWidth, false, 4, "\n", true);
     }
 
     /** Indentation text for a column count, honouring the tab settings. */
@@ -111,7 +115,9 @@ public final class DocPrinter {
                         lineSuffixes.clear();
                         break;
                     }
-                    trimTrailingSpaces(out);
+                    if (trimTrailingWhitespace) {
+                        trimTrailingSpaces(out);
+                    }
                     out.append(lineSeparator).append(indentation(indent));
                     column = indent;
                 }
@@ -119,7 +125,8 @@ public final class DocPrinter {
         }
 
         for (Doc suffix : lineSuffixes) {
-            out.append(new DocPrinter(maxWidth, useTabs, tabWidth, lineSeparator).print(suffix));
+            out.append(new DocPrinter(maxWidth, useTabs, tabWidth, lineSeparator, trimTrailingWhitespace)
+                    .print(suffix));
         }
         return out.toString();
     }
