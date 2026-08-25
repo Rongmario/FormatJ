@@ -16,6 +16,7 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
   - CLI
   - Gradle plugin
   - Maven plugin
+  - IntelliJ plugin
 
 ## Design
 
@@ -103,6 +104,25 @@ formatJ {
 ```
 
 - `formatj:format` binds to `process-sources`, `formatj:check` to `verify`. No `settings.xml` changes are needed.
+
+## IntelliJ Plugin
+
+Build the plugin zip with `./gradlew :intellij-plugin:buildPlugin`. The artifact lands in
+`intellij-plugin/build/distributions/`. Install it from disk via **Settings > Plugins > ⚙ >
+Install Plugin from Disk...**.
+
+After install, **Reformat Code** (`Ctrl+Alt+L`) and **Optimize Imports** on Java files run FormatJ
+instead of the built-in Java formatter. Format-on-save uses it too, because it uses Reformat Code.
+Style comes from the nearest `formatj.toml` above the file, the same walk the CLI does.
+
+Disable it per project under **Settings > Tools > FormatJ**. The same page can pin a style file or
+preset; leaving both empty keeps discovery.
+
+Selection and "only VCS changes" format the whole file internally, then splice only the hunks that
+overlap the requested ranges. Enter and paste still use IntelliJ's indent — FormatJ does not run on
+every keystroke.
+
+Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ## Configuration
 
@@ -421,3 +441,9 @@ These are the rules that keep what the author wrote.
 The Maven plugin descriptor in `maven-plugin/src/main/resources/META-INF/maven/plugin.xml` is hand-written.
 Generating it needs either Maven itself or a Gradle plugin that no longer runs on Gradle 9.
 `MavenPluginDescriptorTest` checks it against the mojo annotations and the project version on every build.
+
+Versions come from [Cleanroom Versioning](https://github.com/CleanroomMC/Versioning): `version` and `versioning.stage` in `gradle.properties`, plus `git describe`.
+
+Local builds get a `+local.<distance>` suffix; a release is the numeric version and requires a matching git tag with no `v` prefix.
+
+Publishing is the `Publish` workflow: Gradle plugin to the Plugin Portal, `formatj` and `formatj-maven-plugin` to Maven Central, CLI zip/tar to a GitHub Release.

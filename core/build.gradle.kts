@@ -2,7 +2,6 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 
 plugins {
     `java-library`
-    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 java {

@@ -2,7 +2,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 
 plugins {
     `java-library`
-    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 java {
