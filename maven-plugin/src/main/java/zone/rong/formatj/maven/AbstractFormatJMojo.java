@@ -8,13 +8,13 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.StyleFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -98,7 +98,11 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         }
 
         Formatter formatter = formatter();
-        Charset charset = encoding == null || encoding.isBlank() ? StandardCharsets.UTF_8 : Charset.forName(encoding);
+        // An explicit <encoding> wins; otherwise the style's own file.charset decides.
+        Charset charset =
+                encoding == null || encoding.isBlank()
+                        ? FileRules.charset(formatter.style())
+                        : Charset.forName(encoding);
         List<String> wouldChange = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         int formatted = 0;

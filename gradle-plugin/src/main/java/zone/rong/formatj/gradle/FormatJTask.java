@@ -8,11 +8,13 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.StyleFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,7 +122,7 @@ public abstract class FormatJTask extends DefaultTask {
             if (getCheckOnly().get()) {
                 wouldChange.add(file.getPath());
             } else {
-                write(file.toPath(), result.text());
+                write(file.toPath(), result.text(), FileRules.charset(formatter.style()));
                 formatted++;
                 getLogger().lifecycle("formatted {}", file.getPath());
             }
@@ -164,16 +166,16 @@ public abstract class FormatJTask extends DefaultTask {
 
     private static FormatResult format(Formatter formatter, File file) {
         try {
-            String source = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            String source = Files.readString(file.toPath(), FileRules.charset(formatter.style()));
             return formatter.format(FormatRequest.of(source).withName(file.getPath()));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + file, e);
         }
     }
 
-    private static void write(Path file, String text) {
+    private static void write(Path file, String text, Charset charset) {
         try {
-            Files.writeString(file, text, StandardCharsets.UTF_8);
+            Files.writeString(file, text, charset);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot write " + file, e);
         }

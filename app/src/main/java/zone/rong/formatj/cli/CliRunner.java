@@ -5,13 +5,14 @@ import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.TomlWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,14 +65,15 @@ final class CliRunner {
     }
 
     private int runStandardInput(StyleResolver styles) {
+        Style style = styles.forStandardInput();
         String source;
         try {
-            source = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            source = new String(in.readAllBytes(), FileRules.charset(style));
         } catch (IOException e) {
             err.println("formatj: cannot read standard input: " + e.getMessage());
             return ERROR;
         }
-        FormatResult result = formatter(styles.forStandardInput()).format(
+        FormatResult result = formatter(style).format(
                 FormatRequest.of(source).withName(options.stdinName()));
         reportDiagnostics(options.stdinName(), result);
         if (result.hasErrors()) {
@@ -142,17 +144,18 @@ final class CliRunner {
     }
 
     private void processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
+        Style style = styles.forFile(file);
+        Charset charset = FileRules.charset(style);
         String source;
         try {
-            source = Files.readString(file, StandardCharsets.UTF_8);
+            source = Files.readString(file, charset);
         } catch (IOException e) {
             err.println("formatj: cannot read " + file + ": " + e.getMessage());
             failed.incrementAndGet();
             return;
         }
 
-        FormatResult result = formatter(styles.forFile(file)).format(
-                FormatRequest.of(source).withName(file.toString()));
+        FormatResult result = formatter(style).format(FormatRequest.of(source).withName(file.toString()));
         reportDiagnostics(file.toString(), result);
         if (result.hasErrors()) {
             failed.incrementAndGet();
@@ -169,7 +172,7 @@ final class CliRunner {
         switch (options.mode()) {
             case WRITE -> {
                 try {
-                    Files.writeString(file, result.text(), StandardCharsets.UTF_8);
+                    Files.writeString(file, result.text(), charset);
                     out.println("formatted " + file);
                 } catch (IOException e) {
                     err.println("formatj: cannot write " + file + ": " + e.getMessage());

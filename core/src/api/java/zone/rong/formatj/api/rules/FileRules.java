@@ -1,7 +1,10 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
+import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /** Whole-file concerns: encoding, line terminators and the last line. */
 public final class FileRules {
@@ -22,6 +25,21 @@ public final class FileRules {
             Option.ofInt("file.tab-width", 4, "Columns a tab character occupies when measuring line length");
 
     private FileRules() { }
+
+    /**
+     * The charset {@link #CHARSET} names, for reading and writing source files.
+     *
+     * <p>A name this JVM does not know falls back to UTF-8 rather than failing the whole run: the
+     * charset is a convenience, and refusing to format anything because of a typo in it helps nobody.
+     */
+    public static Charset charset(Style style) {
+        String name = style.get(CHARSET);
+        try {
+            return Charset.isSupported(name) ? Charset.forName(name) : StandardCharsets.UTF_8;
+        } catch (IllegalArgumentException e) {
+            return StandardCharsets.UTF_8;
+        }
+    }
 
     /** Fluent view of the {@code file.*} rules. */
     public static final class Builder {
