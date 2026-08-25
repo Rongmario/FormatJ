@@ -128,16 +128,28 @@ abstract class StatementEmitter extends ExpressionEmitter {
         parts.add(emitCondition(children.get(1), children.get(2), children.get(3)));
         parts.add(controlBody(children.get(4)));
         if (children.size() > 5) {
-            parts.add(emit(children.get(5)));
+            parts.add(emitElse(children.get(5), children.get(4).kind() != SyntaxKind.BLOCK));
         }
         return Doc.concat(parts);
     }
 
     protected Doc emitElse(GreenNode node) {
+        return emitElse(node, false);
+    }
+
+    /**
+     * An else clause.
+     *
+     * @param afterUnbracedBody whether the body this else follows was a bare statement rather than a
+     *     block. There is no closing brace to sit beside in that case, so the else has to start a
+     *     line of its own however {@code braces.else-on-new-line} is set; trailing it after the
+     *     statement would read as part of that statement.
+     */
+    protected Doc emitElse(GreenNode node, boolean afterUnbracedBody) {
         List<GreenNode> children = node.children();
         GreenNode body = children.get(1);
         Doc keyword = emit(children.get(0));
-        Doc lead = rule(BraceRules.ELSE_ON_NEW_LINE) ? Doc.hardLine() : space();
+        Doc lead = afterUnbracedBody || rule(BraceRules.ELSE_ON_NEW_LINE) ? Doc.hardLine() : space();
         if (body.kind() == SyntaxKind.IF_STATEMENT) {
             return Doc.concat(lead, keyword, space(), emit(body));
         }
@@ -167,10 +179,13 @@ abstract class StatementEmitter extends ExpressionEmitter {
 
     protected Doc emitDo(GreenNode node) {
         List<GreenNode> children = node.children();
+        // An unbraced body has no closing brace for the while to sit beside.
+        boolean whileOnNewLine =
+                children.get(1).kind() != SyntaxKind.BLOCK || rule(BraceRules.ELSE_ON_NEW_LINE);
         return Doc.concat(
                 emit(children.get(0)),
                 controlBody(children.get(1)),
-                rule(BraceRules.ELSE_ON_NEW_LINE) ? Doc.hardLine() : space(),
+                whileOnNewLine ? Doc.hardLine() : space(),
                 emit(children.get(2)),
                 spaceIf(rule(SpacingRules.BEFORE_WHILE_PARENTHESIS)),
                 emitCondition(children.get(3), children.get(4), children.get(5)),
