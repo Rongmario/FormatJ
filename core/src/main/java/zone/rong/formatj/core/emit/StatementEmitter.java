@@ -36,6 +36,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return emitBracedBody(node, emptyStyle, 0, 0, false);
     }
 
+    @Override
+    protected Doc emitBlockLike(GreenNode node, boolean mayInline) {
+        return emitBracedBody(node, rule(BraceRules.EMPTY_CONTROL_BODY), 0, 0, mayInline);
+    }
+
     /** A lambda's block body, which has a keep-on-one-line rule of its own. */
     @Override
     protected Doc emitLambdaBody(GreenNode node, EmptyBodyStyle emptyStyle) {

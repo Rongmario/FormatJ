@@ -12,7 +12,7 @@ public final class SwitchRules {
     public static final Option<BracePolicy> ARROW_CASE_BRACES =
             Option.ofEnum(
                     "switch.arrow-case-braces",
-                    BracePolicy.WHEN_MULTI_STATEMENT,
+                    BracePolicy.PRESERVE,
                     "Braces around the body of an arrow case");
 
     public static final Option<YieldStyle> YIELD_STYLE =

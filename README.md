@@ -294,10 +294,10 @@ The same `key` works in:
 
 ### `alignment`
 
-Alignment is applied to text that has already been laid out, so turning a rule on never moves a line
-break: a file wraps exactly where it would have wrapped with every alignment rule off. The cost of
-that is the other way round — an aligned line can end past `wrapping.max-line-length`, because the
-column it is padded to is not known while the margin is being honoured.
+Alignment is applied to text that has already been laid out, turning a rule on never moves a line break.
+Which means, a file wraps exactly where it would have wrapped with every alignment rule off
+
+But an aligned line can end past `wrapping.max-line-length` as the column it is padded to is not known when honouring the margin.
 
 A run is a set of lines that are consecutive, at the same indentation, and each carrying one of the
 rule's constructs. A blank line, a comment line, a line that wrapped, or a change of nesting depth
@@ -307,16 +307,16 @@ ends a run and starts another.
 - The two aligning values mean the same thing: padding only shows on a line that follows a break, so
   there is no construct one of them reaches and the other does not.
 
-| Key                                 | Default                | Effect                                            | Example                                          |
-|-------------------------------------|------------------------|---------------------------------------------------|--------------------------------------------------|
-| `alignment.consecutive-fields`      | `none`                 | Align the names of consecutive field declarations | `align-on-column`: `int····x;`<br>`String·name;` |
-| `alignment.consecutive-variables`   | `none`                 | Align the names of consecutive local declarations | as above, inside a method body                   |
-| `alignment.consecutive-assignments` | `none`                 | Align the `=` of consecutive assignments          | `x···= 1;`<br>`name = "a";`                      |
-| `alignment.method-chains`           | `none`                 | Align the dots of a wrapped method chain          | `people.stream()`<br>`······.filter(f)`          |
-| `alignment.annotation-values`       | `none`                 | Align the values of an annotation's elements      | `@A(name···= "x",`<br>`···timeout = 1)`          |
-| `alignment.switch-arrows`           | `none`                 | Align the arrows of a switch's case labels        | `case A··-> 1;`<br>`case BB -> 2;`               |
+| Key                                 | Default                | Effect                                            | Example                                            |
+|-------------------------------------|------------------------|---------------------------------------------------|----------------------------------------------------|
+| `alignment.consecutive-fields`      | `none`                 | Align the names of consecutive field declarations | `align-on-column`: `int····x;`<br>`String·name;`   |
+| `alignment.consecutive-variables`   | `none`                 | Align the names of consecutive local declarations | as above, inside a method body                     |
+| `alignment.consecutive-assignments` | `none`                 | Align the `=` of consecutive assignments          | `x···= 1;`<br>`name = "a";`                        |
+| `alignment.method-chains`           | `none`                 | Align the dots of a wrapped method chain          | `people.stream()`<br>`······.filter(f)`            |
+| `alignment.annotation-values`       | `none`                 | Align the values of an annotation's elements      | `@A(name···= "x",`<br>`···timeout = 1)`            |
+| `alignment.switch-arrows`           | `none`                 | Align the arrows of a switch's case labels        | `case A··-> 1;`<br>`case BB -> 2;`                 |
 | `alignment.ternary-branches`        | `align-when-multiline` | Align the branches of a wrapped conditional       | `x = cond`<br>`····?·a`<br>`····:·b;` under `cond` |
-| `alignment.trailing-comments`       | `none`                 | Align comments trailing consecutive lines         | trailing `//` comments share a start column      |
+| `alignment.trailing-comments`       | `none`                 | Align comments trailing consecutive lines         | trailing `//` comments share a start column        |
 
 An initializer is an assignment for the purposes of `alignment.consecutive-assignments`, so a run of
 declarations lines up its `=` as well as, with `alignment.consecutive-fields`, its names. Only the
@@ -382,11 +382,24 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 
 ### `switch`
 
+`switch.arrow-case-braces` and `switch.yield-style` divide the same territory between them, because
+the answer depends on whether the switch produces a value. A statement switch's arrow body is a
+statement, so its braces are braces and nothing else: `arrow-case-braces` governs those. An expression
+switch's arrow body is a value, so braces round it bring a `yield` with them — one decision rather
+than two — and `yield-style` governs those. Neither rule is consulted about the other's cases, which
+is what keeps one token from having two rules with an opinion about it.
+
+- `never` and `when-multi-statement` coincide on an arrow case. An arrow body may only be an
+  expression, a `throw` or a block, so a block holding more than one statement has no unbraced form to
+  go to under either value.
+- `yield-style = always-block` leaves a `throw` body alone: a `throw` produces no value, so there is
+  no expression for a `yield` to be written round.
+
 | Key                                       | Values                                                 | Default                | Effect                                             | Example                                                                     |
 |-------------------------------------------|--------------------------------------------------------|------------------------|----------------------------------------------------|-----------------------------------------------------------------------------|
 | `switch.case-style` **†**                 | `preserve`, `arrow`, `colon`                           | `preserve`             | Arrow or colon case labels                         | `arrow` would turn `case 1: f(); break;` into `case 1 -> f();`              |
-| `switch.arrow-case-braces` **†**          | `BracePolicy`                                          | `when-multi-statement` | Braces around the body of an arrow case            | `when-multi-statement`: a one-statement arrow case has no braces            |
-| `switch.yield-style` **†**                | `preserve`, `expression-when-possible`, `always-block` | `preserve`             | How the value of an arrow case body is written     | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;` |
+| `switch.arrow-case-braces`                | `BracePolicy`                                          | `preserve`             | Braces around the body of an arrow case            | `never`: `case 1 -> { f(); }` becomes `case 1 -> f();`; statement switches only |
+| `switch.yield-style`                      | `preserve`, `expression-when-possible`, `always-block` | `preserve`             | How the value of an arrow case body is written     | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;` |
 | `switch.multi-label-wrapping`             | `WrapPolicy`                                           | `wrap-if-long`         | Wrapping of a case label listing several constants | `case A, B,`<br>`········C -> f();`                                         |
 | `switch.null-default-on-one-line`         | boolean                                                | `true`                 | Keep `case null, default` on a single line         | `true`: `case null, default -> f();`                                        |
 | `switch.guard-on-same-line`               | boolean                                                | `true`                 | Keep a `when` guard on the line of its pattern     | `true`: `case T t when t.ok() -> f();`                                      |
@@ -394,12 +407,16 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 
 ### `records`
 
+`records.with-style` is layout rather than a rewrite: a with-block on one line and the same block
+spread over several are the same tokens, so it changes no code. The one-line form is only ever
+offered — a block too long for its line breaks whatever the rule asks for.
+
 | Key                                      | Values                                          | Default             | Effect                                            | Example                                                 |
 |------------------------------------------|-------------------------------------------------|---------------------|---------------------------------------------------|---------------------------------------------------------|
 | `records.component-wrapping`             | `WrapPolicy`                                    | `chop-down-if-long` | Wrapping of a record header's components          | `record R(`<br>`········int a,`<br>`········int b) {`   |
 | `records.single-line-empty-body`         | boolean                                         | `false`             | Render an empty record body as `{}`               | `true`: `record R(int a) {}`                            |
 | `records.compact-constructor-blank-line` | boolean                                         | `false`             | Blank line inside a compact canonical constructor | `true`: a blank line opens the compact constructor body |
-| `records.with-style` **†**               | `preserve`, `always-block`, `inline-when-short` | `inline-when-short` | Layout of a derived record creation `with` block  | `inline-when-short`: `r with { a = 1; }`                |
+| `records.with-style`                     | `preserve`, `always-block`, `inline-when-short` | `inline-when-short` | Layout of a derived record creation `with` block  | `inline-when-short`: `r with { a = 1; }`                |
 | `records.space-before-with-block`        | boolean                                         | `true`              | Space between the `with` keyword and its block    | `r with {` / `r with{`                                  |
 
 ### `patterns`
@@ -412,18 +429,34 @@ Re-wrapping prose needs a preservation check that the token check cannot provide
 
 ### `sealed`
 
+A permits clause is a set written as a list, so `sealed.permits-order` may rearrange it freely. It may
+not do anything else: a permitted subclass that went missing would stop the file compiling, and one
+that appeared would permit something the author never wrote, so the whole run is replaced as a single
+declared edit whose tokens are a permutation of the ones that were there.
+
 | Key                          | Values                                | Default        | Effect                                      | Example                                               |
 |------------------------------|---------------------------------------|----------------|---------------------------------------------|-------------------------------------------------------|
 | `sealed.permits-wrapping`    | `WrapPolicy`                          | `wrap-if-long` | Wrapping of a permits clause                | `sealed interface I`<br>`········permits A, B {`      |
-| `sealed.permits-order` **†** | `preserve`, `ascending`, `descending` | `preserve`     | Sort order of the types in a permits clause | `ascending`: `permits A, B, C`                        |
+| `sealed.permits-order`       | `preserve`, `ascending`, `descending` | `preserve`     | Sort order of the types in a permits clause | `ascending`: `permits A, B, C`                        |
 | `sealed.permits-on-new-line` | boolean                               | `false`        | Start the permits clause on its own line    | `true`: `sealed interface I`<br>`········permits A {` |
 
 ### `lambdas`
 
+`lambdas.parameter-style = omit-when-possible` drops the parentheses only round the one shape the
+language lets go bare — exactly one parameter, written as a name with no type, no `final` and no
+annotation — so `()`, `(a, b)`, `(int x)` and `(var x)` keep theirs.
+
+`lambdas.body-braces` runs the opposite way round from `braces.*`: taking the braces off is the safe
+direction. A block body says which lambda shape the target type wanted, so `{ return e; }` and
+`{ e(); }` each collapse to the expression body that compiles. Going the other way, `x -> e` could
+need either `{ return e; }` or `{ e; }`, and which one is a question about the functional interface
+being implemented rather than about the text. `always` is therefore declined for an expression body
+rather than guessed at.
+
 | Key                                     | Values                                                  | Default    | Effect                                            | Example                                           |
 |-----------------------------------------|---------------------------------------------------------|------------|---------------------------------------------------|---------------------------------------------------|
-| `lambdas.parameter-style` **†**         | `preserve`, `always-parenthesise`, `omit-when-possible` | `preserve` | Parentheses around a single untyped parameter     | `omit-when-possible`: `(x) -> x` becomes `x -> x` |
-| `lambdas.body-braces` **†**             | `BracePolicy`                                           | `preserve` | Braces around a lambda body                       | `never`: `x -> { return x; }` becomes `x -> x`    |
+| `lambdas.parameter-style`               | `preserve`, `always-parenthesise`, `omit-when-possible` | `preserve` | Parentheses around a single untyped parameter     | `omit-when-possible`: `(x) -> x` becomes `x -> x` |
+| `lambdas.body-braces`                   | `BracePolicy`                                           | `preserve` | Braces around a lambda body                       | `never`: `x -> { return x; }` becomes `x -> x`; `always` is declined |
 | `lambdas.keep-single-expression-inline` | boolean                                                 | `true`     | Keep a single-expression body on the arrow's line | `true`: `x -> x + 1`                              |
 
 ### `text-blocks` **†**

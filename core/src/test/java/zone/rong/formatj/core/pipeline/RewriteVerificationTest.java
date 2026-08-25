@@ -14,6 +14,9 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
+import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -265,6 +268,128 @@ class RewriteVerificationTest {
                 List.copyOf(tokens.subList(start, end)),
                 inserted,
                 TokenEdit.Bias.INNERMOST_FIRST);
+    }
+
+    // ------------------------------------------------ the permits edit law
+
+    private static final String SEALED = """
+            sealed interface I permits C, A, B {
+            }
+            """;
+
+    /** An edit replacing the run of permitted types with the given tokens. */
+    private static TokenEdit permitsEdit(List<String> inserted) {
+        return new TokenEdit(
+                SealedRules.PERMITS_ORDER,
+                "reordered",
+                4,
+                List.of("C", ",", "A", ",", "B"),
+                inserted,
+                TokenEdit.Bias.INNERMOST_FIRST);
+    }
+
+    @Test
+    void reorderingPermittedTypesIsPermitted() {
+        assertNull(
+                RewriteVerification.verifyOutput(
+                        parse(SEALED),
+                        parse(SEALED.replace("permits C, A, B", "permits A, B, C")),
+                        List.of(permitsEdit(List.of("A", ",", "B", ",", "C")))));
+    }
+
+    @Test
+    void aPermittedTypeTheClauseNeverHeldCannotAppear() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SEALED),
+                        parse(SEALED),
+                        List.of(permitsEdit(List.of("A", ",", "B", ",", "D"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("produced D, which was not there"), problem);
+    }
+
+    @Test
+    void aPermittedTypeCannotBeDroppedAtAll() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SEALED), parse(SEALED), List.of(permitsEdit(List.of("A", ",", "B"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("dropped C"), problem);
+    }
+
+    @Test
+    void somethingThatIsNotAListOfTypesIsNotAPermitsClause() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SEALED), parse(SEALED), List.of(permitsEdit(List.of("A", ",", ",", "B"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
+    }
+
+    // ------------------------------------------- the lambda and yield edit laws
+
+    @Test
+    void aLambdaBodyRuleMayNotPutBracesOn() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SOURCE),
+                        parse(SOURCE),
+                        List.of(
+                                TokenEdit.insert(
+                                        LambdaRules.BODY_BRACES,
+                                        "guessing at the target type",
+                                        0,
+                                        TokenEdit.Bias.OUTERMOST_FIRST,
+                                        "{",
+                                        "return")));
+        assertNotNull(problem);
+        assertTrue(problem.contains("may only remove braces"), problem);
+    }
+
+    @Test
+    void aLambdaBodyRuleMayNotTakeTheStatementWithTheBraces() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SOURCE),
+                        parse(SOURCE),
+                        List.of(TokenEdit.delete(LambdaRules.BODY_BRACES, "too much", 0, "{", "log")));
+        assertNotNull(problem);
+        assertTrue(problem.contains("not a lambda body's braces"), problem);
+    }
+
+    @Test
+    void aBraceWithoutItsYieldIsNotAYieldBlock() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SOURCE),
+                        parse(SOURCE),
+                        List.of(
+                                TokenEdit.insert(
+                                        SwitchRules.YIELD_STYLE,
+                                        "a block that produces nothing",
+                                        0,
+                                        TokenEdit.Bias.OUTERMOST_FIRST,
+                                        "{")));
+        assertNotNull(problem);
+        assertTrue(problem.contains("not a yield block"), problem);
+    }
+
+    @Test
+    void anArrowCaseRuleIsHeldToTheSameBraceLawAsTheControlRules() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse(SOURCE),
+                        parse(SOURCE),
+                        List.of(
+                                TokenEdit.insert(
+                                        SwitchRules.ARROW_CASE_BRACES,
+                                        "sneaking a yield in",
+                                        0,
+                                        TokenEdit.Bias.OUTERMOST_FIRST,
+                                        "{",
+                                        "yield")));
+        assertNotNull(problem);
+        assertTrue(problem.contains("may only insert braces"), problem);
     }
 
     // ------------------------------------------------- through the formatter

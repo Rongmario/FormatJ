@@ -36,6 +36,9 @@ abstract class ExpressionEmitter extends EmitSupport {
     /** Implemented by the statement layer; a block whose empty form follows {@code emptyStyle}. */
     protected abstract Doc emitBlockLike(GreenNode node, EmptyBodyStyle emptyStyle);
 
+    /** Implemented by the statement layer; a block that may print on one line when it fits. */
+    protected abstract Doc emitBlockLike(GreenNode node, boolean mayInline);
+
     /** Implemented by the statement layer; a lambda's block body, which may stay on one line. */
     protected abstract Doc emitLambdaBody(GreenNode node, EmptyBodyStyle emptyStyle);
 
@@ -701,14 +704,31 @@ abstract class ExpressionEmitter extends EmitSupport {
         return false;
     }
 
+    /**
+     * Derived record creation, {@code point with { x = 1; }}.
+     *
+     * <p>{@code records.with-style} is the one rule in this area that changes no tokens, so it is
+     * decided here rather than in the rewrite stage: a with-block on one line and the same block
+     * spread over several are the same program. The single line is only ever offered — the block is
+     * one group, and the layout engine still breaks it when it does not fit or when something inside
+     * forces a break — which is what keeps formatting a fixed point under every one of the three
+     * values.
+     */
     protected Doc emitWithExpression(GreenNode node) {
         List<GreenNode> children = node.children();
+        GreenNode block = children.get(2);
+        boolean mayInline =
+                switch (rule(RecordRules.WITH_STYLE)) {
+                    case ALWAYS_BLOCK -> false;
+                    case INLINE_WHEN_SHORT -> true;
+                    case PRESERVE -> AuthorLines.onOneLine(block);
+                };
         return Doc.concat(
                 emit(children.get(0)),
                 space(),
                 emit(children.get(1)),
                 spaceIf(rule(RecordRules.SPACE_BEFORE_WITH_BLOCK)),
-                emitBlockLike(children.get(2)));
+                emitBlockLike(block, mayInline));
     }
 
     // -------------------------------------------------------------- patterns

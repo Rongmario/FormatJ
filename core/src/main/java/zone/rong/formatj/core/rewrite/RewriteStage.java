@@ -35,7 +35,13 @@ import java.util.List;
  */
 public final class RewriteStage {
 
-    private static final List<Rewrite> REWRITES = List.of(new ImportRewrite(), new BraceRewrite());
+    private static final List<Rewrite> REWRITES =
+            List.of(
+                    new ImportRewrite(),
+                    new SealedRewrite(),
+                    new SwitchRewrite(),
+                    new LambdaRewrite(),
+                    new BraceRewrite());
 
     private RewriteStage() { }
 

@@ -473,12 +473,22 @@ abstract class ExpressionParser extends ParserBase {
         }
     }
 
+    /**
+     * The block of a derived record creation, whose contents are component assignments.
+     *
+     * <p>Each assignment and its semicolon form one {@code EXPRESSION_STATEMENT}, the same shape an
+     * ordinary block has. The emitter lays a block out by walking its children as statements, so a
+     * loose semicolon sitting beside its expression would be spaced as though it were a statement of
+     * its own.
+     */
     private GreenNode parseWithBlock() {
         List<GreenNode> children = new ArrayList<>();
         children.add(expect("{"));
         while (!at("}") && !atEnd()) {
-            children.add(parseExpression());
-            children.add(expect(";"));
+            List<GreenNode> assignment = new ArrayList<>();
+            assignment.add(parseExpression());
+            assignment.add(expect(";"));
+            children.add(branch(SyntaxKind.EXPRESSION_STATEMENT, assignment));
         }
         children.add(expect("}"));
         return branch(SyntaxKind.BLOCK, children);

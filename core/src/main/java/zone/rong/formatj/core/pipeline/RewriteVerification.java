@@ -1,7 +1,11 @@
 package zone.rong.formatj.core.pipeline;
 
+import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
+import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -156,22 +160,39 @@ public final class RewriteVerification {
      */
     private static String checkEditLaws(List<TokenEdit> edits, GreenNode formatted) {
         for (TokenEdit edit : edits) {
-            if (edit.authority() == BraceRules.IF_ELSE
-                    || edit.authority() == BraceRules.FOR_LOOP
-                    || edit.authority() == BraceRules.WHILE_LOOP) {
-                String problem = checkBraceLaw(edit);
-                if (problem != null) {
-                    return problem;
-                }
-            }
-            if (edit.authority() == ImportRules.ORDER) {
-                String problem = checkImportLaw(edit, formatted);
-                if (problem != null) {
-                    return problem;
-                }
+            String problem = checkEditLaw(edit, formatted);
+            if (problem != null) {
+                return problem;
             }
         }
         return checkBracesBalance(edits);
+    }
+
+    /** The law of the one rule this edit claims to be. */
+    private static String checkEditLaw(TokenEdit edit, GreenNode formatted) {
+        Option<?> authority = edit.authority();
+        if (authority == BraceRules.IF_ELSE
+                || authority == BraceRules.FOR_LOOP
+                || authority == BraceRules.WHILE_LOOP
+                || authority == SwitchRules.ARROW_CASE_BRACES) {
+            return checkBraceLaw(edit);
+        }
+        if (authority == ImportRules.ORDER) {
+            return checkImportLaw(edit, formatted);
+        }
+        if (authority == SealedRules.PERMITS_ORDER) {
+            return checkPermitsLaw(edit);
+        }
+        if (authority == LambdaRules.PARAMETER_STYLE) {
+            return checkOnly(edit, "parentheses", "(", ")");
+        }
+        if (authority == LambdaRules.BODY_BRACES) {
+            return checkLambdaBraceLaw(edit);
+        }
+        if (authority == SwitchRules.YIELD_STYLE) {
+            return checkYieldLaw(edit);
+        }
+        return null;
     }
 
     /**
@@ -245,19 +266,145 @@ public final class RewriteVerification {
         return current.isEmpty() ? declarations : null;
     }
 
-    /** A brace rule may add and remove braces, and nothing else. */
-    private static String checkBraceLaw(TokenEdit edit) {
-        for (String token : edit.inserted()) {
-            if (!token.equals("{") && !token.equals("}")) {
-                return edit.authority().key() + " may only insert braces but inserted '" + token + "'";
-            }
+    /**
+     * A permits clause may be rearranged and nothing else.
+     *
+     * <p>The same law as {@code imports.order}, on a list whose elements are separated rather than
+     * terminated: the run comes back holding the same declarations in a different order. It is the
+     * stricter half of the import law, without the removal clause — a permitted subclass that went
+     * missing would stop the file compiling and one that appeared would permit something the author
+     * never wrote, so unlike an unused import there is no case in which dropping or inventing one is
+     * allowed.
+     */
+    private static String checkPermitsLaw(TokenEdit edit) {
+        List<String> before = separated(edit.removed());
+        List<String> after = separated(edit.inserted());
+        if (before == null || after == null) {
+            return SealedRules.PERMITS_ORDER.key() + " may only rewrite a whole permits clause";
         }
-        for (String token : edit.removed()) {
-            if (!token.equals("{") && !token.equals("}")) {
-                return edit.authority().key() + " may only remove braces but removed '" + token + "'";
+        String difference = sameBag(before, after);
+        return difference == null
+                ? null
+                : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
+    }
+
+    /**
+     * Splits a comma-separated run into its elements, or null when it is not one.
+     *
+     * <p>Nesting is counted, so a type argument's own commas stay inside the element they belong to.
+     */
+    private static List<String> separated(List<String> tokens) {
+        List<String> elements = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        for (String token : tokens) {
+            if (token.equals("<")) {
+                depth++;
+            } else if (token.equals(">")) {
+                depth--;
+            }
+            if (depth < 0) {
+                return null;
+            }
+            if (token.equals(",") && depth == 0) {
+                if (current.isEmpty()) {
+                    return null;
+                }
+                elements.add(current.toString());
+                current.setLength(0);
+                continue;
+            }
+            current.append(token);
+        }
+        if (depth != 0 || current.isEmpty()) {
+            return null;
+        }
+        elements.add(current.toString());
+        return elements;
+    }
+
+    /** Whether two lists hold the same things, in any order. */
+    private static String sameBag(List<String> before, List<String> after) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (String element : before) {
+            counts.merge(element, 1, Integer::sum);
+        }
+        for (String element : after) {
+            Integer count = counts.get(element);
+            if (count == null || count == 0) {
+                return "produced " + element + ", which was not there";
+            }
+            counts.put(element, count - 1);
+        }
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > 0) {
+                return "dropped " + entry.getKey();
             }
         }
         return null;
+    }
+
+    /**
+     * A lambda body rule may only take a body apart, never put one together.
+     *
+     * <p>Collapsing {@code x -> { return e; }} to {@code x -> e} removes a brace, possibly a
+     * {@code return}, and the statement's semicolon, in two contiguous pieces. Insisting on exactly
+     * those pieces is what stops the rule reaching for anything else, and the empty insert list is
+     * what holds the rewrite to its own account of why the other direction is not offered: which
+     * braced form an expression body wants is a question about the target type, not about the tokens.
+     */
+    private static String checkLambdaBraceLaw(TokenEdit edit) {
+        if (!edit.inserted().isEmpty()) {
+            return LambdaRules.BODY_BRACES.key() + " may only remove braces but inserted " + edit.inserted();
+        }
+        List<String> removed = edit.removed();
+        if (removed.equals(List.of("{"))
+                || removed.equals(List.of("{", "return"))
+                || removed.equals(List.of(";", "}"))) {
+            return null;
+        }
+        return LambdaRules.BODY_BRACES.key() + " removed " + removed + ", which is not a lambda body's braces";
+    }
+
+    /**
+     * The braces of an arrow case body in an expression switch, and the {@code yield} that comes with
+     * them.
+     *
+     * <p>They are one edit rather than two because they are one decision: an expression switch's
+     * arrow body is a value, so a block round it has to yield that value and an expression body has
+     * to be that value. The law therefore names the pair, and a rule that added a brace without the
+     * {@code yield} — leaving a block that falls off its end without producing anything — fails it.
+     */
+    private static String checkYieldLaw(TokenEdit edit) {
+        List<String> changed = edit.inserted().isEmpty() ? edit.removed() : edit.inserted();
+        if (!edit.removed().isEmpty() && !edit.inserted().isEmpty()) {
+            return SwitchRules.YIELD_STYLE.key() + " may add or remove a yield block, not replace one";
+        }
+        if (changed.equals(List.of("{", "yield")) || changed.equals(List.of("}"))) {
+            return null;
+        }
+        return SwitchRules.YIELD_STYLE.key() + " changed " + changed + ", which is not a yield block";
+    }
+
+    /** A rule that may touch the named tokens and no others. */
+    private static String checkOnly(TokenEdit edit, String what, String... allowed) {
+        List<String> permitted = List.of(allowed);
+        for (String token : edit.inserted()) {
+            if (!permitted.contains(token)) {
+                return edit.authority().key() + " may only insert " + what + " but inserted '" + token + "'";
+            }
+        }
+        for (String token : edit.removed()) {
+            if (!permitted.contains(token)) {
+                return edit.authority().key() + " may only remove " + what + " but removed '" + token + "'";
+            }
+        }
+        return null;
+    }
+
+    /** A brace rule may add and remove braces, and nothing else. */
+    private static String checkBraceLaw(TokenEdit edit) {
+        return checkOnly(edit, "braces", "{", "}");
     }
 
     /** Braces come in pairs: an edit that opens without closing would not compile. */
