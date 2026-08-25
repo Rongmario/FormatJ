@@ -7,7 +7,7 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class JavadocRules {
 
     public static final Option<Boolean> WRAP =
-            Option.ofBoolean("javadoc.wrap", true, "Wrap Javadoc prose to the configured line length");
+            Option.ofBoolean("javadoc.wrap", false, "Wrap Javadoc prose to the configured line length");
 
     public static final Option<JavadocTagOrder> TAG_ORDER =
             Option.ofEnum("javadoc.tag-order", JavadocTagOrder.PRESERVE, "Ordering of Javadoc block tags");

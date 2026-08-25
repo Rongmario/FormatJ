@@ -13,7 +13,7 @@ public final class RecordRules {
                     "Wrapping of a record header's components");
 
     public static final Option<Boolean> SINGLE_LINE_EMPTY_BODY =
-            Option.ofBoolean("records.single-line-empty-body", true, "Render an empty record body as {}");
+            Option.ofBoolean("records.single-line-empty-body", false, "Render an empty record body as {}");
 
     public static final Option<Boolean> COMPACT_CONSTRUCTOR_BLANK_LINE =
             Option.ofBoolean(

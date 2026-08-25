@@ -2,11 +2,15 @@ package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
+import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.CommentRules;
+import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
+import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -42,6 +46,20 @@ abstract class EmitSupport {
 
     protected int continuation() {
         return rule(IndentRules.CONTINUATION);
+    }
+
+    /** What separates a construct's header from its opening brace. */
+    protected Doc braceLead(BracePlacement placement) {
+        return switch (placement) {
+            case END_OF_LINE -> space();
+            case NEXT_LINE -> Doc.hardLine();
+            case NEXT_LINE_INDENTED -> Doc.indent(indentSize(), Doc.hardLine());
+        };
+    }
+
+    /** What separates a statement from its terminating semicolon. */
+    protected Doc semicolonLead() {
+        return spaceIf(rule(SpacingRules.BEFORE_SEMICOLON));
     }
 
     // --------------------------------------------------------- tree queries
@@ -274,12 +292,90 @@ abstract class EmitSupport {
         return Doc.concat(Doc.breakParent(), Doc.text(text));
     }
 
-    private static String stripTrailing(String text) {
+    /** Drops the trailing spaces of a comment or verbatim line, unless the file rule keeps them. */
+    private String stripTrailing(String text) {
+        if (!rule(FileRules.TRIM_TRAILING_WHITESPACE)) {
+            return text;
+        }
         int end = text.length();
         while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t')) {
             end--;
         }
         return text.substring(0, end);
+    }
+
+    // ------------------------------------------------------- formatter off
+
+    /**
+     * Where a node's leading comments turn formatting off.
+     *
+     * <p>The escape hatch is deliberately coarse: formatting stops at a whole member or statement and
+     * resumes at another one. A marker in the middle of an expression would leave the region with no
+     * well-defined boundaries in the tree, and reproducing half a construct verbatim is how a
+     * formatter starts emitting code that no longer parses.
+     *
+     * @return the index in the node's leading trivia of the off marker, or {@code -1}
+     */
+    protected int formatterOffIndex(GreenNode node) {
+        return markerIndex(node, rule(CommentRules.OFF_MARKER));
+    }
+
+    /** Whether a node's leading comments turn formatting back on. */
+    protected boolean turnsFormattingOn(GreenNode node) {
+        return markerIndex(node, rule(CommentRules.ON_MARKER)) >= 0;
+    }
+
+    private int markerIndex(GreenNode node, String marker) {
+        if (!rule(CommentRules.HONOUR_FORMATTER_OFF) || marker.isBlank()) {
+            return -1;
+        }
+        SyntaxToken token = firstToken(node);
+        if (token == null) {
+            return -1;
+        }
+        List<Token> leading = token.leading();
+        for (int i = 0; i < leading.size(); i++) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment() && trivia.text().contains(marker)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * A run of nodes reproduced exactly, from the off marker to the end of the last one.
+     *
+     * <p>Comments that came before the marker are still the formatter's to place, so they are emitted
+     * normally and only what follows the marker is copied through.
+     *
+     * @param run the nodes the region covers, the first of which carries the marker
+     * @param offIndex index of the marker in the first node's leading trivia
+     */
+    protected Doc formatterOffRegion(List<GreenNode> run, int offIndex) {
+        GreenNode first = run.getFirst();
+        SyntaxToken token = firstToken(first);
+        int prefix = 0;
+        for (int i = 0; i < offIndex; i++) {
+            prefix += token.leading().get(i).length();
+        }
+        StringBuilder out = new StringBuilder();
+        out.append(first.text(), prefix, first.text().length());
+        for (int i = 1; i < run.size(); i++) {
+            out.append(run.get(i).text());
+        }
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < offIndex; i++) {
+            Token trivia = token.leading().get(i);
+            if (trivia.kind().isComment()) {
+                parts.add(commentDoc(trivia));
+                parts.add(Doc.hardLine());
+            }
+        }
+        // Text with its own line structure has to break every group around it, as a text block does.
+        parts.add(Doc.breakParent());
+        parts.add(Doc.text(stripTrailing(out.toString())));
+        return Doc.concat(parts);
     }
 
     // ------------------------------------------------------------ verbatim
@@ -298,14 +394,56 @@ abstract class EmitSupport {
         return Doc.concat(parts);
     }
 
-    /** What separates an annotation from what follows it, per the annotation placement rules. */
-    protected Doc annotationSeparator(GreenNode next) {
-        return switch (rule(AnnotationRules.DECLARATION_PLACEMENT)) {
+    /** What separates an annotation on a declaration from what follows it. */
+    protected Doc annotationSeparator(GreenNode next, List<GreenNode> siblings) {
+        return annotationSeparator(next, rule(AnnotationRules.DECLARATION_PLACEMENT), siblings);
+    }
+
+    /** What separates an annotation from what follows it, per the given placement rule. */
+    protected Doc annotationSeparator(GreenNode next, AnnotationPlacement placement, List<GreenNode> siblings) {
+        if (rule(AnnotationRules.SINGLE_MARKER_INLINE) && isLoneMarkerAnnotation(siblings)) {
+            // One bare @Override reads as part of the signature, not as a line of its own.
+            return space();
+        }
+        return switch (placement) {
             case NEW_LINE -> Doc.hardLine();
             case SAME_LINE -> space();
             case SAME_LINE_WHEN_SHORT -> Doc.line();
             case PRESERVE -> startsNewLine(next) ? Doc.hardLine() : space();
         };
+    }
+
+    /**
+     * Whether the only annotation among these siblings is a marker.
+     *
+     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
+     * sit; a second annotation anywhere means the set is no longer a lone marker.
+     */
+    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
+        GreenNode only = null;
+        int count = 0;
+        for (GreenNode sibling : siblings) {
+            if (sibling.kind() == SyntaxKind.ANNOTATION) {
+                count++;
+                only = sibling;
+            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
+                for (GreenNode modifier : sibling.children()) {
+                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
+                        count++;
+                        only = modifier;
+                    }
+                }
+            }
+        }
+        if (count != 1) {
+            return false;
+        }
+        for (GreenNode part : only.children()) {
+            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected static boolean startsNewLine(GreenNode node) {

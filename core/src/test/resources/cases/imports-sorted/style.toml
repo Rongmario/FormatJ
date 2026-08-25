@@ -1,0 +1,5 @@
+[imports]
+order = "ascending"
+groups = ["java", "javax", "*"]
+static-placement = "last"
+blank-line-between-groups = true

@@ -61,7 +61,7 @@ class DocPrinterTest {
                                 Doc.indent(4, Doc.concat(Doc.hardLine(), Doc.text("x"))),
                                 Doc.hardLine(),
                                 Doc.text("}")));
-        assertEquals("{\n\tx\n}", new DocPrinter(80, true, 4, "\n").print(document));
+        assertEquals("{\n\tx\n}", new DocPrinter(80, true, 4, "\n", true).print(document));
     }
 
     @Test

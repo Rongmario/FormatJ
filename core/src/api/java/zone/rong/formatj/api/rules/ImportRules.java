@@ -14,7 +14,11 @@ public final class ImportRules {
                     "Package prefixes forming import groups, in order; * is the catch-all");
 
     public static final Option<SortOrder> ORDER =
-            Option.ofEnum("imports.order", SortOrder.ASCENDING, "Sort order applied within an import group");
+            Option.ofEnum(
+                    "imports.order",
+                    SortOrder.PRESERVE,
+                    "Sort order applied within an import group; preserve leaves the whole run alone, "
+                            + "which also switches off grouping, static placement and module ordering");
 
     public static final Option<StaticImportPlacement> STATIC_PLACEMENT =
             Option.ofEnum(

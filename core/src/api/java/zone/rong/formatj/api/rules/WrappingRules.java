@@ -91,12 +91,6 @@ public final class WrappingRules {
                     false,
                     "Always write a semicolon after the last no-argument enum constant");
 
-    public static final Option<WrapPolicy> RECORD_COMPONENTS =
-            Option.ofEnum(
-                    "wrapping.record-components",
-                    WrapPolicy.CHOP_DOWN_IF_LONG,
-                    "Wrapping of a record header's component list");
-
     public static final Option<WrapPolicy> FOR_STATEMENT =
             Option.ofEnum(
                     "wrapping.for-statement",
@@ -215,11 +209,6 @@ public final class WrappingRules {
 
         public Builder requireEnumConstantSemicolon(boolean value) {
             style.set(REQUIRE_ENUM_CONSTANT_SEMICOLON, value);
-            return this;
-        }
-
-        public Builder recordComponents(WrapPolicy value) {
-            style.set(RECORD_COMPONENTS, value);
             return this;
         }
 
