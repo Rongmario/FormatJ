@@ -126,12 +126,15 @@ public final class DefaultFormatter implements Formatter {
         if (parsed.hasErrors()) {
             return FormatResult.failed(source, diagnostics);
         }
-        if (!parsed.complete()) {
-            diagnostics.add(Diagnostic.info("Parser does not yet cover this file; source left unchanged"));
-            return FormatResult.unchanged(source).withDiagnostics(diagnostics);
+        boolean incomplete = !parsed.complete();
+        if (incomplete) {
+            diagnostics.add(
+                    Diagnostic.info("Unparsed regions were left unchanged; the rest of the file was formatted"));
         }
 
-        Attempt attempt = attempt(parsed, rewritesEnabled);
+        // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
+        // so one broken statement does not cost the rest of the file its formatting.
+        Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete);
         if (attempt.failed() && attempt.rewrote()) {
             Attempt withoutRewrites = attempt(parsed, false);
             if (withoutRewrites.failed()) {
@@ -180,14 +183,19 @@ public final class DefaultFormatter implements Formatter {
         }
 
         ParseResult formattedTree = JavaParser.parse(formatted, languageLevel, previewFeatures);
-        if (formattedTree.hasErrors() || !formattedTree.complete()) {
+        if (formattedTree.hasErrors()) {
+            return Attempt.failure("Formatting produced source that no longer parses", rewrote);
+        }
+        // An UNPARSED region in the input is still UNPARSED after layout. That is not a new
+        // parse failure; refusing it would throw away formatting of the neighbouring types.
+        if (!formattedTree.complete() && parsed.complete()) {
             return Attempt.failure("Formatting produced source that no longer parses", rewrote);
         }
 
         String problem =
                 rewrote
-                        ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
-                        : TokenEquivalence.firstDifference(original, formattedTree.root().green());
+                ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
+                : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
             return Attempt.failure("Formatting would change the program: " + problem, rewrote);
         }
@@ -196,16 +204,15 @@ public final class DefaultFormatter implements Formatter {
         // is anchored at the rewritten tree rather than the original because rewriting is allowed to
         // move a comment and has already been held to keeping every one of them; what is left to
         // check is that laying the file out did not reword one.
-        String prose =
-                ProsePreservation.firstDifference(rewritten.root(), formattedTree.root().green(), style);
+        String prose = ProsePreservation.firstDifference(rewritten.root(), formattedTree.root().green(), style);
         if (prose != null) {
             return Attempt.failure("Formatting would change what a comment says: " + prose, rewrote);
         }
 
         GreenNode second =
                 allowed
-                        ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
-                        : formattedTree.root().green();
+                ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
+                : formattedTree.root().green();
         String twice = layout(SyntaxNode.root(second));
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
@@ -244,7 +251,7 @@ public final class DefaultFormatter implements Formatter {
      * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
      * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
      */
-    private String layout(SyntaxNode root) {
+    String layout(SyntaxNode root) {
         DocPrinter.Printed printed = printer().printMarked(new DocEmitter(style).emit(root));
         String text = new ColumnAligner(style.get(FileRules.TAB_WIDTH)).align(printed);
         String separator = lineSeparator();
