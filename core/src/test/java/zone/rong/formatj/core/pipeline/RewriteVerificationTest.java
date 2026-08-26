@@ -17,6 +17,7 @@ import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
+import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -324,6 +325,31 @@ class RewriteVerificationTest {
                         parse(SEALED), parse(SEALED), List.of(permitsEdit(List.of("A", ",", ",", "B"))));
         assertNotNull(problem);
         assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
+    }
+
+    @Test
+    void aTextBlockEditCannotDropNonJavaWhitespace() {
+        String originalBlock = "\"\"\"\n        value\u2003\n        \"\"\"";
+        String changedBlock = "\"\"\"\n        value\n        \"\"\"";
+        GreenNode before = parse("class T { String value = " + originalBlock + "; }");
+        GreenNode after = parse("class T { String value = " + changedBlock + "; }");
+        int position = ProgramTokens.lexemes(before).indexOf(originalBlock);
+
+        String problem =
+                RewriteVerification.verifyOutput(
+                        before,
+                        after,
+                        List.of(
+                                new TokenEdit(
+                                        TextBlockRules.ESCAPE_TRAILING_SPACES,
+                                        "dropped meaningful whitespace",
+                                        position,
+                                        List.of(originalBlock),
+                                        List.of(changedBlock),
+                                        TokenEdit.Bias.INNERMOST_FIRST)));
+
+        assertNotNull(problem);
+        assertTrue(problem.contains("changed what the text block says"), problem);
     }
 
     // ------------------------------------------- the lambda and yield edit laws

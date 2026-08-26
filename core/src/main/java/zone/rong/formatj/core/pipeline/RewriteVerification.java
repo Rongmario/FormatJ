@@ -243,7 +243,10 @@ public final class RewriteVerification {
                 out.append('\n');
             }
             int end = lines[i].length();
-            while (end > 0 && Character.isWhitespace(lines[i].charAt(end - 1))) {
+            while (end > 0
+                    && (lines[i].charAt(end - 1) == ' '
+                            || lines[i].charAt(end - 1) == '\t'
+                            || lines[i].charAt(end - 1) == '\f')) {
                 end--;
             }
             out.append(lines[i], 0, end);
