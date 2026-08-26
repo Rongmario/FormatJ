@@ -142,8 +142,11 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
   - Maven plugin
   - IntelliJ plugin
 
-- Fairly complex project aimed at fixing an existing issue and also testing out frontier AI model capabilities
+Fairly complex project aimed at fixing an existing issue and also testing out frontier AI model capabilities.
   - Assisted with Grok 4.6 (XH), GPT 5.6 Sol (XH) & Claude Opus 5 (M)
+  - Subagents/agent swarms purposefully not used here
+  - 30 minutes (max) window after each code generation for peer-human-review
+  - No prior (AGENTS.md) instructions were injected
 
 ## Design
 
