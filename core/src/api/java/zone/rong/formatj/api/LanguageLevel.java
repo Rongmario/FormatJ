@@ -16,8 +16,7 @@ public enum LanguageLevel {
     JAVA_22(22),
     JAVA_23(23),
     JAVA_24(24),
-    JAVA_25(25)
-    ;
+    JAVA_25(25);
 
     /** The newest release FormatJ knows about. */
     public static final LanguageLevel LATEST = JAVA_25;

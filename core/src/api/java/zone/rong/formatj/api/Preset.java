@@ -96,8 +96,7 @@ public enum Preset {
                             .keepSimpleBlocksInline(false));
         }
 
-    }
-    ;
+    };
 
     /** Writes this preset's rules into the builder. */
     abstract void applyTo(StyleBuilder style);

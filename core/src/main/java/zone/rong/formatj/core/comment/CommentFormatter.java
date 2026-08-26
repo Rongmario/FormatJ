@@ -153,14 +153,12 @@ public final class CommentFormatter {
             lines.add(Doc.hardLine());
             lines.add(Doc.text(" *"));
         }
-        Map<String, Integer> columns =
-                rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) ? descriptionColumns(tags) : Map.of();
+        Map<String, Integer> columns = rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) ? descriptionColumns(tags) : Map.of();
         for (Javadoc.Tag tag : tags) {
             lines.addAll(tagLines(tag, columns.getOrDefault(tag.name(), 0)));
         }
 
-        return Doc.align(Doc.concat(
-                Doc.text("/**"), Doc.concat(lines), Doc.hardLine(), Doc.text(" */")));
+        return Doc.align(Doc.concat(Doc.text("/**"), Doc.concat(lines), Doc.hardLine(), Doc.text(" */")));
     }
 
     /** Whether any rule that is on would rearrange this comment; if none would, it is left alone. */

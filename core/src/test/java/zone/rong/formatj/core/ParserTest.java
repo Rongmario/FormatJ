@@ -156,7 +156,8 @@ class ParserTest {
         assertEquals(SyntaxKind.ENUM_CONSTANTS, constants.kind());
         assertTrue(constants.children().getLast() instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";"));
         assertTrue(
-                body.children().stream()
+                body.children()
+                        .stream()
                         .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")),
                 "the body must not hold the terminator as a sibling of the constant list");
         assertTrue(
@@ -169,7 +170,8 @@ class ParserTest {
         ParseResult result = parse("enum Color { RED, GREEN, BLUE }\n");
         GreenNode constants = find(result.root().green(), SyntaxKind.ENUM_CONSTANTS);
         assertTrue(
-                constants.children().stream()
+                constants.children()
+                        .stream()
                         .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")));
     }
 

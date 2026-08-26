@@ -29,12 +29,11 @@ class CommentProseRulesTest {
     private static String format(Consumer<StyleBuilder> rules, String body) {
         StyleBuilder builder = Style.builder();
         rules.accept(builder);
-        FormatResult result =
-                FormatJ.newFormatter()
-                        .style(builder.build())
-                        .languageLevel(LanguageLevel.LATEST)
-                        .build()
-                        .format(FormatRequest.of("class T {\n\n" + body + "\n}\n").withName("T.java"));
+        FormatResult result = FormatJ.newFormatter()
+                .style(builder.build())
+                .languageLevel(LanguageLevel.LATEST)
+                .build()
+                .format(FormatRequest.of("class T {\n\n" + body + "\n}\n").withName("T.java"));
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         return result.text();
     }
@@ -44,7 +43,9 @@ class CommentProseRulesTest {
     @Test
     void reflowIsOffByDefault() {
         String body = "    // one two three four five six seven eight nine ten eleven twelve\n    void f() { }\n";
-        assertTrue(format(style -> { }, body).contains("// one two three four five six seven eight nine ten eleven twelve"));
+        assertTrue(
+                format(style -> { }, body).contains(
+                        "// one two three four five six seven eight nine ten eleven twelve"));
     }
 
     @Test
@@ -106,10 +107,7 @@ class CommentProseRulesTest {
 
     @Test
     void keepSingleLineLeavesAOneLineCommentOnOneLine() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true),
-                        "    /** Text. */\n    void f() { }\n");
+        String formatted = format(style -> style.set(JavadocRules.WRAP, true), "    /** Text. */\n    void f() { }\n");
         assertTrue(formatted.contains("    /** Text. */\n"), formatted);
     }
 
@@ -146,31 +144,34 @@ class CommentProseRulesTest {
     void tagOrderPutsTheTagsInTheConventionalOrder() {
         String formatted =
                 format(
-                        style -> style.set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
+                        style -> style.set(
+                                JavadocRules.TAG_ORDER,
+                                zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
                         "    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n");
         assertTrue(formatted.indexOf("@param") < formatted.indexOf("@return"), formatted);
     }
 
     @Test
     void formattingStaysAFixedPointWithEveryProseRuleOn() {
-        String body =
-                "    /**\n     * One two three four five six seven eight nine ten eleven twelve.\n"
-                        + "     *\n     * @return r\n     * @param a x\n     */\n"
-                        + "    // a comment that is quite long and will need refilling at this margin\n"
-                        + "    int f(int a) { return a; }\n";
-        Consumer<StyleBuilder> rules =
-                style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
-                        .set(JavadocRules.WRAP, true)
-                        .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
-                        .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
-                        .set(JavadocRules.ADD_PARAGRAPH_TAGS, true)
-                        .set(WrappingRules.MAX_LINE_LENGTH, 50);
+        String body = "    /**\n     * One two three four five six seven eight nine ten eleven twelve.\n"
+                + "     *\n     * @return r\n     * @param a x\n     */\n"
+                + "    // a comment that is quite long and will need refilling at this margin\n"
+                + "    int f(int a) { return a; }\n";
+        Consumer<StyleBuilder> rules = style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                .set(JavadocRules.WRAP, true)
+                .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
+                .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
+                .set(JavadocRules.ADD_PARAGRAPH_TAGS, true)
+                .set(WrappingRules.MAX_LINE_LENGTH, 50);
         String once = format(rules, body);
         StyleBuilder builder = Style.builder();
         rules.accept(builder);
-        String twice =
-                FormatJ.newFormatter().style(builder.build()).languageLevel(LanguageLevel.LATEST).build()
-                        .format(FormatRequest.of(once)).text();
+        String twice = FormatJ.newFormatter()
+                .style(builder.build())
+                .languageLevel(LanguageLevel.LATEST)
+                .build()
+                .format(FormatRequest.of(once))
+                .text();
         assertEquals(once, twice);
     }
 

@@ -115,10 +115,7 @@ public final class TextBlockRewrite implements Rewrite {
                         List.of(rewritten),
                         TokenEdit.Bias.INNERMOST_FIRST));
         return GreenNode.leaf(
-                new SyntaxToken(
-                        syntax.leading(),
-                        Token.synthetic(TokenKind.TEXT_BLOCK, rewritten),
-                        syntax.trailing()));
+                new SyntaxToken(syntax.leading(), Token.synthetic(TokenKind.TEXT_BLOCK, rewritten), syntax.trailing()));
     }
 
 }

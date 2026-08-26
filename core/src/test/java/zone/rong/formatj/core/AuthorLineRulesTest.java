@@ -29,8 +29,8 @@ class AuthorLineRulesTest {
 
         assertTrue(format(source, style -> { }).contains("if (x) { g(); }"));
         assertTrue(
-                format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(false)))
-                        .contains("if (x) {\n            g();\n        }"));
+                format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(false))).contains(
+                        "if (x) {\n            g();\n        }"));
     }
 
     @Test
@@ -48,8 +48,10 @@ class AuthorLineRulesTest {
 
         String narrow = format(source, style -> style.wrapping(w -> w.maxLineLength(30)));
 
-        assertTrue(narrow.contains("if (x) {\n            alpha();\n            beta();\n            gamma();\n"
-                + "        }"), narrow);
+        assertTrue(
+                narrow.contains(
+                        "if (x) {\n            alpha();\n            beta();\n            gamma();\n" + "        }"),
+                narrow);
         assertEquals(narrow, format(narrow, style -> style.wrapping(w -> w.maxLineLength(30))));
     }
 
@@ -61,9 +63,8 @@ class AuthorLineRulesTest {
         assertTrue(inline.contains("static class B { int x; }"), inline);
 
         // Too long for one line, so the blank lines the class body rule asks for come back.
-        String narrow = format(
-                source,
-                style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true).maxLineLength(20)));
+        String narrow =
+                format(source, style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true).maxLineLength(20)));
         assertTrue(narrow.contains("static class B {\n\n        int x;\n\n    }"), narrow);
     }
 
@@ -77,9 +78,11 @@ class AuthorLineRulesTest {
         assertTrue(defaults.contains("run(() -> { g(); })"), defaults);
         assertTrue(defaults.contains("void f() {\n        g();\n    }"), defaults);
 
-        String both = format(
-                source,
-                style -> style.wrapping(w -> w.keepSimpleMethodsOnOneLine(true).keepSimpleLambdasOnOneLine(false)));
+        String both =
+                format(
+                        source,
+                        style -> style.wrapping(w -> w.keepSimpleMethodsOnOneLine(true).keepSimpleLambdasOnOneLine(
+                                false)));
         assertTrue(both.contains("void f() { g(); }"), both);
         assertTrue(both.contains("run(() -> {\n            g();\n        })"), both);
     }
@@ -113,8 +116,8 @@ class AuthorLineRulesTest {
 
         assertTrue(format(source, style -> { }).contains("g(a, b);"));
         assertTrue(
-                format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true)))
-                        .contains("g(\n                a,\n                b\n        );"));
+                format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true))).contains(
+                        "g(\n                a,\n                b\n        );"));
     }
 
     @Test
@@ -139,9 +142,11 @@ class AuthorLineRulesTest {
         String tied = format(source, style -> style.wrapping(w -> w.maxLineLength(50)));
         assertTrue(tied.contains("candidate instanceof SomeLongTypeName binding"), tied);
 
-        String free = format(
-                source,
-                style -> style.wrapping(w -> w.maxLineLength(50)).patterns(p -> p.keepSimplePatternInline(false)));
+        String free =
+                format(
+                        source,
+                        style -> style.wrapping(w -> w.maxLineLength(50)).patterns(p -> p.keepSimplePatternInline(
+                                false)));
         assertTrue(free.contains("instanceof\n"), free);
     }
 
@@ -154,9 +159,10 @@ class AuthorLineRulesTest {
         String together = format(source, style -> style.wrapping(w -> w.maxLineLength(50)));
         assertTrue(together.contains("case null, default -> compute("), together);
 
-        String split = format(
-                source,
-                style -> style.wrapping(w -> w.maxLineLength(50)).switches(s -> s.nullDefaultOnOneLine(false)));
+        String split =
+                format(
+                        source,
+                        style -> style.wrapping(w -> w.maxLineLength(50)).switches(s -> s.nullDefaultOnOneLine(false)));
         assertTrue(split.contains("case null, default ->\n"), split);
     }
 
@@ -165,9 +171,7 @@ class AuthorLineRulesTest {
         String source = "class A {\n\n    void f(int alpha, int beta) throws OneException, TwoException { }\n\n"
                 + "    void g()\n            throws OneException { }\n\n}\n";
 
-        String never = format(
-                source,
-                style -> style.wrapping(w -> w.throwsClause(WrapPolicy.NEVER).maxLineLength(50)));
+        String never = format(source, style -> style.wrapping(w -> w.throwsClause(WrapPolicy.NEVER).maxLineLength(50)));
         assertTrue(never.contains("throws OneException, TwoException"), never);
         assertFalse(never.contains("throws OneException,\n"), never);
 
@@ -184,8 +188,8 @@ class AuthorLineRulesTest {
 
         assertTrue(format(source, style -> { }).contains("int x = 1;\n\n        int y"));
         assertTrue(
-                format(source, style -> style.indent(i -> i.blankLines(true)))
-                        .contains("int x = 1;\n        \n        int y"));
+                format(source, style -> style.indent(i -> i.blankLines(true))).contains(
+                        "int x = 1;\n        \n        int y"));
     }
 
     private static String format(String source, Consumer<StyleBuilder> configure) {

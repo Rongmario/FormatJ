@@ -73,8 +73,7 @@ final class CliRunner {
             err.println("formatj: cannot read standard input: " + e.getMessage());
             return ERROR;
         }
-        FormatResult result = formatter(style).format(
-                FormatRequest.of(source).withName(options.stdinName()));
+        FormatResult result = formatter(style).format(FormatRequest.of(source).withName(options.stdinName()));
         reportDiagnostics(options.stdinName(), result);
         if (result.hasErrors()) {
             return ERROR;

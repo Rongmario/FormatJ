@@ -83,11 +83,15 @@ class RewriteRulesTest {
     @Test
     void preserveLeavesEitherFormAlone() {
         assertTrue(
-                rewrite(method("        run(x -> 1);"), LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.PRESERVE)
-                        .unchanged());
+                rewrite(
+                        method("        run(x -> 1);"),
+                        LambdaRules.PARAMETER_STYLE,
+                        LambdaParameterStyle.PRESERVE).unchanged());
         assertTrue(
-                rewrite(method("        run((x) -> 1);"), LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.PRESERVE)
-                        .unchanged());
+                rewrite(
+                        method("        run((x) -> 1);"),
+                        LambdaRules.PARAMETER_STYLE,
+                        LambdaParameterStyle.PRESERVE).unchanged());
     }
 
     // ----------------------------------------------------- lambdas.body-braces
@@ -106,8 +110,7 @@ class RewriteRulesTest {
 
     @Test
     void aReturnedStatementExpressionKeepsItsBracesBecauseOverloadResolutionCanChange() {
-        String source =
-                """
+        String source = """
                 import java.util.function.Consumer;
                 import java.util.function.Function;
 
@@ -155,19 +158,21 @@ class RewriteRulesTest {
     @Test
     void whenMultiStatementCollapsesTheOneStatementBodyAndLeavesTheRest() {
         assertTrue(
-                format(method("        run(x -> { return x; });"), LambdaRules.BODY_BRACES,
-                                BracePolicy.WHEN_MULTI_STATEMENT)
-                        .contains("run(x -> x);"));
+                format(
+                        method("        run(x -> { return x; });"),
+                        LambdaRules.BODY_BRACES,
+                        BracePolicy.WHEN_MULTI_STATEMENT).contains("run(x -> x);"));
         assertTrue(
-                rewrite(method("        run(x -> { f(); g(); });"), LambdaRules.BODY_BRACES,
-                                BracePolicy.WHEN_MULTI_STATEMENT)
-                        .unchanged());
+                rewrite(
+                        method("        run(x -> { f(); g(); });"),
+                        LambdaRules.BODY_BRACES,
+                        BracePolicy.WHEN_MULTI_STATEMENT).unchanged());
     }
 
     @Test
     void alwaysDeclinesBecauseTheTargetTypeDecidesWhatTheBlockWouldSay() {
-        assertTrue(rewrite(method("        run(x -> x + 1);"), LambdaRules.BODY_BRACES, BracePolicy.ALWAYS)
-                .unchanged());
+        assertTrue(
+                rewrite(method("        run(x -> x + 1);"), LambdaRules.BODY_BRACES, BracePolicy.ALWAYS).unchanged());
     }
 
     @Test
@@ -196,15 +201,19 @@ class RewriteRulesTest {
     void permitsPreserveAndAnAlreadySortedClauseTouchNothing() {
         assertTrue(rewrite(SEALED, SealedRules.PERMITS_ORDER, SortOrder.PRESERVE).unchanged());
         assertTrue(
-                rewrite("sealed interface I permits A, B {\n}\n", SealedRules.PERMITS_ORDER, SortOrder.ASCENDING)
-                        .unchanged());
+                rewrite(
+                        "sealed interface I permits A, B {\n}\n",
+                        SealedRules.PERMITS_ORDER,
+                        SortOrder.ASCENDING).unchanged());
     }
 
     @Test
     void aSinglePermittedTypeIsAlreadyInOrder() {
         assertTrue(
-                rewrite("sealed interface I permits A {\n}\n", SealedRules.PERMITS_ORDER, SortOrder.ASCENDING)
-                        .unchanged());
+                rewrite(
+                        "sealed interface I permits A {\n}\n",
+                        SealedRules.PERMITS_ORDER,
+                        SortOrder.ASCENDING).unchanged());
     }
 
     @Test
@@ -222,7 +231,8 @@ class RewriteRulesTest {
     @Test
     void bracesAreAddedRoundAStatementArrowBody() {
         String formatted =
-                format(statementSwitch("            case 1 -> f();"),
+                format(
+                        statementSwitch("            case 1 -> f();"),
                         SwitchRules.ARROW_CASE_BRACES,
                         BracePolicy.ALWAYS);
         assertTrue(formatted.contains("case 1 -> {"), formatted);
@@ -231,8 +241,7 @@ class RewriteRulesTest {
     @Test
     void bracesComeOffAOneStatementArrowBody() {
         String source = statementSwitch("            case 1 -> { f(); }");
-        assertTrue(
-                format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).contains("case 1 -> f();"));
+        assertTrue(format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).contains("case 1 -> f();"));
         assertTrue(
                 format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.WHEN_MULTI_STATEMENT).contains(
                         "case 1 -> f();"));
@@ -297,8 +306,7 @@ class RewriteRulesTest {
         String block = expressionSwitch("            case 1 -> { yield 2; }");
         String expression = format(block, SwitchRules.YIELD_STYLE, YieldStyle.EXPRESSION_WHEN_POSSIBLE);
         assertTrue(expression.contains("case 1 -> 2;"));
-        assertTrue(
-                format(expression, SwitchRules.YIELD_STYLE, YieldStyle.ALWAYS_BLOCK).contains("yield 2;"));
+        assertTrue(format(expression, SwitchRules.YIELD_STYLE, YieldStyle.ALWAYS_BLOCK).contains("yield 2;"));
     }
 
     // ---------------------------------------------------------- fixed point
@@ -307,11 +315,17 @@ class RewriteRulesTest {
     void everyRuleSettlesAfterOnePass() {
         assertSettles(method("        run((x) -> { return x + 1; });"), LambdaRules.BODY_BRACES, BracePolicy.NEVER);
         assertSettles(
-                method("        run((x) -> 1);"), LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE);
+                method("        run((x) -> 1);"),
+                LambdaRules.PARAMETER_STYLE,
+                LambdaParameterStyle.OMIT_WHEN_POSSIBLE);
         assertSettles(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING);
-        assertSettles(statementSwitch("            case 1 -> { f(); }"), SwitchRules.ARROW_CASE_BRACES,
+        assertSettles(
+                statementSwitch("            case 1 -> { f(); }"),
+                SwitchRules.ARROW_CASE_BRACES,
                 BracePolicy.NEVER);
-        assertSettles(expressionSwitch("            case 1 -> { yield 2; }"), SwitchRules.YIELD_STYLE,
+        assertSettles(
+                expressionSwitch("            case 1 -> { yield 2; }"),
+                SwitchRules.YIELD_STYLE,
                 YieldStyle.EXPRESSION_WHEN_POSSIBLE);
     }
 

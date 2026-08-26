@@ -10,10 +10,7 @@ public final class SwitchRules {
             Option.ofEnum("switch.case-style", SwitchCaseStyle.PRESERVE, "Arrow or colon case labels");
 
     public static final Option<BracePolicy> ARROW_CASE_BRACES =
-            Option.ofEnum(
-                    "switch.arrow-case-braces",
-                    BracePolicy.PRESERVE,
-                    "Braces around the body of an arrow case");
+            Option.ofEnum("switch.arrow-case-braces", BracePolicy.PRESERVE, "Braces around the body of an arrow case");
 
     public static final Option<YieldStyle> YIELD_STYLE =
             Option.ofEnum("switch.yield-style", YieldStyle.PRESERVE, "How the value of an arrow case body is written");

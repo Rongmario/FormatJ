@@ -72,8 +72,8 @@ public final class LambdaRewrite implements Rewrite {
             return parameters;
         }
         return style == LambdaParameterStyle.ALWAYS_PARENTHESISE
-                ? parenthesise(parameters, context)
-                : unparenthesise(parameters, context);
+               ? parenthesise(parameters, context)
+               : unparenthesise(parameters, context);
     }
 
     /** Wraps a bare name in parentheses. */

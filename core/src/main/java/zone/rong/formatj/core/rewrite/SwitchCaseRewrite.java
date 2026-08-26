@@ -79,8 +79,8 @@ public final class SwitchCaseRewrite implements Rewrite {
         }
         List<GreenNode> converted =
                 context.rule(SwitchRules.CASE_STYLE) == SwitchCaseStyle.ARROW
-                        ? toArrow(cases, value, context)
-                        : toColon(cases, value, context);
+                ? toArrow(cases, value, context)
+                : toColon(cases, value, context);
         if (converted == null) {
             return node;
         }
@@ -178,7 +178,8 @@ public final class SwitchCaseRewrite implements Rewrite {
      * or not at all and a ledger holding half a conversion is worse than one holding none.
      */
     private Plan plan(Group group, boolean value, boolean last, RewriteContext context) {
-        List<GreenNode> statements = new ArrayList<>(group.owner().children().subList(2, group.owner().children().size()));
+        List<GreenNode> statements =
+                new ArrayList<>(group.owner().children().subList(2, group.owner().children().size()));
         GreenNode dropped = null;
 
         GreenNode terminator = statements.getLast();
@@ -250,7 +251,11 @@ public final class SwitchCaseRewrite implements Rewrite {
         if (plan.dropped() != null) {
             context.record(
                     TokenEdit.delete(
-                            SwitchRules.CASE_STYLE, reason, context.firstPosition(plan.dropped()), "break", ";"));
+                            SwitchRules.CASE_STYLE,
+                            reason,
+                            context.firstPosition(plan.dropped()),
+                            "break",
+                            ";"));
         }
 
         List<GreenNode> statements = plan.statements();
@@ -259,11 +264,14 @@ public final class SwitchCaseRewrite implements Rewrite {
             GreenNode yield = statements.getFirst();
             context.record(
                     TokenEdit.delete(
-                            SwitchRules.CASE_STYLE, reason, context.firstPosition(yield.children().getFirst()),
+                            SwitchRules.CASE_STYLE,
+                            reason,
+                            context.firstPosition(yield.children().getFirst()),
                             "yield"));
-            body = GreenNode.branch(
-                    SyntaxKind.EXPRESSION_STATEMENT,
-                    List.of(yield.children().get(1), yield.children().getLast()));
+            body =
+                    GreenNode.branch(
+                            SyntaxKind.EXPRESSION_STATEMENT,
+                            List.of(yield.children().get(1), yield.children().getLast()));
         } else if (!plan.brace()) {
             body = statements.getFirst();
         } else {
@@ -281,20 +289,19 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     /** A block round the statements of a group that cannot stand as a lone arrow body. */
     private static GreenNode braced(
-            List<GreenNode> statements, int colonPosition, RewriteContext context, String reason) {
+            List<GreenNode> statements,
+            int colonPosition,
+            RewriteContext context,
+            String reason) {
         int start = statements.isEmpty() ? colonPosition + 1 : context.firstPosition(statements.getFirst());
         int end = statements.isEmpty() ? colonPosition + 1 : context.endPosition(statements.getLast());
         if (statements.isEmpty()) {
             context.record(
-                    TokenEdit.insert(
-                            SwitchRules.CASE_STYLE, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{", "}"));
+                    TokenEdit.insert(SwitchRules.CASE_STYLE, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{", "}"));
         } else {
             context.record(
-                    TokenEdit.insert(
-                            SwitchRules.CASE_STYLE, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{"));
-            context.record(
-                    TokenEdit.insert(
-                            SwitchRules.CASE_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
+                    TokenEdit.insert(SwitchRules.CASE_STYLE, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{"));
+            context.record(TokenEdit.insert(SwitchRules.CASE_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
         }
         List<GreenNode> children = new ArrayList<>();
         children.add(Synthetic.separator("{"));
@@ -402,7 +409,9 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     private static boolean isDefault(GreenNode switchCase) {
         List<GreenNode> labels = labelsOf(switchCase);
-        return labels.size() == 1 && labels.getFirst() instanceof GreenNode.Leaf leaf && leaf.lexeme().equals("default");
+        return labels.size() == 1
+                && labels.getFirst() instanceof GreenNode.Leaf leaf
+                && leaf.lexeme().equals("default");
     }
 
     /** An unlabelled {@code break;}, which is the terminator an arrow case does not need. */

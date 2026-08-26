@@ -113,7 +113,9 @@ class FormatterPipelineTest {
 
     @Test
     void enumTerminatorStaysOnTheLastConstant() {
-        FormatResult result = format("""
+        FormatResult result =
+                format(
+                        """
                 public enum LanguageLevel {
                     JAVA_17(17),
                     JAVA_25(25)
@@ -152,7 +154,9 @@ class FormatterPipelineTest {
 
     @Test
     void parameterizedEnumsAlwaysKeepTheSemicolon() {
-        FormatResult result = format("""
+        FormatResult result =
+                format(
+                        """
                 enum Named { A(1), B(2); Named(int n) { } }
                 """);
 

@@ -313,7 +313,9 @@ class RewriteVerificationTest {
     void aPermittedTypeCannotBeDroppedAtAll() {
         String problem =
                 RewriteVerification.verifyOutput(
-                        parse(SEALED), parse(SEALED), List.of(permitsEdit(List.of("A", ",", "B"))));
+                        parse(SEALED),
+                        parse(SEALED),
+                        List.of(permitsEdit(List.of("A", ",", "B"))));
         assertNotNull(problem);
         assertTrue(problem.contains("dropped C"), problem);
     }
@@ -322,7 +324,9 @@ class RewriteVerificationTest {
     void somethingThatIsNotAListOfTypesIsNotAPermitsClause() {
         String problem =
                 RewriteVerification.verifyOutput(
-                        parse(SEALED), parse(SEALED), List.of(permitsEdit(List.of("A", ",", ",", "B"))));
+                        parse(SEALED),
+                        parse(SEALED),
+                        List.of(permitsEdit(List.of("A", ",", ",", "B"))));
         assertNotNull(problem);
         assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
     }

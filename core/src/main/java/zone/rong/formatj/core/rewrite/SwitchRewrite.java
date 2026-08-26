@@ -119,11 +119,9 @@ public final class SwitchRewrite implements Rewrite {
         }
         String reason = "braces added around an arrow case body";
         context.record(
-                TokenEdit.insert(
-                        SwitchRules.ARROW_CASE_BRACES, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{"));
+                TokenEdit.insert(SwitchRules.ARROW_CASE_BRACES, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{"));
         context.record(
-                TokenEdit.insert(
-                        SwitchRules.ARROW_CASE_BRACES, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
+                TokenEdit.insert(SwitchRules.ARROW_CASE_BRACES, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), body, Synthetic.separator("}")));
     }
 
@@ -181,9 +179,7 @@ public final class SwitchRewrite implements Rewrite {
         GreenNode expression = only.children().get(1);
         GreenNode semicolon = only.children().getLast();
 
-        if (Synthetic.carriesComments(open)
-                || Synthetic.carriesComments(close)
-                || Synthetic.carriesComments(keyword)) {
+        if (Synthetic.carriesComments(open) || Synthetic.carriesComments(close) || Synthetic.carriesComments(keyword)) {
             return body;
         }
 
@@ -229,8 +225,7 @@ public final class SwitchRewrite implements Rewrite {
                         List.of(),
                         List.of("{", "yield"),
                         TokenEdit.Bias.OUTERMOST_FIRST));
-        context.record(
-                TokenEdit.insert(SwitchRules.YIELD_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
+        context.record(TokenEdit.insert(SwitchRules.YIELD_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
 
         GreenNode yield =
                 GreenNode.branch(
@@ -239,8 +234,7 @@ public final class SwitchRewrite implements Rewrite {
                                 Synthetic.contextualKeyword("yield"),
                                 body.children().getFirst(),
                                 body.children().getLast()));
-        return GreenNode.branch(
-                SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), yield, Synthetic.separator("}")));
+        return GreenNode.branch(SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), yield, Synthetic.separator("}")));
     }
 
 }

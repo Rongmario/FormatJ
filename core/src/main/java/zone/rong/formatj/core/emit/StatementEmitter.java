@@ -125,8 +125,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
             GreenNode statement = body.get(i);
             int minimum =
                     i == 0
-                            ? minimumAfterOpen(statement, blankLinesAfterOpen)
-                            : minimumBetween(body.get(i - 1), statement);
+                    ? minimumAfterOpen(statement, blankLinesAfterOpen)
+                    : minimumBetween(body.get(i - 1), statement);
             parts.add(optional(separatorBefore(statement, minimum), inline));
             int off = formatterOffIndex(statement);
             if (off >= 0) {
@@ -152,9 +152,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
         Doc closing =
-                Doc.concat(
-                        optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline),
-                        emit(close));
+                Doc.concat(optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline), emit(close));
         Doc braced = Doc.concat(emit(open), contents, closing);
         return inline ? Doc.group(braced) : braced;
     }
@@ -223,8 +221,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(braceLead(rule(BraceRules.CONTROL_PLACEMENT)), emitBlock(body));
         }
         HoistedLeading hoisted = hoistLeadingTrivia(body);
-        return Doc.indent(
-                indentSize(), Doc.concat(Doc.hardLine(), hoisted.leading(), emit(hoisted.node())));
+        return Doc.indent(indentSize(), Doc.concat(Doc.hardLine(), hoisted.leading(), emit(hoisted.node())));
     }
 
     protected Doc emitIf(GreenNode node) {
@@ -292,8 +289,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
     protected Doc emitDo(GreenNode node) {
         List<GreenNode> children = node.children();
         // An unbraced body has no closing brace for the while to sit beside.
-        boolean whileOnNewLine =
-                children.get(1).kind() != SyntaxKind.BLOCK || rule(BraceRules.ELSE_ON_NEW_LINE);
+        boolean whileOnNewLine = children.get(1).kind() != SyntaxKind.BLOCK || rule(BraceRules.ELSE_ON_NEW_LINE);
         return Doc.concat(
                 emit(children.get(0)),
                 controlBody(children.get(1)),
@@ -332,8 +328,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         Doc inner =
                 rule(WrappingRules.FOR_STATEMENT) == WrapPolicy.NEVER
-                        ? Doc.concat(header)
-                        : authorGroup(node, Doc.indent(continuation(), Doc.concat(header)));
+                ? Doc.concat(header)
+                : authorGroup(node, Doc.indent(continuation(), Doc.concat(header)));
         return Doc.concat(
                 emit(children.get(0)),
                 spaceIf(rule(SpacingRules.BEFORE_FOR_PARENTHESIS)),
@@ -417,10 +413,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(emit(open), spaceIf(inside), resources, spaceIf(inside), emit(close));
         }
         Doc edge = inside ? Doc.line() : Doc.softLine();
-        Doc closingEdge =
-                rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE
-                        ? edge
-                        : spaceIf(inside);
+        Doc closingEdge = rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE ? edge : spaceIf(inside);
         Doc body =
                 Doc.concat(
                         emit(open),
@@ -514,7 +507,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
 
     protected Doc emitLocalVariableDeclaration(GreenNode node) {
         return emitDeclarationLine(
-                node.children(), rule(AnnotationRules.PARAMETER_PLACEMENT), AlignmentSite.VARIABLE_NAME);
+                node.children(),
+                rule(AnnotationRules.PARAMETER_PLACEMENT),
+                AlignmentSite.VARIABLE_NAME);
     }
 
     /** Modifiers, a type, declarators and a semicolon, in one line unless something wraps. */
@@ -529,8 +524,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
      *     Only the first declarator is marked: the second name on a line has no column of its own, and
      *     the {@code =} of the first is what the assignment rule lines up.
      */
-    protected Doc emitDeclarationLine(
-            List<GreenNode> children, AnnotationPlacement placement, AlignmentSite nameSite) {
+    protected Doc emitDeclarationLine(List<GreenNode> children, AnnotationPlacement placement, AlignmentSite nameSite) {
         List<Doc> parts = new ArrayList<>();
         boolean firstDeclarator = true;
         for (int i = 0; i < children.size(); i++) {
@@ -627,7 +621,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
     protected Doc emitSwitchCase(GreenNode node) {
         List<GreenNode> children = node.children();
         boolean arrow = children.size() > 1 && is(children.get(1), "->");
-        Doc labels = arrow
+        Doc labels =
+                arrow
                 ? Doc.concat(emit(children.getFirst()), alignmentMark(AlignmentSite.SWITCH_ARROW))
                 : emit(children.getFirst());
         if (arrow) {
@@ -641,16 +636,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
             // too long to sit beside them would otherwise answer it differently on the second pass,
             // and formatting has to be a fixed point.
             GreenNode labelNode = children.getFirst();
-            boolean onOneLine =
-                    isNullDefault(labelNode.children())
-                            && keepsOnOneLine(labelNode, SwitchRules.NULL_DEFAULT_ON_ONE_LINE);
+            boolean onOneLine = isNullDefault(labelNode.children())
+                    && keepsOnOneLine(labelNode, SwitchRules.NULL_DEFAULT_ON_ONE_LINE);
             Doc tail =
                     rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
-                            ? Doc.group(
-                                    Doc.indent(
-                                            continuation(),
-                                            Doc.concat(spaced ? Doc.line() : Doc.softLine(), bodyDoc)))
-                            : Doc.concat(spaceIf(spaced), bodyDoc);
+                    ? Doc.group(Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), bodyDoc)))
+                    : Doc.concat(spaceIf(spaced), bodyDoc);
             return Doc.concat(labels, spaceIf(spaced), emit(children.get(1)), tail);
         }
         // Colon style: the label, then its statements indented under it.
@@ -703,8 +694,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         Doc labels =
                 rule(SwitchRules.MULTI_LABEL_WRAPPING) == WrapPolicy.WRAP_IF_LONG
-                        ? Doc.fill(withSeparator(elements, separator))
-                        : Doc.join(separator, elements);
+                ? Doc.fill(withSeparator(elements, separator))
+                : Doc.join(separator, elements);
         return authorGroup(node, Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
     }
 
@@ -753,8 +744,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<GreenNode> children = node.children();
         Doc guard = Doc.concat(emit(children.get(0)), space(), emit(children.get(1)));
         return rule(SwitchRules.GUARD_ON_SAME_LINE)
-                ? guard
-                : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
+               ? guard
+               : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
     }
 
     protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {

@@ -37,7 +37,10 @@ class TextBlockRulesTest {
     }
 
     private static FormatResult format(Style style, String block) {
-        return FormatJ.newFormatter().style(style).languageLevel(LanguageLevel.LATEST).build()
+        return FormatJ.newFormatter()
+                .style(style)
+                .languageLevel(LanguageLevel.LATEST)
+                .build()
                 .format(FormatRequest.of(source(block)).withName("T.java"));
     }
 
@@ -84,14 +87,15 @@ class TextBlockRulesTest {
 
     @Test
     void reindentingMovesTheBlockAndNotTheString() {
-        for (TextBlockIndentPolicy policy :
-                List.of(TextBlockIndentPolicy.REINDENT_TO_BLOCK, TextBlockIndentPolicy.MINIMAL)) {
-            FormatResult result =
-                    format(Style.builder().set(TextBlockRules.INDENT_POLICY, policy).build(), BLOCK);
+        for (TextBlockIndentPolicy policy : List.of(
+                TextBlockIndentPolicy.REINDENT_TO_BLOCK,
+                TextBlockIndentPolicy.MINIMAL)) {
+            FormatResult result = format(Style.builder().set(TextBlockRules.INDENT_POLICY, policy).build(), BLOCK);
             assertFalse(result.hasErrors(), () -> policy + ": " + result.diagnostics());
             String rewritten = blockOf(result.text());
             assertEquals(TextBlocks.value(BLOCK), TextBlocks.value(rewritten), policy.toString());
-            assertTrue(rewritten.contains("\n        select *") || rewritten.contains("\n               select *"),
+            assertTrue(
+                    rewritten.contains("\n        select *") || rewritten.contains("\n               select *"),
                     policy + " produced " + rewritten);
         }
     }
@@ -116,8 +120,7 @@ class TextBlockRulesTest {
     @Test
     void theEscapeRuleMakesTrailingSpacesSignificant() {
         String spaced = "\"\"\"\n        a  \n        b\n        \"\"\"";
-        FormatResult result =
-                format(Style.builder().set(TextBlockRules.ESCAPE_TRAILING_SPACES, true).build(), spaced);
+        FormatResult result = format(Style.builder().set(TextBlockRules.ESCAPE_TRAILING_SPACES, true).build(), spaced);
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals("a  \nb\n", TextBlocks.value(blockOf(result.text())));
     }

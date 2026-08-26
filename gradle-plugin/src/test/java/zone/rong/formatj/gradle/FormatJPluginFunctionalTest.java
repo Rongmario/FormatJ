@@ -89,7 +89,9 @@ class FormatJPluginFunctionalTest {
                 }
                 """);
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
-        Files.writeString(source, "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
+        Files.writeString(
+                source,
+                "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
 
         BuildResult result = run("formatJavaApply");
 

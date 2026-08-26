@@ -34,7 +34,8 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String compact = format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.COMPACT)));
+        String compact =
+                format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.COMPACT)));
 
         assertTrue(compact.contains("void f() {}"), compact);
         // The class body keeps its own, separate rule.
@@ -45,7 +46,8 @@ class LayoutOptionTest {
     void anEmptyControlBodyIsUnaffectedByTheMethodBodyRule() {
         String source = "class A {\n    void f() {\n        while (x) {\n        }\n    }\n}\n";
 
-        String compact = format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.COMPACT)));
+        String compact =
+                format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.COMPACT)));
 
         assertTrue(compact.contains("while (x) { }"), compact);
     }
@@ -155,7 +157,6 @@ class LayoutOptionTest {
         assertEquals(once, twice);
     }
 
-
     @Test
     void anEmptyRecordBodyCanCollapseToOneToken() {
         String source = "record Point(int x, int y) {\n}\n";
@@ -179,8 +180,7 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String padded =
-                format(source, style -> style.records(records -> records.compactConstructorBlankLine(true)));
+        String padded = format(source, style -> style.records(records -> records.compactConstructorBlankLine(true)));
 
         assertTrue(padded.contains("Range {\n\n        check(low, high);\n\n    }"), padded);
     }
@@ -198,8 +198,10 @@ class LayoutOptionTest {
     void extendsAndImplementsHonourTheirWrappingRule() {
         String source = "class A extends B implements C, D {\n}\n";
 
-        String chopped = format(source, style -> style
-                .wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.CHOP_DOWN_ALWAYS)));
+        String chopped =
+                format(
+                        source,
+                        style -> style.wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.CHOP_DOWN_ALWAYS)));
 
         assertTrue(chopped.contains("class A extends B\n        implements C,\n        D {"), chopped);
     }
@@ -209,13 +211,13 @@ class LayoutOptionTest {
         String source = "class VeryLongClassNameIndeed implements AlphaInterface, BetaInterface, GammaInterface,"
                 + " DeltaInterface {\n}\n";
 
-        String flat = format(source, style -> style
-                .wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.NEVER)));
+        String flat = format(source, style -> style.wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.NEVER)));
 
         // The whole header, keyword included: a break in front of implements is still a break.
         assertTrue(
-                flat.contains("class VeryLongClassNameIndeed implements AlphaInterface, BetaInterface,"
-                        + " GammaInterface, DeltaInterface {"),
+                flat.contains(
+                        "class VeryLongClassNameIndeed implements AlphaInterface, BetaInterface,"
+                                + " GammaInterface, DeltaInterface {"),
                 flat);
     }
 
@@ -223,8 +225,7 @@ class LayoutOptionTest {
     void aNeverWrappingImplementsClauseDoesNotBreakAHeaderThatAlreadyFits() {
         String source = "class A implements B {\n}\n";
 
-        String flat = format(source, style -> style
-                .wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.NEVER)));
+        String flat = format(source, style -> style.wrapping(wrapping -> wrapping.extendsImplements(WrapPolicy.NEVER)));
 
         assertTrue(flat.contains("class A implements B {"), flat);
     }
@@ -246,8 +247,9 @@ class LayoutOptionTest {
 
         // The comment ends its own line and nothing else: the chain below it still fits on one.
         assertTrue(
-                formatted.contains("        // note\n"
-                        + "        project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"),
+                formatted.contains(
+                        "        // note\n"
+                                + "        project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"),
                 formatted);
     }
 
@@ -268,8 +270,9 @@ class LayoutOptionTest {
         String formatted = format(source, style -> { });
 
         assertTrue(
-                formatted.contains("            // keep the old value\n"
-                        + "            project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"),
+                formatted.contains(
+                        "            // keep the old value\n"
+                                + "            project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"),
                 formatted);
     }
 
@@ -287,15 +290,18 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style
-                .wrapping(wrapping -> wrapping.chainedCalls(ChainPolicy.BREAK_ALL_WHEN_TOO_LONG)));
+        String formatted =
+                format(
+                        source,
+                        style -> style.wrapping(wrapping -> wrapping.chainedCalls(
+                                ChainPolicy.BREAK_ALL_WHEN_TOO_LONG)));
 
         // The lambda's own lines are not the chain being too long for one line, and the body they
         // hold is indented from the statement rather than from a wrap that did not happen.
         assertTrue(
-                formatted.contains("        project.getTasks().withType(Jar.class).configureEach(task -> {\n"
-                        + "            task.setStale(false);\n"
-                        + "        });"),
+                formatted.contains(
+                        "        project.getTasks().withType(Jar.class).configureEach(task -> {\n"
+                                + "            task.setStale(false);\n" + "        });"),
                 formatted);
     }
 
@@ -329,13 +335,8 @@ class LayoutOptionTest {
         String flat = format(flatSource, preserve);
         String broken = format(brokenSource, preserve);
 
-        assertTrue(
-                flat.contains("project.getTasks().withType().configureEach();"),
-                flat);
-        assertTrue(
-                broken.contains("project.getTasks()\n"
-                        + "                .withType().configureEach();"),
-                broken);
+        assertTrue(flat.contains("project.getTasks().withType().configureEach();"), flat);
+        assertTrue(broken.contains("project.getTasks()\n" + "                .withType().configureEach();"), broken);
     }
 
     @Test
@@ -352,17 +353,19 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style
-                .wrapping(wrapping -> wrapping.chainedCalls(ChainPolicy.BREAK_ALL_WHEN_TOO_LONG)));
+        String formatted =
+                format(
+                        source,
+                        style -> style.wrapping(wrapping -> wrapping.chainedCalls(
+                                ChainPolicy.BREAK_ALL_WHEN_TOO_LONG)));
 
         assertTrue(
-                formatted.contains("        project.getExtensions()\n"
-                        + "                .getByName(\"publishing\")\n"
-                        + "                .getPublications()\n"
-                        + "                .withType(Publication.class)\n"
-                        + "                .configureEach(publication -> {\n"
-                        + "                    publication.setAlias(false);\n"
-                        + "                });"),
+                formatted.contains(
+                        "        project.getExtensions()\n" + "                .getByName(\"publishing\")\n"
+                                + "                .getPublications()\n"
+                                + "                .withType(Publication.class)\n"
+                                + "                .configureEach(publication -> {\n"
+                                + "                    publication.setAlias(false);\n" + "                });"),
                 formatted);
     }
 
@@ -408,12 +411,10 @@ class LayoutOptionTest {
         String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)));
 
         assertTrue(
-                formatted.contains("        this.callIsLong(\n"
-                        + "                argumentOne,\n"
-                        + "                argumentTwo,\n"
-                        + "                argumentThree,\n"
-                        + "                argumentFour\n"
-                        + "        );"),
+                formatted.contains(
+                        "        this.callIsLong(\n" + "                argumentOne,\n"
+                                + "                argumentTwo,\n" + "                argumentThree,\n"
+                                + "                argumentFour\n" + "        );"),
                 formatted);
     }
 
@@ -429,8 +430,11 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style
-                .wrapping(wrapping -> wrapping.maxLineLength(60).closingDelimiter(ClosingDelimiter.ATTACHED)));
+        String formatted =
+                format(
+                        source,
+                        style -> style.wrapping(wrapping -> wrapping.maxLineLength(60).closingDelimiter(
+                                ClosingDelimiter.ATTACHED)));
 
         assertTrue(formatted.contains("                argumentFour);"), formatted);
     }
@@ -450,11 +454,9 @@ class LayoutOptionTest {
 
         // A file that dangles a call's parenthesis and hugs a declaration's reads as two styles.
         assertTrue(
-                formatted.contains("    void methodWithManyParameters(\n"
-                        + "            String firstParameter,\n"
-                        + "            String secondParameter,\n"
-                        + "            int third\n"
-                        + "    ) {"),
+                formatted.contains(
+                        "    void methodWithManyParameters(\n" + "            String firstParameter,\n"
+                                + "            String secondParameter,\n" + "            int third\n" + "    ) {"),
                 formatted);
     }
 
@@ -516,10 +518,9 @@ class LayoutOptionTest {
         String formatted = formatter.format(FormatRequest.of(source).withName("A.java")).text();
 
         assertTrue(
-                formatted.contains("    register(\"name\", Jar.class, task -> {\n"
-                        + "      // configure it\n"
-                        + "      task.setStale(false);\n"
-                        + "    });"),
+                formatted.contains(
+                        "    register(\"name\", Jar.class, task -> {\n" + "      // configure it\n"
+                                + "      task.setStale(false);\n" + "    });"),
                 formatted);
     }
 
@@ -542,9 +543,9 @@ class LayoutOptionTest {
         // chop-down-if-long asks whether the list fits on its line, and the lambda's own lines are
         // not the list failing to: the arguments in front of it stay where the author had them.
         assertTrue(
-                formatted.contains("        register(\"name\", Jar.class, task -> {\n"
-                        + "            task.setStale(false);\n"
-                        + "        });"),
+                formatted.contains(
+                        "        register(\"name\", Jar.class, task -> {\n" + "            task.setStale(false);\n"
+                                + "        });"),
                 formatted);
     }
 
@@ -565,14 +566,12 @@ class LayoutOptionTest {
         String formatted = format(source, style -> { });
 
         assertTrue(
-                formatted.contains("        registerWithARatherLongMethodNameIndeed(\n"
-                        + "                \"some rather long name here\",\n"
-                        + "                AnotherType.class,\n"
-                        + "                someOtherArgument,\n"
-                        + "                task -> {\n"
-                        + "                    task.setStale(false);\n"
-                        + "                }\n"
-                        + "        );"),
+                formatted.contains(
+                        "        registerWithARatherLongMethodNameIndeed(\n"
+                                + "                \"some rather long name here\",\n"
+                                + "                AnotherType.class,\n" + "                someOtherArgument,\n"
+                                + "                task -> {\n" + "                    task.setStale(false);\n"
+                                + "                }\n" + "        );"),
                 formatted);
     }
 
@@ -594,13 +593,10 @@ class LayoutOptionTest {
 
         // An argument that ends mid-line would strand the ones after it against a closing brace.
         assertTrue(
-                formatted.contains("        register(\n"
-                        + "                \"name\",\n"
-                        + "                task -> {\n"
-                        + "                    task.setStale(false);\n"
-                        + "                },\n"
-                        + "                trailing\n"
-                        + "        );"),
+                formatted.contains(
+                        "        register(\n" + "                \"name\",\n" + "                task -> {\n"
+                                + "                    task.setStale(false);\n" + "                },\n"
+                                + "                trailing\n" + "        );"),
                 formatted);
     }
 
@@ -652,12 +648,14 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String attached = format(source, style -> style.wrapping(wrapping -> wrapping
-                .tryResources(WrapPolicy.CHOP_DOWN_ALWAYS)
-                .closingDelimiter(ClosingDelimiter.ATTACHED)));
-        String ownLine = format(source, style -> style.wrapping(wrapping -> wrapping
-                .tryResources(WrapPolicy.CHOP_DOWN_ALWAYS)
-                .closingDelimiter(ClosingDelimiter.OWN_LINE)));
+        String attached =
+                format(source, style -> style.wrapping(wrapping -> wrapping
+                        .tryResources(WrapPolicy.CHOP_DOWN_ALWAYS)
+                        .closingDelimiter(ClosingDelimiter.ATTACHED)));
+        String ownLine =
+                format(source, style -> style.wrapping(wrapping -> wrapping
+                        .tryResources(WrapPolicy.CHOP_DOWN_ALWAYS)
+                        .closingDelimiter(ClosingDelimiter.OWN_LINE)));
 
         assertTrue(attached.contains("                X second = openSecond()) {"), attached);
         assertTrue(ownLine.contains("                X second = openSecond()\n        ) {"), ownLine);
@@ -671,7 +669,6 @@ class LayoutOptionTest {
 
         assertTrue(tight.contains("enum Color {\n    RED,"), tight);
     }
-
 
     @Test
     void trailingWhitespaceInACommentCanBeKept() {
@@ -694,7 +691,6 @@ class LayoutOptionTest {
         assertEquals(java.nio.charset.StandardCharsets.UTF_8, FileRules.charset(nonsense));
     }
 
-
     @Test
     void aLoneMarkerAnnotationCanShareTheDeclarationLine() {
         String source = """
@@ -714,8 +710,7 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String inline = format(source, style -> style
-                .annotations(annotations -> annotations.singleMarkerInline(true)));
+        String inline = format(source, style -> style.annotations(annotations -> annotations.singleMarkerInline(true)));
 
         assertTrue(inline.contains("@Override public String toString()"), inline);
         // Two annotations are no longer a lone marker, so they keep their own lines.
@@ -726,8 +721,7 @@ class LayoutOptionTest {
     void anAnnotationWithArgumentsIsNotAMarker() {
         String source = "class A {\n\n    @SuppressWarnings(\"x\")\n    void f() { }\n\n}\n";
 
-        String inline = format(source, style -> style
-                .annotations(annotations -> annotations.singleMarkerInline(true)));
+        String inline = format(source, style -> style.annotations(annotations -> annotations.singleMarkerInline(true)));
 
         assertTrue(inline.contains("@SuppressWarnings(\"x\")\n    void f()"), inline);
     }
@@ -736,8 +730,11 @@ class LayoutOptionTest {
     void parametersAndLocalsFollowTheParameterPlacementRule() {
         String source = "class A {\n\n    void f(@NotNull String a) {\n        @Marked int b = 1;\n    }\n\n}\n";
 
-        String ownLines = format(source, style -> style
-                .annotations(annotations -> annotations.parameterPlacement(AnnotationPlacement.NEW_LINE)));
+        String ownLines =
+                format(
+                        source,
+                        style -> style.annotations(annotations -> annotations.parameterPlacement(
+                                AnnotationPlacement.NEW_LINE)));
 
         assertTrue(ownLines.contains("@NotNull\n            String a"), ownLines);
         assertTrue(ownLines.contains("@Marked\n        int b = 1;"), ownLines);

@@ -106,9 +106,7 @@ class ProsePreservationTest {
     @Test
     void aWholeCommentThatDisappearedFails() {
         String problem =
-                difference(
-                        "class T {\n    // alpha\n    void f() { }\n}\n",
-                        "class T {\n    void f() { }\n}\n");
+                difference("class T {\n    // alpha\n    void f() { }\n}\n", "class T {\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("lost"), problem);
     }

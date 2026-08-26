@@ -134,9 +134,7 @@ public enum SyntaxKind {
     // Patterns.
     TYPE_PATTERN,
     RECORD_PATTERN,
-    PATTERN_COMPONENTS
-
-    ;
+    PATTERN_COMPONENTS;
 
     /** Whether nodes of this kind are emitted exactly as they were written. */
     public boolean isVerbatim() {

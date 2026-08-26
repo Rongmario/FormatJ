@@ -30,8 +30,7 @@ public enum TokenKind {
     /** Input the lexer could not classify. */
     ERROR,
     /** The synthetic token that ends every token list. */
-    END_OF_FILE
-    ;
+    END_OF_FILE;
 
     /** Whether tokens of this kind carry no program meaning and are attached to a real token. */
     public boolean isTrivia() {

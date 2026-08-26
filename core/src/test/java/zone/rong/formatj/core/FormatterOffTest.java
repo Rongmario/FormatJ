@@ -62,9 +62,10 @@ class FormatterOffTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments
-                .offMarker("@formatter:off")
-                .onMarker("@formatter:on")));
+        String formatted =
+                format(source, style -> style.comments(comments -> comments
+                        .offMarker("@formatter:off")
+                        .onMarker("@formatter:on")));
 
         assertTrue(formatted.contains("int    kept   =   1;"), formatted);
         assertTrue(formatted.contains("int tidied = 2;"), formatted);

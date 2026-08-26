@@ -32,20 +32,17 @@ class GoldenFileTest {
         assertTrue(Files.isDirectory(CASES), () -> "missing case directory: " + CASES.toAbsolutePath());
         try (Stream<Path> directories = Files.list(CASES)) {
             List<Path> cases = directories.filter(Files::isDirectory).sorted().toList();
-            return cases.stream().map(directory -> DynamicTest.dynamicTest(
-                    directory.getFileName().toString(),
-                    () -> {
-                        String input = read(directory.resolve("input.java"));
-                        String expected = read(directory.resolve("expected.java"));
-                        Formatter formatter = FormatJ.newFormatter().style(styleFor(directory)).build();
+            return cases.stream().map(directory -> DynamicTest.dynamicTest(directory.getFileName().toString(), () -> {
+                String input = read(directory.resolve("input.java"));
+                String expected = read(directory.resolve("expected.java"));
+                Formatter formatter = FormatJ.newFormatter().style(styleFor(directory)).build();
 
-                        String formatted = formatter.format(
-                                FormatRequest.of(input).withName(directory + "/input.java")).text();
-                        assertEquals(expected, formatted);
+                String formatted = formatter.format(FormatRequest.of(input).withName(directory + "/input.java")).text();
+                assertEquals(expected, formatted);
 
-                        String again = formatter.format(FormatRequest.of(formatted)).text();
-                        assertEquals(formatted, again, "formatting must be a fixed point");
-                    }));
+                String again = formatter.format(FormatRequest.of(formatted)).text();
+                assertEquals(formatted, again, "formatting must be a fixed point");
+            }));
         }
     }
 

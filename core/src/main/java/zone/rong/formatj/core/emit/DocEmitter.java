@@ -563,8 +563,8 @@ public final class DocEmitter extends StatementEmitter {
 
         Doc separator =
                 policy == WrapPolicy.NEVER
-                        ? spaceIf(rule(SpacingRules.AFTER_COMMA))
-                        : rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
+                ? spaceIf(rule(SpacingRules.AFTER_COMMA))
+                : rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         List<Doc> parts = new ArrayList<>();
         for (int i = 1; i < children.size(); i++) {
             GreenNode child = children.get(i);
@@ -578,9 +578,7 @@ public final class DocEmitter extends StatementEmitter {
             return Doc.concat(space(), keyword, space(), types);
         }
         Doc content = Doc.indent(indent, Doc.concat(Doc.line(), keyword, space(), types));
-        return policy == WrapPolicy.CHOP_DOWN_ALWAYS
-                ? Doc.breakingGroup(content)
-                : authorGroup(node, content);
+        return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(content) : authorGroup(node, content);
     }
 
     private Doc emitModifiers(GreenNode node) {
@@ -750,8 +748,8 @@ public final class DocEmitter extends StatementEmitter {
             // is where that is known, since the expression itself cannot see what encloses it.
             parts.add(
                     i == 0 && child.kind() == SyntaxKind.ASSIGNMENT_EXPRESSION
-                            ? emitAssignment(child, true)
-                            : emit(child));
+                    ? emitAssignment(child, true)
+                    : emit(child));
         }
         return Doc.concat(parts);
     }

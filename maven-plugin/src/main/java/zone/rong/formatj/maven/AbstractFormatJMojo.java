@@ -101,8 +101,8 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         // An explicit <encoding> wins; otherwise the style's own file.charset decides.
         Charset charset =
                 encoding == null || encoding.isBlank()
-                        ? FileRules.charset(formatter.style())
-                        : Charset.forName(encoding);
+                ? FileRules.charset(formatter.style())
+                : Charset.forName(encoding);
         List<String> wouldChange = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         int formatted = 0;

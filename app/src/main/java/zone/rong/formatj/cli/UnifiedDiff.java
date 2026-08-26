@@ -116,8 +116,8 @@ public final class UnifiedDiff {
             for (int j = right.size() - 1; j >= 0; j--) {
                 lengths[i][j] =
                         left.get(i).equals(right.get(j))
-                                ? lengths[i + 1][j + 1] + 1
-                                : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
+                        ? lengths[i + 1][j + 1] + 1
+                        : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
             }
         }
         return lengths;

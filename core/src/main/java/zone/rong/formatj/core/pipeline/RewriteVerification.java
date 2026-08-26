@@ -148,8 +148,8 @@ public final class RewriteVerification {
             .comparingInt((Sequenced entry) -> entry.edit().position())
             .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
             .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
-                    ? -entry.sequence()
-                    : entry.sequence());
+                                       ? -entry.sequence()
+                                       : entry.sequence());
 
     // -------------------------------------------------------------- edit laws
 
@@ -346,8 +346,8 @@ public final class RewriteVerification {
         }
         String difference = sameBag(before, after);
         return difference == null
-                ? null
-                : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
+               ? null
+               : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
     }
 
     /**
@@ -459,7 +459,18 @@ public final class RewriteVerification {
      * of the case body while claiming to be restyling a label still fails.
      */
     private static String checkCaseStyleLaw(TokenEdit edit) {
-        return checkOnly(edit, "case labels and their terminators", ":", "->", "case", ",", "break", ";", "yield", "{", "}");
+        return checkOnly(
+                edit,
+                "case labels and their terminators",
+                ":",
+                "->",
+                "case",
+                ",",
+                "break",
+                ";",
+                "yield",
+                "{",
+                "}");
     }
 
     /** A rule that may touch the named tokens and no others. */
@@ -504,8 +515,8 @@ public final class RewriteVerification {
             }
         }
         return opened == closed
-                ? null
-                : "braces were not balanced: " + opened + " opened against " + closed + " closed";
+               ? null
+               : "braces were not balanced: " + opened + " opened against " + closed + " closed";
     }
 
     // ------------------------------------------------------------- comments

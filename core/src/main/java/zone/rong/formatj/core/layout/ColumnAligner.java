@@ -126,8 +126,7 @@ public final class ColumnAligner {
             }
             lastLine = line;
             positions.add(
-                    new Position(
-                            mark.offset(), line, column(text, lineStart, mark.offset()), indent(text, lineStart)));
+                    new Position(mark.offset(), line, column(text, lineStart, mark.offset()), indent(text, lineStart)));
         }
         return positions;
     }

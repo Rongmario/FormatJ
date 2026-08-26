@@ -209,8 +209,8 @@ final class LineDiffer {
 
         private static String stripCarriageReturn(String line) {
             return !line.isEmpty() && line.charAt(line.length() - 1) == '\r'
-                    ? line.substring(0, line.length() - 1)
-                    : line;
+                   ? line.substring(0, line.length() - 1)
+                   : line;
         }
 
     }

@@ -97,8 +97,8 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         Doc inner =
                 policy == WrapPolicy.WRAP_IF_LONG && mayJoin(node)
-                        ? Doc.fill(interleave(elements, separator))
-                        : Doc.join(separator, elements);
+                ? Doc.fill(interleave(elements, separator))
+                : Doc.join(separator, elements);
         Doc edge = spaceInside ? Doc.line() : Doc.softLine();
         // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
         boolean ownLine = is(close, "}")
@@ -112,18 +112,15 @@ abstract class ExpressionEmitter extends EmitSupport {
 
         // The author's break after the opening delimiter is the one this rule is named for; it is the
         // same break the PRESERVE policy reads, so a list under either policy keeps it.
-        boolean keepOpenBreak =
-                rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN) && AuthorLines.brokeAfterFirstToken(node);
+        boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN)
+                && AuthorLines.brokeAfterFirstToken(node);
 
         return switch (policy) {
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
             case PRESERVE ->
-                    authorBrokeBefore(middle.getFirst())
-                            ? Doc.breakingGroup(content)
-                            : Doc.group(content, groupKind);
-            default ->
-                    keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
+                    authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content, groupKind);
+            default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
     }
 
@@ -386,8 +383,16 @@ abstract class ExpressionEmitter extends EmitSupport {
                     spaceIf(spaced),
                     whenFalse);
         }
-        Doc branches = Doc.concat(
-                Doc.line(), question, spaceIf(spaced), whenTrue, Doc.line(), colon, spaceIf(spaced), whenFalse);
+        Doc branches =
+                Doc.concat(
+                        Doc.line(),
+                        question,
+                        spaceIf(spaced),
+                        whenTrue,
+                        Doc.line(),
+                        colon,
+                        spaceIf(spaced),
+                        whenFalse);
         if (alignsOnColumn(AlignmentRules.TERNARY_BRANCHES)) {
             // Aligning the branches means hanging them under the condition rather than at a fixed
             // indent, so the alignment has to start where the condition starts, not where it ends.
@@ -594,9 +599,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             Doc tails = Doc.concat(preserved);
             return Doc.concat(
                     baseDoc,
-                    alignDots
-                            ? Doc.align(tails)
-                            : Doc.indent(rule(IndentRules.CHAINED_CALL), tails));
+                    alignDots ? Doc.align(tails) : Doc.indent(rule(IndentRules.CHAINED_CALL), tails));
         }
         if (policy == ChainPolicy.NEVER_BREAK || links.size() < threshold && !forceBreak) {
             return Doc.concat(baseDoc, attached, Doc.concat(linkDocs));
@@ -607,7 +610,8 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(Doc.softLine());
             parts.add(link);
         }
-        Doc hanging = alignDots
+        Doc hanging =
+                alignDots
                 ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
                 : Doc.indentIfBreak(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
         Doc content = Doc.concat(baseDoc, hanging);
