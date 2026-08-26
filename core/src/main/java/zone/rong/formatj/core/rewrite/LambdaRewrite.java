@@ -20,15 +20,13 @@ import java.util.List;
  *
  * <h2>Braces</h2>
  *
- * <p>Here it is the other way round from {@link BraceRewrite}: taking the braces off is the safe
- * direction and putting them on is not. A block body says which of the two lambda shapes the target
- * type wanted — {@code x -> { return e; }} is value-compatible and {@code x -> { e(); }} is
- * void-compatible — so the expression body it collapses to is the one that compiles. Going the other
- * way, {@code x -> e} could need either {@code { return e; }} or {@code { e; }}, and which one is a
- * question about the functional interface being implemented rather than about the text. A formatter
- * does not have the target type, so {@link BracePolicy#ALWAYS} is declined for an expression body
- * rather than guessed at: braces the author did not ask for are a smaller harm than a file that no
- * longer compiles.
+ * <p>Either direction can need target-type information. Adding braces has to choose between
+ * {@code { return e; }} and {@code { e; }}. Removing them can also change compatibility when {@code e}
+ * is a statement expression: {@code x -> { return call(x); }} is value-compatible only, while
+ * {@code x -> call(x)} may also be void-compatible and make an overload ambiguous. This formatter
+ * therefore removes a block only from {@code return e;} where {@code e} is syntactically not a
+ * statement expression. It declines every other case rather than guessing at a functional interface
+ * it cannot see.
  */
 public final class LambdaRewrite implements Rewrite {
 
@@ -180,7 +178,7 @@ public final class LambdaRewrite implements Rewrite {
 
         List<GreenNode> statement = only.children();
         GreenNode semicolon = statement.getLast();
-        GreenNode keyword = only.kind() == SyntaxKind.RETURN_STATEMENT ? statement.getFirst() : null;
+        GreenNode keyword = statement.getFirst();
 
         // A brace, a return or a semicolon that carries a comment has nowhere to rehome it once it is
         // gone, so the whole collapse is declined rather than done at the comment's expense.
@@ -198,21 +196,17 @@ public final class LambdaRewrite implements Rewrite {
         }
 
         String reason = "braces removed from a single-expression lambda body";
-        if (keyword != null) {
-            if (context.firstPosition(keyword) != openPosition + 1) {
-                return body;
-            }
-            context.record(
-                    new TokenEdit(
-                            LambdaRules.BODY_BRACES,
-                            reason,
-                            openPosition,
-                            List.of("{", "return"),
-                            List.of(),
-                            TokenEdit.Bias.INNERMOST_FIRST));
-        } else {
-            context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, openPosition, "{"));
+        if (context.firstPosition(keyword) != openPosition + 1) {
+            return body;
         }
+        context.record(
+                new TokenEdit(
+                        LambdaRules.BODY_BRACES,
+                        reason,
+                        openPosition,
+                        List.of("{", "return"),
+                        List.of(),
+                        TokenEdit.Bias.INNERMOST_FIRST));
         context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, semicolonPosition, ";", "}"));
         return expression;
     }
@@ -220,19 +214,30 @@ public final class LambdaRewrite implements Rewrite {
     /**
      * The expression a one-statement block can be written as, or null when it cannot be.
      *
-     * <p>{@code return e;} and a lone statement expression are the two shapes an expression body can
-     * take. {@code return;} has no value to become an expression, and everything else — a
-     * declaration, an {@code if}, a loop — is not an expression at all.
+     * <p>Only {@code return e;} where {@code e} is not a statement expression is safe without the
+     * lambda's target type. A lone statement expression, or a returned statement expression, can make
+     * the expression lambda compatible with an additional functional-interface shape.
      */
     private static GreenNode collapsible(GreenNode statement) {
         List<GreenNode> children = statement.children();
         if (statement.kind() == SyntaxKind.RETURN_STATEMENT && children.size() == 3) {
-            return children.get(1);
-        }
-        if (statement.kind() == SyntaxKind.EXPRESSION_STATEMENT && children.size() == 2) {
-            return children.getFirst();
+            GreenNode expression = children.get(1);
+            return isStatementExpression(expression) ? null : expression;
         }
         return null;
+    }
+
+    /** Whether Java permits this expression as a statement on its own (JLS 14.8). */
+    private static boolean isStatementExpression(GreenNode expression) {
+        return switch (expression.kind()) {
+            case ASSIGNMENT_EXPRESSION, METHOD_INVOCATION, OBJECT_CREATION, POSTFIX_EXPRESSION -> true;
+            case UNARY_EXPRESSION -> {
+                GreenNode first = expression.children().getFirst();
+                yield first instanceof GreenNode.Leaf leaf
+                        && (leaf.lexeme().equals("++") || leaf.lexeme().equals("--"));
+            }
+            default -> false;
+        };
     }
 
 }

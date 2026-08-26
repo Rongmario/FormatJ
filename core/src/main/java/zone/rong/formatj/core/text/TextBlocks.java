@@ -75,10 +75,10 @@ public final class TextBlocks {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             boolean last = i == lines.size() - 1;
-            if (line.isBlank() && !last) {
+            if (isBlankLine(line) && !last) {
                 continue;
             }
-            minimum = Math.min(minimum, last && line.isBlank() ? line.length() : leadingWhitespace(line));
+            minimum = Math.min(minimum, last && isBlankLine(line) ? line.length() : leadingWhitespace(line));
         }
         return minimum == Integer.MAX_VALUE ? 0 : minimum;
     }
@@ -118,7 +118,7 @@ public final class TextBlocks {
      */
     public static String withClosingDelimiterOnOwnLine(String lexeme) {
         List<String> lines = contentLines(lexeme);
-        if (lines.size() > 1 && lines.getLast().isBlank()) {
+        if (lines.size() > 1 && isBlankLine(lines.getLast())) {
             return lexeme;
         }
         int indent = incidentalIndent(lines);
@@ -130,7 +130,7 @@ public final class TextBlocks {
     /** Whether the closing delimiter already sits on a line of its own. */
     public static boolean closingDelimiterOnOwnLine(String lexeme) {
         List<String> lines = contentLines(lexeme);
-        return lines.size() > 1 && lines.getLast().isBlank();
+        return lines.size() > 1 && isBlankLine(lines.getLast());
     }
 
     /**
@@ -149,7 +149,7 @@ public final class TextBlocks {
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
             boolean last = i == lines.size() - 1;
-            if (last || line.isBlank() || line.length() <= indent) {
+            if (last || isBlankLine(line) || line.length() <= indent) {
                 escaped.add(line);
                 continue;
             }
@@ -225,9 +225,19 @@ public final class TextBlocks {
         return current == ' ' || current == '\t' || current == '\f';
     }
 
+    /** Whether the line contains only the white space Java treats as incidental in a text block. */
+    private static boolean isBlankLine(String line) {
+        for (int i = 0; i < line.length(); i++) {
+            if (!isLineWhitespace(line.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static int leadingWhitespace(String line) {
         int index = 0;
-        while (index < line.length() && Character.isWhitespace(line.charAt(index))) {
+        while (index < line.length() && isLineWhitespace(line.charAt(index))) {
             index++;
         }
         return index;
@@ -235,7 +245,7 @@ public final class TextBlocks {
 
     private static String stripTrailing(String line) {
         int end = line.length();
-        while (end > 0 && Character.isWhitespace(line.charAt(end - 1))) {
+        while (end > 0 && isLineWhitespace(line.charAt(end - 1))) {
             end--;
         }
         return line.substring(0, end);

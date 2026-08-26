@@ -66,6 +66,20 @@ class TextBlockRulesTest {
         assertEquals("a  ", TextBlocks.value("\"\"\"\n        a \\s\"\"\""));
     }
 
+    @Test
+    void unicodeWhitespaceIsContentRatherThanIncidentalIndentation() {
+        String emSpace = "\u2003";
+        String block = "\"\"\"\n        " + emSpace + "\"\"\"";
+
+        assertEquals(emSpace, TextBlocks.value(block));
+
+        FormatResult result =
+                format(Style.builder().set(TextBlockRules.INDENT_POLICY, TextBlockIndentPolicy.MINIMAL).build(), block);
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertEquals(emSpace, TextBlocks.value(blockOf(result.text())));
+        assertTrue(result.text().contains(emSpace), result.text());
+    }
+
     // ---------------------------------------------------------- re-indenting
 
     @Test

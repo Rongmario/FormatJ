@@ -99,9 +99,48 @@ class RewriteRulesTest {
     }
 
     @Test
-    void aLambdaBlockHoldingOneCallCollapsesToThatCall() {
+    void aLambdaBlockHoldingOneCallKeepsItsBracesWithoutTargetTypeInformation() {
         String source = method("        run(x -> { log(x); });");
-        assertTrue(format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> log(x));"));
+        assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
+    }
+
+    @Test
+    void aReturnedStatementExpressionKeepsItsBracesBecauseOverloadResolutionCanChange() {
+        String source =
+                """
+                import java.util.function.Consumer;
+                import java.util.function.Function;
+
+                class T {
+
+                    String task(String value) {
+                        return value;
+                    }
+
+                    String pick(Function<String, String> function) {
+                        return "function";
+                    }
+
+                    String pick(Consumer<String> consumer) {
+                        return "consumer";
+                    }
+
+                    String choose() {
+                        return pick(value -> { return task(value); });
+                    }
+
+                }
+                """;
+
+        assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
+    }
+
+    @Test
+    void everyReturnedStatementExpressionKeepsItsBraces() {
+        for (String expression : new String[] {"log(x)", "x = 1", "x++", "++x", "new Object()"}) {
+            String source = method("        run(x -> { return " + expression + "; });");
+            assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged(), expression);
+        }
     }
 
     @Test
