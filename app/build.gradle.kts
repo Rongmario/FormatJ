@@ -2,12 +2,6 @@ plugins {
     application
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
-
 application {
     applicationName = "formatj"
     mainClass = "zone.rong.formatj.cli.Main"

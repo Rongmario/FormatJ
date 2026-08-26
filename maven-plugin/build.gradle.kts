@@ -7,9 +7,6 @@ plugins {
 apply(from = rootProject.file("gradle/cleanroom-publishing.gradle.kts"))
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
     withSourcesJar()
 }
 
