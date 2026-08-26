@@ -45,6 +45,11 @@ public class FormatJPlugin implements Plugin<Project> {
                     configure(task, extension, sources);
                     task.getCheckOnly().set(false);
                     task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/apply.marker"));
+                    // The only durable output of apply is the source tree it mutates. Reusing a
+                    // marker from the build cache, or considering that marker up to date, can leave
+                    // a restored unformatted source untouched.
+                    task.getOutputs().doNotCacheIf("the task formats its source inputs in place", ignored -> true);
+                    task.getOutputs().upToDateWhen(ignored -> false);
                 });
 
         TaskProvider<FormatJTask> check = project.getTasks().register(
@@ -86,10 +91,12 @@ public class FormatJPlugin implements Plugin<Project> {
             return project.files();
         }
         SourceSetContainer sourceSets = java.getSourceSets();
-        List<String> selected = extension.getSourceSets().getOrNull();
+        // A ListProperty nobody set still answers with an empty list rather than with nothing, so an
+        // empty selection is what "the user said nothing" looks like: it means every source set.
+        List<String> selected = extension.getSourceSets().getOrElse(List.of());
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
-            if (selected == null || selected.contains(sourceSet.getName())) {
+            if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
                 files = files.plus(sourceSet.getAllJava().filter(file -> file.getName().endsWith(".java")));
             }
         }

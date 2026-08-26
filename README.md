@@ -92,7 +92,8 @@ formatJ {
 ```
 
 - Adds `formatJavaApply` and `formatJavaCheck`; `check` depends on the latter unless `enforceOnCheck = false`.
-- Both tasks are cacheable and incremental, and every rule is a task input.
+- The check task is cacheable and incremental. Apply always runs without cached state because it
+  mutates the source files themselves. Every rule is a task input.
 
 ## Maven Plugin Usage
 

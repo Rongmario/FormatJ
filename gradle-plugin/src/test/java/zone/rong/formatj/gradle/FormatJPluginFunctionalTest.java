@@ -77,6 +77,46 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void everySourceSetIsFormattedWhenTheBuildNamesNone() throws IOException {
+        // No formatJ block at all: the extension's source set list is empty rather than absent, and
+        // an empty list has to mean every source set, not none of them.
+        Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+                """);
+        Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
+        Files.writeString(source, "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
+
+        BuildResult result = run("formatJavaApply");
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":formatJavaApply").getOutcome());
+        assertTrue(Files.readString(source).contains("int x = 1;"), Files.readString(source));
+    }
+
+    @Test
+    void applyTaskReformatsRestoredInputInsteadOfReusingCachedState() throws IOException {
+        Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
+        String unformatted = "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n";
+        Files.writeString(source, unformatted);
+
+        BuildResult first = run("formatJavaApply", "--build-cache");
+        assertEquals(TaskOutcome.SUCCESS, first.task(":formatJavaApply").getOutcome());
+        assertTrue(Files.readString(source).contains("int x = 1;"), Files.readString(source));
+
+        // This has the same input fingerprint as the first invocation. A cacheable or up-to-date
+        // in-place task can restore only its marker and silently leave this source unformatted.
+        Files.writeString(source, unformatted);
+        BuildResult second = run("formatJavaApply", "--build-cache");
+
+        assertEquals(TaskOutcome.SUCCESS, second.task(":formatJavaApply").getOutcome());
+        assertTrue(Files.readString(source).contains("int x = 1;"), Files.readString(source));
+    }
+
+    @Test
     void checkTaskIsWiredIntoTheLifecycleCheckTask() {
         BuildResult result = run("check");
         assertTrue(result.getOutput().contains("formatJavaCheck"), result.getOutput());
