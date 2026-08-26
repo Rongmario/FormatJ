@@ -30,4 +30,8 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    val launcher = layout.buildDirectory.file("install/formatj/bin/formatj")
+    dependsOn(tasks.named("installDist"))
+    inputs.file(launcher)
+    systemProperty("formatj.launcher", launcher.get().asFile.absolutePath)
 }

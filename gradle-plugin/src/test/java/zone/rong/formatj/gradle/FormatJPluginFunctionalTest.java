@@ -49,11 +49,16 @@ class FormatJPluginFunctionalTest {
     }
 
     private BuildResult run(String... arguments) {
-        return GradleRunner.create()
+        return runner(arguments).build();
+    }
+
+    private GradleRunner runner(String... arguments) {
+        GradleRunner runner = GradleRunner.create()
                 .withProjectDir(projectDirectory.toFile())
                 .withPluginClasspath()
-                .withArguments(arguments)
-                .build();
+                .withArguments(arguments);
+        String version = System.getProperty("formatj.gradle.version");
+        return version == null || version.isBlank() ? runner : runner.withGradleVersion(version);
     }
 
     @Test
@@ -150,11 +155,7 @@ class FormatJPluginFunctionalTest {
                 """);
 
         // The four-space fixture no longer matches, so the task must run again and fail.
-        BuildResult failure = GradleRunner.create()
-                .withProjectDir(projectDirectory.toFile())
-                .withPluginClasspath()
-                .withArguments("formatJavaCheck")
-                .buildAndFail();
+        BuildResult failure = runner("formatJavaCheck").buildAndFail();
         assertEquals(TaskOutcome.FAILED, failure.task(":formatJavaCheck").getOutcome());
         assertTrue(failure.getOutput().contains("not formatted"), failure.getOutput());
 

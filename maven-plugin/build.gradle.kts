@@ -43,9 +43,22 @@ tasks.processResources {
 
 tasks.test {
     useJUnitPlatform()
+    val mavenVersion = providers.gradleProperty("formatj.maven.test.version").orElse("3.9.16")
+    val pluginJar = tasks.named<Jar>("jar").flatMap { it.archiveFile }
+    val coreJar = project(":core").tasks.named<Jar>("jar").flatMap { it.archiveFile }
+    dependsOn(tasks.named("jar"), project(":core").tasks.named("jar"))
+    inputs.files(pluginJar, coreJar)
     systemProperty(
         "formatj.descriptor",
         layout.buildDirectory.file("resources/main/META-INF/maven/plugin.xml").get().asFile.absolutePath,
     )
     systemProperty("formatj.version", projectVersion)
+    systemProperty("formatj.maven.version", mavenVersion.get())
+    systemProperty("formatj.maven.plugin.jar", pluginJar.get().asFile.absolutePath)
+    systemProperty("formatj.core.jar", coreJar.get().asFile.absolutePath)
+    systemProperty(
+        "formatj.maven.cache",
+        layout.buildDirectory.dir("maven-dist").get().asFile.absolutePath,
+    )
+    inputs.property("formatj.maven.version", mavenVersion)
 }

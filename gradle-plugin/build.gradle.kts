@@ -108,4 +108,7 @@ signing {
 
 tasks.test {
     useJUnitPlatform()
+    val testVersion = providers.gradleProperty("formatj.gradle.test.version").orElse("")
+    systemProperty("formatj.gradle.version", testVersion.get())
+    inputs.property("formatj.gradle.version", testVersion)
 }
