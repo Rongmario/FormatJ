@@ -1,6 +1,130 @@
 # FormatJ
 
-A Java code formatter that is configurable, buildable from CI, and the same everywhere it runs.
+A Java code formatter that aims to be
+- Super configurable
+- Buildable from CI
+- Same everywhere it runs
+
+## Usage
+
+The same engine and the same `formatj.toml` in every entrypoint.
+
+### CLI
+
+1. Install the archives that are on [GitHub Releases](https://github.com/Rongmario/FormatJ/releases).
+- Unpack `formatj-<version>.zip` (or `.tar`) and put `bin` on `PATH`.
+
+2. Or when cloning this repo, run `./gradlew :app:installDist` and that would put the launcher in `app/build/install/formatj/bin`.
+
+```
+formatj --check src/main/java          # exit 1 if anything would change (default)
+formatj --write src/main/java          # rewrite in-place
+formatj --diff src/main/java           # unified diff of what would change
+formatj --dump-config                  # every rule with its effective value, as TOML
+
+cat Foo.java | formatj --stdin --stdin-name Foo.java
+```
+
+- `--style FILE`, `--preset formatj|google` and `--set key=value` (repeatable) override discovery.
+- `--include` / `--exclude` take globs.
+- Piped `stdin` writes the formatted source to stdout unless a mode flag is given.
+
+### Gradle Plugin
+
+Published to the [Gradle Plugin Portal](https://plugins.gradle.org/plugin/zone.rong.formatj).
+
+```kotlin
+import zone.rong.formatj.api.Preset
+
+plugins {
+    java
+    id("zone.rong.formatj") version "0.1.0"
+}
+
+formatJ {
+    preset = Preset.GOOGLE              // Uses default Google format
+    styleFile = file("formatj.toml")    // Uses custom configuration
+    rule("indent.size", 4)              // Override with rule `indent.size = 4`
+    sourceSets("main", "test")          // Target specific source sets (main and test in this case, default: every source set)
+}
+```
+
+- `./gradlew formatJavaApply` rewrites sources in place.
+- `./gradlew formatJavaCheck` fails if anything would change. `check` depends on it unless `enforceOnCheck = false`.
+- The check task is cacheable and incremental.
+  - Apply always runs without cached state because it mutates the source files themselves. Rules are task inputs.
+
+### Maven Plugin
+
+Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
+
+```xml
+<pluginRepositories>
+  <pluginRepository>
+    <id>cleanroom</id>
+    <url>https://maven.cleanroommc.com</url>
+  </pluginRepository>
+</pluginRepositories>
+
+<plugin>
+  <groupId>zone.rong.formatj</groupId>
+  <artifactId>formatj-maven-plugin</artifactId>
+  <version>0.1.0</version>
+  <configuration>
+    <styleFile>${project.basedir}/formatj.toml</styleFile>
+    <preset>formatj</preset>
+    <rules>
+      <indent.size>4</indent.size>
+    </rules>
+  </configuration>
+  <executions>
+    <execution>
+      <goals>
+        <goal>format</goal>
+        <goal>check</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>
+```
+
+- `mvn formatj:format` rewrites in place. Bound to `process-sources` when the execution above is present.
+- `mvn formatj:check` fails if anything would change. Bound to `verify`.
+- Skip with `-Dformatj.skip`. Point at a style file with `-Dformatj.styleFile=...`.
+- Without `<executions>`, the goals only run when invoked by name.
+
+### IntelliJ Plugin (Experimental)
+
+1. Build the plugin zip with `./gradlew :intellij-plugin:buildPlugin`.
+2. The artifact lands in `intellij-plugin/build/distributions/`.
+3. Install it from disk via **Settings > Plugins > ⚙ > Install Plugin from Disk...**.
+4. After install: **Reformat Code** (`Ctrl+Alt+L`) and **Optimize Imports** on Java files run FormatJ instead of the built-in Java formatter.
+   - **Format-on-save** uses it too, because it uses **Reformat Code**.
+   - Style comes from the nearest `formatj.toml` above the file, the same walk the CLI does.
+   - Disable it per project under **Settings > Tools > FormatJ**.
+   - Enter and paste still use IntelliJ's indent. FormatJ does not run on every keystroke.
+
+Smoke it locally with `./gradlew :intellij-plugin:runIde`.
+
+### Library
+
+`zone.rong.formatj:formatj:0.1.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+
+```java
+Formatter formatter = FormatJ.newFormatter()
+        .style(Style.preset(Preset.FORMATJ)
+                .indent(indent -> indent.size(4).useTabs(false).continuation(8))
+                .wrapping(wrapping -> wrapping.maxLineLength(120)
+                        .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE))
+                .switches(switches -> switches.arrowCaseBraces(BracePolicy.WHEN_MULTI_STATEMENT))
+                .build())
+        .languageLevel(LanguageLevel.LATEST)
+        .build();
+
+FormatResult result = formatter.format(FormatRequest.of(source).withName("Foo.java"));
+```
+
+A formatter is immutable and thread-safe; one instance can serve the whole project.
 
 ## Origins
 
@@ -17,6 +141,9 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
   - Gradle plugin
   - Maven plugin
   - IntelliJ plugin
+
+- Fairly complex project aimed at fixing an existing issue and also testing out frontier AI model capabilities
+  - Assisted with Grok 4.6 (XH), GPT 5.6 Sol (XH) & Claude Opus 5 (M)
 
 ## Design
 
@@ -41,103 +168,6 @@ Java's formatters... [are a pain in the ass](https://jqno.nl/post/2024/08/24/why
 - **Alignment is padding:** The `alignment.*` rules run over text the layout engine has
   already produced, because where a run of lines should share a column is not known until they have
   all been printed. Nothing they do can move a line break.
-
-## Library Usage
-
-```java
-Formatter formatter = FormatJ.newFormatter()
-        .style(Style.preset(Preset.FORMATJ)
-                .indent(indent -> indent.size(4).useTabs(false).continuation(8))
-                .wrapping(wrapping -> wrapping.maxLineLength(120)
-                        .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE))
-                .switches(switches -> switches.arrowCaseBraces(BracePolicy.WHEN_MULTI_STATEMENT))
-                .build())
-        .languageLevel(LanguageLevel.LATEST)
-        .build();
-
-FormatResult result = formatter.format(FormatRequest.of(source).withName("Foo.java"));
-```
-
-A formatter is immutable and thread-safe; one instance can serve the whole project.
-
-## Command Line Usage
-
-```
-formatj --check src/main/java          # exit 1 if anything would change
-formatj --write src/main/java          # rewrite in-place
-formatj --diff src/main/java           # unified diff of what would change
-formatj --dump-config                  # every rule with its effective value, as TOML
-cat Foo.java | formatj --stdin --stdin-name Foo.java
-```
-
-Rules resolve strongest-first: `--set key=value`, then `--preset` or `--style`, then the nearest
-`formatj.toml` above the file, then the built-in defaults.
-
-Build it with `./gradlew :app:installDist` and the launcher lands in `app/build/install/formatj/bin`.
-
-## Gradle Plugin Usage
-
-```kotlin
-plugins {
-    java
-    id("zone.rong.formatj") version "0.1.0"
-}
-
-formatJ {
-    preset = Preset.GOOGLE
-    styleFile = file("formatj.toml")
-    rule("indent.size", 4)
-    sourceSets("main", "test")
-}
-```
-
-- Adds `formatJavaApply` and `formatJavaCheck`; `check` depends on the latter unless `enforceOnCheck = false`.
-- The check task is cacheable and incremental. Apply always runs without cached state because it
-  mutates the source files themselves. Every rule is a task input.
-
-## Maven Plugin Usage
-
-```xml
-<pluginRepositories>
-  <pluginRepository>
-    <id>cleanroom</id>
-    <url>https://maven.cleanroommc.com</url>
-  </pluginRepository>
-</pluginRepositories>
-
-<plugin>
-  <groupId>zone.rong.formatj</groupId>
-  <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.1.0</version>
-  <configuration>
-    <styleFile>${project.basedir}/formatj.toml</styleFile>
-    <rules>
-      <indent.size>4</indent.size>
-    </rules>
-  </configuration>
-</plugin>
-```
-
-- `formatj:format` binds to `process-sources`, `formatj:check` to `verify`.
-
-## IntelliJ Plugin
-
-Build the plugin zip with `./gradlew :intellij-plugin:buildPlugin`. The artifact lands in
-`intellij-plugin/build/distributions/`. Install it from disk via **Settings > Plugins > ⚙ >
-Install Plugin from Disk...**.
-
-After install, **Reformat Code** (`Ctrl+Alt+L`) and **Optimize Imports** on Java files run FormatJ
-instead of the built-in Java formatter. Format-on-save uses it too, because it uses Reformat Code.
-Style comes from the nearest `formatj.toml` above the file, the same walk the CLI does.
-
-Disable it per project under **Settings > Tools > FormatJ**. The same page can pin a style file or
-preset; leaving both empty keeps discovery.
-
-Selection and "only VCS changes" format the whole file internally, then splice only the hunks that
-overlap the requested ranges. Enter and paste still use IntelliJ's indent — FormatJ does not run on
-every keystroke.
-
-Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ## Configuration
 
