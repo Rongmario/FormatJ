@@ -38,7 +38,7 @@ import zone.rong.formatj.api.Preset
 
 plugins {
     java
-    id("zone.rong.formatj") version "0.1.0"
+    id("zone.rong.formatj") version "0.2.0"
 }
 
 formatJ {
@@ -69,7 +69,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
