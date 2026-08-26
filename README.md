@@ -155,6 +155,9 @@ Fairly complex project aimed at fixing an existing issue and also testing out fr
   Everything above it can therefore be verified.
 - **Verified Output:** Formatting must be a fixed point, and must preserve the significant token
   stream. If either check fails, the original source is returned with a diagnostic.
+- **Partial Parser Coverage is Isolated:** A construct the parser does not yet understand is emitted
+  verbatim and disables rewrites for that file. Parsed regions around it may still be laid out, with
+  the same token, prose, reparse and fixed-point checks as a completely parsed file.
 - **Prose is Checked Too:** Comments are not significant tokens, so the token check is blind to
   them. The `comments.reflow` and `javadoc.*` rules are allowed to move words between lines, and are
   held to moving them and nothing else: the same words in the same order, and every `{@code}`,
@@ -614,6 +617,19 @@ These are the rules that keep what the author wrote.
 | `preservation.keep-array-initializer-layout`          | boolean | `true`  | Keep the row layout of a hand-arranged array initializer | `true`: a matrix written as one row per line stays that way  |
 | `preservation.respect-existing-chain-breaks`          | boolean | `true`  | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken                |
 | `preservation.never-join-lines`                       | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |
+
+## Runtime
+
+Published artifacts — the core library, the CLI, the Gradle plugin, and the Maven plugin — target
+**Java 21**. They are compiled with `--release 21` and are tested on both Java 21 (the floor) and the
+current JDK used to build this tree (25).
+
+The IntelliJ plugin follows the IDE platform rather than that published-artifact floor. IntelliJ IDEA
+2025.1 hosts plugins on Java 21, so that module is built with the IDE's Java 21 toolchain.
+
+The Gradle plugin supports Gradle **8.5 through 9.7.0**; CI exercises both endpoints on Java 21. The
+Maven plugin supports Maven **3.9.0 through 3.9.16** and likewise runs its packaged fixture against
+both endpoints. Maven 4 prereleases are not yet part of the supported matrix.
 
 ## Building
 

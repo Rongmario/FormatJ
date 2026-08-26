@@ -15,6 +15,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21, 25]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,9 +28,80 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 25
+          java-version: ${{ matrix.java }}
 
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Test
         run: ./gradlew check -Pversioning.run=${{ github.run_number }}
+
+  build-tool-compatibility:
+    name: ${{ matrix.tool }} ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: Gradle
+            version: 8.5
+            task: :gradle-plugin:test
+            property: formatj.gradle.test.version
+          - tool: Gradle
+            version: 9.7.0
+            task: :gradle-plugin:test
+            property: formatj.gradle.test.version
+          - tool: Maven
+            version: 3.9.0
+            task: :maven-plugin:test
+            property: formatj.maven.test.version
+          - tool: Maven
+            version: 3.9.16
+            task: :maven-plugin:test
+            property: formatj.maven.test.version
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Test ${{ matrix.tool }} ${{ matrix.version }}
+        run: >-
+          ./gradlew ${{ matrix.task }}
+          -P${{ matrix.property }}=${{ matrix.version }}
+          -Pversioning.run=${{ github.run_number }}
+
+  external-corpus:
+    name: Gson corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Gson 2.11.0, pinned so corpus growth is reviewed rather than inherited from a moving branch.
+      - uses: actions/checkout@v7
+        with:
+          repository: google/gson
+          ref: 828a97be0f8d58108b140b77df8dc76b657f4a87
+          path: build/external-corpus/gson
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Test real-project corpus
+        run: >-
+          ./gradlew :core:externalCorpusTest
+          -Pformatj.external.corpus=${{ github.workspace }}/build/external-corpus/gson/gson/src/main/java
+          -Pversioning.run=${{ github.run_number }}
