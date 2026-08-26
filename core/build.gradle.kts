@@ -1,4 +1,5 @@
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.GradleException
 
 plugins {
     `java-library`
@@ -70,4 +71,31 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    exclude("**/ExternalCorpusInvariantTest.class")
+}
+
+tasks.register<Test>("externalCorpusTest") {
+    group = "verification"
+    description = "Runs formatter invariants over an external Java source tree."
+    val corpus = providers.gradleProperty("formatj.external.corpus")
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    include("**/ExternalCorpusInvariantTest.class")
+    inputs.dir(corpus).optional()
+    doFirst {
+        if (!corpus.isPresent) {
+            throw GradleException("-Pformatj.external.corpus must name a Java source tree")
+        }
+        systemProperty("formatj.external.corpus", corpus.get())
+    }
+}
+
+tasks.register<JavaExec>("benchmarkStages") {
+    group = "verification"
+    description = "Times lex, parse, verify, and layout over this repository's Java sources."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("zone.rong.formatj.core.pipeline.StageTimer")
+    workingDir = rootProject.layout.projectDirectory.asFile
+    args(".", "**/build/**", "**/src/test/resources/**")
 }
