@@ -116,7 +116,12 @@ abstract class EmitSupport {
 
     /** A group that starts out broken when the author's own line breaks have to survive. */
     protected Doc authorGroup(GreenNode node, Doc content) {
-        return mayJoin(node) ? Doc.group(content) : Doc.breakingGroup(content);
+        return authorGroup(node, content, Doc.GroupKind.IF_NEEDED);
+    }
+
+    /** An author-aware group using the requested fit rule when joining is allowed. */
+    protected Doc authorGroup(GreenNode node, Doc content, Doc.GroupKind kind) {
+        return mayJoin(node) ? Doc.group(content, kind) : Doc.breakingGroup(content);
     }
 
     /** What separates a construct's header from its opening brace. */
@@ -274,6 +279,45 @@ abstract class EmitSupport {
             parts.add(comments.ownLine(List.of(attached.get(i))));
         }
         return Doc.concat(parts);
+    }
+
+    /**
+     * The trivia leading a node, lifted out of the document that node will produce.
+     *
+     * <p>A comment ends its line, and a break inside a group is a break that group can never print
+     * flat. Left where it is attached — on the first token, which is the innermost thing the
+     * construct emits — that break reaches every group around it, and a chain or an argument list is
+     * chopped down for no reason other than a comment sitting above the statement. Emitting the
+     * trivia here, in front of the construct, puts the break where it belongs: between the comment
+     * and the code, in the body that separates its statements with breaks anyway.
+     *
+     * <p>The returned node is an immutable copy whose first token no longer carries that trivia, so
+     * emission order cannot consume hidden state or make a discarded document affect a later one.
+     */
+    protected HoistedLeading hoistLeadingTrivia(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        if (token == null || token.leadingComments().isEmpty()) {
+            return new HoistedLeading(Doc.EMPTY, node);
+        }
+        return new HoistedLeading(leadingTrivia(token), withoutLeadingTrivia(node));
+    }
+
+    /** A node paired with the leading trivia lifted out of its first token. */
+    protected record HoistedLeading(Doc leading, GreenNode node) { }
+
+    /** Copies the path to the first token and removes that token's leading trivia. */
+    private static GreenNode withoutLeadingTrivia(GreenNode node) {
+        if (node instanceof GreenNode.Leaf leaf) {
+            SyntaxToken token = leaf.token();
+            return GreenNode.leaf(new SyntaxToken(List.of(), token.token(), token.trailing()));
+        }
+        List<GreenNode> children = node.children();
+        if (children.isEmpty()) {
+            return node;
+        }
+        List<GreenNode> copy = new ArrayList<>(children);
+        copy.set(0, withoutLeadingTrivia(copy.getFirst()));
+        return GreenNode.branch(node.kind(), copy);
     }
 
     protected static boolean hasLeadingComments(GreenNode node) {

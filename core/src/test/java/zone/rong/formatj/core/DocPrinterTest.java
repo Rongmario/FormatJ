@@ -53,6 +53,66 @@ class DocPrinterTest {
     }
 
     @Test
+    void firstLineGroupStaysFlatAroundAHardBreakWhenItsFirstLineFits() {
+        Doc document =
+                Doc.firstLineGroup(
+                        Doc.concat(
+                                Doc.text("call("),
+                                Doc.indentIfBreak(
+                                        4,
+                                        Doc.concat(
+                                                Doc.softLine(),
+                                                Doc.text("argument"),
+                                                Doc.hardLine(),
+                                                Doc.text("body"))),
+                                Doc.text(")")));
+
+        assertEquals("call(argument\nbody)", DocPrinter.ofSpaces(80).print(document));
+    }
+
+    @Test
+    void firstLineGroupAppliesItsIndentWhenItsFirstLineOverflows() {
+        Doc document =
+                Doc.firstLineGroup(
+                        Doc.concat(
+                                Doc.text("call("),
+                                Doc.indentIfBreak(
+                                        4,
+                                        Doc.concat(
+                                                Doc.softLine(),
+                                                Doc.text("argument"),
+                                                Doc.hardLine(),
+                                                Doc.text("body"))),
+                                Doc.text(")")));
+
+        assertEquals("call(\n    argument\n    body)", DocPrinter.ofSpaces(10).print(document));
+    }
+
+    @Test
+    void fillInsideAFlatFirstLineGroupStopsMeasuringAtAHardBreak() {
+        Doc wordSeparator =
+                Doc.ifBreak(Doc.concat(Doc.hardLine(), Doc.text("// ")), Doc.text(" "));
+        Doc comment =
+                Doc.concat(
+                        Doc.text("// "),
+                        Doc.fill(List.of(Doc.text("configure"), wordSeparator, Doc.text("it"))));
+        Doc document =
+                Doc.firstLineGroup(
+                        Doc.concat(
+                                Doc.text("call({"),
+                                Doc.indent(
+                                        2,
+                                        Doc.concat(
+                                                Doc.hardLine(),
+                                                comment,
+                                                Doc.hardLine(),
+                                                Doc.text("body"))),
+                                Doc.text("})")));
+
+        assertEquals("call({\n  // configure it\n  body})", DocPrinter.ofSpaces(80).print(document));
+    }
+
+    @Test
     void indentUsesTheConfiguredUnit() {
         Doc document =
                 Doc.group(

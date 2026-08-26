@@ -72,6 +72,18 @@ public final class WrappingRules {
                     WrapPolicy.WRAP_IF_LONG,
                     "Wrapping of an annotation's element list");
 
+    /**
+     * Where the closing parenthesis of a wrapped list goes.
+     *
+     * <p>One rule for every parenthesised list, because a file that dangles the parenthesis of a
+     * call and hugs the one of the declaration above it reads as two styles rather than one.
+     */
+    public static final Option<ClosingDelimiter> CLOSING_DELIMITER =
+            Option.ofEnum(
+                    "wrapping.closing-delimiter",
+                    ClosingDelimiter.OWN_LINE,
+                    "Whether a wrapped list's closing parenthesis takes a line of its own");
+
     public static final Option<WrapPolicy> ENUM_CONSTANTS =
             Option.ofEnum(
                     "wrapping.enum-constants",
@@ -194,6 +206,11 @@ public final class WrappingRules {
 
         public Builder typeParameters(WrapPolicy value) {
             style.set(TYPE_PARAMETERS, value);
+            return this;
+        }
+
+        public Builder closingDelimiter(ClosingDelimiter value) {
+            style.set(CLOSING_DELIMITER, value);
             return this;
         }
 

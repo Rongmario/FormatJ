@@ -8,6 +8,7 @@ continuation = 8
 [wrapping]
 max-line-length = 120
 chained-calls = "break-all-if-multiline"
+closing-delimiter = "attached"
 
 [imports]
 groups = ["java", "javax", "*"]

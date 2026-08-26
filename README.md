@@ -197,12 +197,49 @@ The same `key` works in:
 - `chop-down-if-long` puts every element on its own line as soon as one break is needed.
 - `chop-down-always` does so regardless of length.
 
+`ClosingDelimiter` values are `own-line` and `attached`. `own-line`, the default, gives the closing
+parenthesis of a wrapped list a line of its own at the indentation of the line that opened it;
+`attached` keeps it against the last element. The rule covers every parenthesised list — arguments,
+parameters, record components, annotation elements, deconstruction patterns, and try resources —
+and only applies once a list has actually wrapped. An argument list that hugs a trailing lambda has
+not wrapped, so its `});` stays as it is. Array initializer braces are not parentheses and keep their
+own layout.
+
+```java
+this.callIsLong(
+        arg1,
+        arg2
+);
+```
+
+An argument list whose last argument brings its own lines — a block lambda, an anonymous class, an
+array initializer, a switch expression — is measured by the line it prints rather than wrapped for
+the lines that argument holds, so `register("name", Jar.class, task -> {` keeps its arguments together
+and indents the body from the statement. The list still follows its configured wrapping policy once
+that line itself does not fit, and an argument like that anywhere but last does not hug: the arguments
+after it would be stranded against a closing brace.
+
+`ChainPolicy` values are `preserve`, `break-all-if-multiline`, `break-all-when-too-long`,
+`break-when-too-long`, `never-break`. `preserve` reproduces the author's breaks before dots exactly,
+even when the chain is too long. The other four differ in what breaks a chain, and in how much of it
+breaks:
+
+- `break-all-if-multiline` breaks every link as soon as the chain spans more than one line, whatever
+  put it there. An argument that brings its own lines — a block lambda — is enough.
+- `break-all-when-too-long` breaks every link too, but only once the chain's own line does not fit.
+  Measurement stops at the first line break the content forces, so the lambda body of the last link
+  is the lambda's business rather than evidence that the chain was too long.
+- `break-when-too-long` also waits for the line to overflow, but then breaks only as many links as it
+  takes to fit, so a chain can wrap in the middle and keep two links on a line.
+- `never-break` leaves the dots alone and lets the overflow land inside an argument list instead.
+
 | Key                                              | Values                                                                     | Default                  | Effect                                                            | Example                                                                          |
 |--------------------------------------------------|----------------------------------------------------------------------------|--------------------------|-------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | `wrapping.max-line-length`                       | integer                                                                    | `120`                    | Maximum columns before a line is wrapped                          | `100`: lines are broken at 100 columns                                           |
 | `wrapping.method-parameters`                     | `WrapPolicy`                                                               | `chop-down-if-long`      | Wrapping of a method declaration's parameter list                 | `chop-down-if-long`: `void f(`<br>`········int a,`<br>`········int b) {`         |
 | `wrapping.method-arguments`                      | `WrapPolicy`                                                               | `chop-down-if-long`      | Wrapping of an argument list at a call site                       | `chop-down-if-long`: `f(`<br>`········a,`<br>`········b);`                       |
-| `wrapping.chained-calls`                         | `preserve`, `break-all-if-multiline`, `break-when-too-long`, `never-break` | `break-all-if-multiline` | Wrapping of a chain of method calls                               | `break-all-if-multiline`: one break in the chain breaks every link               |
+| `wrapping.closing-delimiter`                     | `own-line`, `attached`                                                      | `own-line`               | Whether a wrapped list's closing parenthesis takes its own line   | `own-line`: `f(`<br>`········a,`<br>`········b`<br>`);`                          |
+| `wrapping.chained-calls`                         | `preserve`, `break-all-if-multiline`, `break-all-when-too-long`, `break-when-too-long`, `never-break` | `break-all-if-multiline` | Wrapping of a chain of method calls                               | `break-all-if-multiline`: one break in the chain breaks every link               |
 | `wrapping.chain-threshold`                       | integer                                                                    | `3`                      | Chain links required before the chain may be broken at all        | `3`: `a.b().c()` stays on one line however long it is                            |
 | `wrapping.binary-operators`                      | `WrapPolicy`                                                               | `wrap-if-long`           | Wrapping of a binary expression                                   | `wrap-if-long`: `a + b`<br>`········+ c`                                         |
 | `wrapping.operator-position`                     | `before-operator`, `after-operator`                                        | `before-operator`        | Which line a binary operator lands on when wrapped                | `before-operator`: `a`<br>`········+ b` — `after-operator`: `a +`<br>`········b` |

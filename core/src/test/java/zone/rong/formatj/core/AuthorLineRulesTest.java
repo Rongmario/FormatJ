@@ -114,7 +114,7 @@ class AuthorLineRulesTest {
         assertTrue(format(source, style -> { }).contains("g(a, b);"));
         assertTrue(
                 format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true)))
-                        .contains("g(\n                a,\n                b);"));
+                        .contains("g(\n                a,\n                b\n        );"));
     }
 
     @Test
@@ -128,7 +128,7 @@ class AuthorLineRulesTest {
 
         String kept = format(source, style -> style.preservation(p -> p.neverJoinLines(true)));
         assertTrue(kept.contains("int x = one\n                + two;"), kept);
-        assertTrue(kept.contains("g(\n                a,\n                b);"), kept);
+        assertTrue(kept.contains("g(\n                a,\n                b\n        );"), kept);
     }
 
     @Test

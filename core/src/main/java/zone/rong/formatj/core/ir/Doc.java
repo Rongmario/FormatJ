@@ -26,6 +26,18 @@ public sealed interface Doc {
 
     }
 
+    /** How a {@link Group} decides whether its optional breaks are taken. */
+    enum GroupKind {
+
+        /** Print flat when the whole group fits, otherwise break. */
+        IF_NEEDED,
+        /** Always take the group's breaks. */
+        ALWAYS,
+        /** Print flat when the text before the first forced break fits. */
+        FIRST_LINE
+
+    }
+
     /** Literal text; must not contain a line terminator. */
     record Text(String value) implements Doc { }
 
@@ -35,11 +47,29 @@ public sealed interface Doc {
     /** A place a line break may be taken. */
     record Break(BreakKind kind) implements Doc { }
 
-    /** A unit that is printed flat if it fits, or broken as a whole if it does not. */
-    record Group(Doc content, boolean shouldBreak) implements Doc { }
+    /**
+     * A unit that is printed flat if it fits, or broken as a whole if it does not.
+     *
+     * <p>A {@link GroupKind#FIRST_LINE} group narrows what "fits" means to the first line the group
+     * would print: measuring stops at the first break the content forces rather than declaring the
+     * group unable to be flat. A forced break still reaches the groups outside this one — the line
+     * really is there — it just no longer decides this group.
+     */
+    record Group(Doc content, GroupKind kind) implements Doc { }
 
     /** Adds {@code columns} of indentation to line breaks inside {@code content}. */
     record Indent(int columns, Doc content) implements Doc { }
+
+    /**
+     * Adds {@code columns} of indentation only when the enclosing group breaks.
+     *
+     * <p>Ordinary {@link Indent} indents whatever breaks are inside it, and for every group that
+     * either prints flat or has no breaks left inside it when flat, that is the same thing. A
+     * {@linkplain GroupKind#FIRST_LINE first-line group} is the exception: it can print flat around
+     * content that still breaks — a chain flat around a block lambda — and the lines that lambda
+     * brings belong to the statement's indentation rather than to the wrapping that never happened.
+     */
+    record IndentIfBreak(int columns, Doc content) implements Doc { }
 
     /** Indents {@code content} to the current column rather than by a fixed amount. */
     record Align(Doc content) implements Doc { }
@@ -92,15 +122,29 @@ public sealed interface Doc {
     }
 
     static Doc group(Doc content) {
-        return new Group(content, false);
+        return group(content, GroupKind.IF_NEEDED);
+    }
+
+    static Doc group(Doc content, GroupKind kind) {
+        return new Group(content, kind);
     }
 
     static Doc breakingGroup(Doc content) {
-        return new Group(content, true);
+        return group(content, GroupKind.ALWAYS);
+    }
+
+    /** A group judged by its first line alone; see {@link GroupKind#FIRST_LINE}. */
+    static Doc firstLineGroup(Doc content) {
+        return group(content, GroupKind.FIRST_LINE);
     }
 
     static Doc indent(int columns, Doc content) {
         return new Indent(columns, content);
+    }
+
+    /** Indentation applied only when the enclosing group breaks; see {@link IndentIfBreak}. */
+    static Doc indentIfBreak(int columns, Doc content) {
+        return new IndentIfBreak(columns, content);
     }
 
     static Doc align(Doc content) {

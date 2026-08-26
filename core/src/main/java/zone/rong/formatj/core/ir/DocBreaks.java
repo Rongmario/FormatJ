@@ -50,12 +50,23 @@ public final class DocBreaks {
             }
             case Doc.Group group -> {
                 Rewritten content = rewrite(group.content());
-                boolean forced = group.shouldBreak() || content.forcesBreak();
-                yield new Rewritten(new Doc.Group(content.doc(), forced), forced);
+                boolean inside = group.kind() == Doc.GroupKind.ALWAYS || content.forcesBreak();
+                // A first-line group is the one thing a break inside does not settle: it still travels
+                // outwards, because the line it makes is real, but this group is left to the printer's
+                // fit check, which measures only as far as that break.
+                Doc.GroupKind kind =
+                        group.kind() == Doc.GroupKind.FIRST_LINE
+                                ? Doc.GroupKind.FIRST_LINE
+                                : inside ? Doc.GroupKind.ALWAYS : Doc.GroupKind.IF_NEEDED;
+                yield new Rewritten(Doc.group(content.doc(), kind), inside);
             }
             case Doc.Indent indent -> {
                 Rewritten content = rewrite(indent.content());
                 yield new Rewritten(Doc.indent(indent.columns(), content.doc()), content.forcesBreak());
+            }
+            case Doc.IndentIfBreak indent -> {
+                Rewritten content = rewrite(indent.content());
+                yield new Rewritten(Doc.indentIfBreak(indent.columns(), content.doc()), content.forcesBreak());
             }
             case Doc.Align align -> {
                 Rewritten content = rewrite(align.content());

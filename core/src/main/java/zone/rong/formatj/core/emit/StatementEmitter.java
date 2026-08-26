@@ -5,6 +5,7 @@ import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
@@ -137,7 +138,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 i = end;
                 continue;
             }
-            parts.add(emitBodyChild(statement, body, i));
+            HoistedLeading hoisted = hoistLeadingTrivia(statement);
+            parts.add(hoisted.leading());
+            parts.add(emitBodyChild(hoisted.node(), body, i));
             i++;
         }
         if (hasLeadingComments(close)) {
@@ -207,7 +210,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
             if (i > 0) {
                 parts.add(separatorBefore(children.get(i), 0));
             }
-            parts.add(emit(children.get(i)));
+            HoistedLeading hoisted = hoistLeadingTrivia(children.get(i));
+            parts.add(hoisted.leading());
+            parts.add(emit(hoisted.node()));
         }
         return Doc.concat(parts);
     }
@@ -217,7 +222,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
         if (body.kind() == SyntaxKind.BLOCK) {
             return Doc.concat(braceLead(rule(BraceRules.CONTROL_PLACEMENT)), emitBlock(body));
         }
-        return Doc.indent(indentSize(), Doc.concat(Doc.hardLine(), emit(body)));
+        HoistedLeading hoisted = hoistLeadingTrivia(body);
+        return Doc.indent(
+                indentSize(), Doc.concat(Doc.hardLine(), hoisted.leading(), emit(hoisted.node())));
     }
 
     protected Doc emitIf(GreenNode node) {
@@ -410,7 +417,16 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(emit(open), spaceIf(inside), resources, spaceIf(inside), emit(close));
         }
         Doc edge = inside ? Doc.line() : Doc.softLine();
-        Doc body = Doc.concat(emit(open), Doc.indent(continuation(), Doc.concat(edge, resources)), edge, emit(close));
+        Doc closingEdge =
+                rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE
+                        ? edge
+                        : spaceIf(inside);
+        Doc body =
+                Doc.concat(
+                        emit(open),
+                        Doc.indentIfBreak(continuation(), Doc.concat(edge, resources)),
+                        closingEdge,
+                        emit(close));
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(body) : authorGroup(node, body);
     }
 

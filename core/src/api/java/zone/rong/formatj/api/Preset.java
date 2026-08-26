@@ -4,6 +4,7 @@ import zone.rong.formatj.api.rules.AlignmentPolicy;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.CommentReflow;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.api.rules.SortOrder;
@@ -53,6 +54,7 @@ public enum Preset {
                             .methodArguments(WrapPolicy.WRAP_IF_LONG)
                             .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE)
                             .chainThreshold(2)
+                            .closingDelimiter(ClosingDelimiter.ATTACHED)
                             .keepSimpleMethodsOnOneLine(false)
                             .keepSimpleClassesOnOneLine(false))
                     .braces(braces -> braces.classPlacement(BracePlacement.END_OF_LINE)

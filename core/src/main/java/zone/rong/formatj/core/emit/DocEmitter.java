@@ -510,11 +510,15 @@ public final class DocEmitter extends StatementEmitter {
 
         // The clause carries the break that precedes its keyword: a header that will not fit wraps
         // before extends or implements, not between the keyword and the type it introduces.
-        Doc lead = permits && rule(SealedRules.PERMITS_ON_NEW_LINE) ? Doc.hardLine() : Doc.line();
+        boolean ownLine = permits && rule(SealedRules.PERMITS_ON_NEW_LINE);
+        Doc lead = ownLine ? Doc.hardLine() : Doc.line();
         if (policy == WrapPolicy.NEVER) {
+            // NEVER lets the line run long, so the lead is a plain space rather than a break: a break
+            // outside a group is always taken, which would wrap the very clause the rule pinned down.
+            Doc pinned = ownLine ? Doc.hardLine() : space();
             return Doc.indent(
                     continuation(),
-                    Doc.concat(lead, keyword, space(), Doc.join(afterComma ? space() : Doc.EMPTY, elements)));
+                    Doc.concat(pinned, keyword, space(), Doc.join(afterComma ? space() : Doc.EMPTY, elements)));
         }
         Doc joined = Doc.join(separator, elements);
         Doc list;

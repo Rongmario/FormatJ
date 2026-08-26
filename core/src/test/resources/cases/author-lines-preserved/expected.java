@@ -3,7 +3,8 @@ class Preserved {
     void run() {
         call(
                 alpha,
-                beta);
+                beta
+        );
         int total = one
                 + two;
         if (ready) { go(); }

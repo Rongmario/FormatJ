@@ -5,6 +5,7 @@ import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.LambdaRules;
@@ -56,19 +57,19 @@ abstract class ExpressionEmitter extends EmitSupport {
      * @param spaceInside whether a space is kept just inside the delimiters when flat
      */
     protected Doc delimitedList(GreenNode node, WrapPolicy policy, int indentColumns, boolean spaceInside) {
-        return delimitedList(node, policy, indentColumns, spaceInside, false);
+        return delimitedList(node, policy, indentColumns, spaceInside, Doc.GroupKind.IF_NEEDED);
     }
 
     /**
-     * @param breakBeforeClose whether a broken list puts its closing delimiter on a line of its own;
-     *     parentheses keep it against the last element, braces of an initializer do not
+     * @param groupKind how the list decides whether its own optional breaks fit; a trailing argument
+     *     that brings hard breaks uses {@link Doc.GroupKind#FIRST_LINE}
      */
     protected Doc delimitedList(
             GreenNode node,
             WrapPolicy policy,
             int indentColumns,
             boolean spaceInside,
-            boolean breakBeforeClose) {
+            Doc.GroupKind groupKind) {
         List<GreenNode> children = node.children();
         if (children.size() < 2) {
             return Doc.concat(children.stream().map(this::emit).toList());
@@ -99,8 +100,14 @@ abstract class ExpressionEmitter extends EmitSupport {
                         ? Doc.fill(interleave(elements, separator))
                         : Doc.join(separator, elements);
         Doc edge = spaceInside ? Doc.line() : Doc.softLine();
-        Doc closingEdge = breakBeforeClose ? edge : spaceIf(spaceInside);
-        Doc body = Doc.concat(Doc.indent(indentColumns, Doc.concat(edge, inner)), closingEdge);
+        // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
+        boolean ownLine = is(close, "}")
+                || is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
+        Doc closingEdge = ownLine ? edge : spaceIf(spaceInside);
+        // This indentation belongs to the list breaking. A first-line group can stay flat around hard
+        // breaks brought by its last child, and those lines must not receive an indent the list did not
+        // take. For every ordinary group, IndentIfBreak prints identically to Indent.
+        Doc body = Doc.concat(Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner)), closingEdge);
         Doc content = Doc.concat(emit(open), body, emit(close));
 
         // The author's break after the opening delimiter is the one this rule is named for; it is the
@@ -111,8 +118,12 @@ abstract class ExpressionEmitter extends EmitSupport {
         return switch (policy) {
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
-            case PRESERVE -> authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content);
-            default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content);
+            case PRESERVE ->
+                    authorBrokeBefore(middle.getFirst())
+                            ? Doc.breakingGroup(content)
+                            : Doc.group(content, groupKind);
+            default ->
+                    keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
     }
 
@@ -467,11 +478,29 @@ abstract class ExpressionEmitter extends EmitSupport {
             // list around it would indent the body twice and buy nothing.
             return Doc.concat(emit(children.getFirst()), emit(children.get(1)), emit(children.getLast()));
         }
+        // The same argument, with others in front of it, is the same argument: the lines its body
+        // brings are not the list overflowing, so the list is judged by the line it actually prints.
+        // Only the last one may hug, because an argument that ends mid-line leaves the ones after it
+        // stranded against a closing brace.
+        GreenNode last = lastArgument(children);
+        boolean hugsLast = last != null && hugsItsArgument(last);
         return delimitedList(
                 node,
                 rule(WrappingRules.METHOD_ARGUMENTS),
                 continuation(),
-                rule(SpacingRules.WITHIN_PARENTHESES));
+                rule(SpacingRules.WITHIN_PARENTHESES),
+                hugsLast ? Doc.GroupKind.FIRST_LINE : Doc.GroupKind.IF_NEEDED);
+    }
+
+    /** The last argument of a non-empty argument list. */
+    private static GreenNode lastArgument(List<GreenNode> children) {
+        for (int i = children.size() - 2; i > 0; i--) {
+            GreenNode child = children.get(i);
+            if (!is(child, ",")) {
+                return child;
+            }
+        }
+        return null;
     }
 
     private static boolean hugsItsArgument(GreenNode argument) {
@@ -494,8 +523,7 @@ abstract class ExpressionEmitter extends EmitSupport {
                 node,
                 policy,
                 rule(IndentRules.ARRAY_INITIALIZER),
-                rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES),
-                true);
+                rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES));
     }
 
     /** Whether the author spread this node over more than one line. */
@@ -554,6 +582,22 @@ abstract class ExpressionEmitter extends EmitSupport {
         int threshold = rule(WrappingRules.CHAIN_THRESHOLD);
         boolean forceBreak = authorBroke && (rule(PreservationRules.RESPECT_EXISTING_CHAIN_BREAKS) || !mayJoin(node));
         Doc baseDoc = head;
+        if (policy == ChainPolicy.PRESERVE) {
+            int firstRemaining = links.size() - linkDocs.size();
+            List<Doc> preserved = new ArrayList<>();
+            preserved.add(attached);
+            for (int i = 0; i < linkDocs.size(); i++) {
+                GreenNode link = links.get(firstRemaining + i);
+                preserved.add(authorBrokeBeforeDot(link) ? Doc.hardLine() : Doc.EMPTY);
+                preserved.add(linkDocs.get(i));
+            }
+            Doc tails = Doc.concat(preserved);
+            return Doc.concat(
+                    baseDoc,
+                    alignDots
+                            ? Doc.align(tails)
+                            : Doc.indent(rule(IndentRules.CHAINED_CALL), tails));
+        }
         if (policy == ChainPolicy.NEVER_BREAK || links.size() < threshold && !forceBreak) {
             return Doc.concat(baseDoc, attached, Doc.concat(linkDocs));
         }
@@ -565,7 +609,7 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         Doc hanging = alignDots
                 ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
-                : Doc.indent(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
+                : Doc.indentIfBreak(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
         Doc content = Doc.concat(baseDoc, hanging);
         if (policy == ChainPolicy.BREAK_WHEN_TOO_LONG) {
             if (alignDots) {
@@ -579,7 +623,13 @@ abstract class ExpressionEmitter extends EmitSupport {
             filled.addAll(parts);
             return Doc.indent(rule(IndentRules.CHAINED_CALL), Doc.fill(filled));
         }
-        return forceBreak ? Doc.breakingGroup(content) : Doc.group(content);
+        if (forceBreak) {
+            return Doc.breakingGroup(content);
+        }
+        if (policy == ChainPolicy.BREAK_ALL_WHEN_TOO_LONG) {
+            return Doc.firstLineGroup(content);
+        }
+        return Doc.group(content);
     }
 
     private static boolean isPlainReceiver(GreenNode base) {

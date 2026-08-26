@@ -116,12 +116,23 @@ public final class DocPrinter {
                 }
                 case Doc.Concat concat -> pushReversed(commands, concat.parts(), indent, mode);
                 case Doc.Indent nested -> commands.push(new Command(indent + nested.columns(), mode, nested.content()));
+                case Doc.IndentIfBreak nested ->
+                        commands.push(
+                                new Command(
+                                        mode == Mode.BREAK ? indent + nested.columns() : indent,
+                                        mode,
+                                        nested.content()));
                 case Doc.Align align -> commands.push(new Command(column, mode, align.content()));
                 case Doc.Group group -> {
-                    boolean flat = !group.shouldBreak()
+                    boolean always = group.kind() == Doc.GroupKind.ALWAYS;
+                    boolean flat = !always
                                     && mode == Mode.BREAK
-                                    && fits(group.content(), maxWidth - column, commands)
-                            || mode == Mode.FLAT && !group.shouldBreak();
+                                    && fits(
+                                            group.content(),
+                                            maxWidth - column,
+                                            commands,
+                                            group.kind() == Doc.GroupKind.FIRST_LINE)
+                            || mode == Mode.FLAT && !always;
                     commands.push(new Command(indent, flat ? Mode.FLAT : Mode.BREAK, group.content()));
                 }
                 case Doc.Fill fill -> printFill(commands, fill.parts(), indent, mode, maxWidth - column);
@@ -173,7 +184,9 @@ public final class DocPrinter {
             return;
         }
         Doc content = parts.getFirst();
-        boolean contentFits = fits(content, remaining, commands);
+        // A fill decides one line at a time. A hard break in what follows ends this line; it does not
+        // make the words before it too wide, even when an enclosing first-line group is flat.
+        boolean contentFits = fits(content, remaining, commands, true);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -187,7 +200,7 @@ public final class DocPrinter {
         }
         List<Doc> rest = parts.subList(2, parts.size());
         Doc pair = Doc.concat(List.of(content, separator, parts.get(2)));
-        boolean pairFits = fits(pair, remaining, commands);
+        boolean pairFits = fits(pair, remaining, commands, true);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
@@ -214,8 +227,13 @@ public final class DocPrinter {
      * <p>What follows the document on the same line counts too: a group that fits on its own can
      * still push the closing bracket and semicolon after it past the margin, and deciding without
      * looking at them is how formatters end up emitting lines one or two characters too long.
+     *
+     * @param stopAtHardBreak whether a break the content forces ends the measurement rather than
+     *     failing it. A document holding one cannot print flat, so the ordinary answer is that it
+     *     does not fit; a {@linkplain Doc.GroupKind#FIRST_LINE first-line group} asks the narrower
+     *     question of whether the line up to that break fits, which is the one it is judged on.
      */
-    private boolean fits(Doc doc, int remaining, Deque<Command> rest) {
+    private boolean fits(Doc doc, int remaining, Deque<Command> rest, boolean stopAtHardBreak) {
         if (remaining < 0) {
             return false;
         }
@@ -239,8 +257,14 @@ public final class DocPrinter {
                 case Doc.Concat concat -> pushReversed(queue, concat.parts(), 0, mode);
                 case Doc.Fill fill -> pushReversed(queue, fill.parts(), 0, mode);
                 case Doc.Group group ->
-                        queue.push(new Command(0, group.shouldBreak() ? Mode.BREAK : mode, group.content()));
+                        queue.push(
+                                new Command(
+                                        0,
+                                        group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK : mode,
+                                        group.content()));
                 case Doc.Indent indent -> queue.push(new Command(0, mode, indent.content()));
+                // Indentation has no width on the line being measured: it is spent after a break.
+                case Doc.IndentIfBreak indent -> queue.push(new Command(0, mode, indent.content()));
                 case Doc.Align align -> queue.push(new Command(0, mode, align.content()));
                 case Doc.IfBreak ifBreak ->
                         queue.push(new Command(0, mode, mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
@@ -256,7 +280,7 @@ public final class DocPrinter {
                 case Doc.Break lineBreak -> {
                     if (mode == Mode.BREAK || lineBreak.kind() == Doc.BreakKind.HARD) {
                         // The line ends here, so everything measured so far did fit.
-                        return mode == Mode.BREAK;
+                        return mode == Mode.BREAK || stopAtHardBreak;
                     }
                     if (lineBreak.kind() == Doc.BreakKind.LINE) {
                         left--;
