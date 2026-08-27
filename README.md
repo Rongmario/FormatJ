@@ -69,7 +69,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.3.0</version>
+  <version>0.4.0</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
@@ -108,7 +108,7 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ### Library
 
-`zone.rong.formatj:formatj:0.1.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+`zone.rong.formatj:formatj:0.4.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
 
 ```java
 Formatter formatter = FormatJ.newFormatter()
