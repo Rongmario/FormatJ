@@ -226,6 +226,13 @@ class FormatterPropertyTest {
 
         String withPreview = "class T { Point moved(Point p) { return p with { x = 1; }; } }\n";
         assertFixedPoint(FormatJ.newFormatter().previewFeatures(true).build(), withPreview);
+
+        String unnamed = """
+                class T{void run(){run(_ ->1);run((_,x)->x);run((int _)->0);var _=sideEffect();
+                for(int i=0,_=sideEffect();i<10;i++){g(i);}for(int _:xs){n++;}
+                try(var _=open()){work();}catch(Exception _){log();}}}
+                """;
+        assertFixedPoint(FormatJ.defaultFormatter(), unnamed);
     }
 
 }

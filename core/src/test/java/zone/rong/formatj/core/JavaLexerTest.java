@@ -95,6 +95,19 @@ class JavaLexerTest {
     }
 
     @Test
+    void aLoneUnderscoreIsTheReservedKeyword() {
+        List<Token> tokens = JavaLexer.tokenize("_ -> __");
+        List<Token> significant = tokens.stream().filter(token -> token.kind().isSignificant()).toList();
+
+        assertEquals(TokenKind.KEYWORD, significant.get(0).kind());
+        assertEquals("_", significant.get(0).text());
+        assertEquals(TokenKind.OPERATOR, significant.get(1).kind());
+        assertEquals("->", significant.get(1).text());
+        assertEquals(TokenKind.IDENTIFIER, significant.get(2).kind());
+        assertEquals("__", significant.get(2).text());
+    }
+
+    @Test
     void tracksLineAndColumn() {
         List<Token> tokens = JavaLexer.tokenize("class A {\n    int x;\n}\n");
         Token intKeyword = tokens.stream()

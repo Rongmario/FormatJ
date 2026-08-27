@@ -71,8 +71,34 @@ class RewriteRulesTest {
     }
 
     @Test
+    void parenthesesAreAddedRoundAnUnnamedParameter() {
+        String source = method("        run(_ -> 1);");
+        assertTrue(
+                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.ALWAYS_PARENTHESISE).contains(
+                        "run((_) -> 1);"));
+    }
+
+    @Test
+    void parenthesesAreRemovedFromALoneUnnamedParameter() {
+        String source = method("        run((_) -> 1);");
+        assertTrue(
+                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).contains(
+                        "run(_ -> 1);"));
+    }
+
+    @Test
     void parenthesesTheLanguageRequiresAreKept() {
-        for (String parameters : new String[] {"()", "(a, b)", "(int x)", "(var x)", "(final x)", "(@A x)"}) {
+        for (String parameters : new String[] {
+            "()",
+            "(a, b)",
+            "(int x)",
+            "(var x)",
+            "(final x)",
+            "(@A x)",
+            "(_, x)",
+            "(int _)",
+            "(var _)"
+        }) {
             String source = method("        run(" + parameters + " -> 1);");
             assertTrue(
                     rewrite(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).unchanged(),

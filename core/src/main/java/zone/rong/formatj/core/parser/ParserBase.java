@@ -109,6 +109,26 @@ abstract class ParserBase {
         return peek().kind() == TokenKind.IDENTIFIER;
     }
 
+    /**
+     * Whether the token {@code ahead} is the unnamed variable {@code _}.
+     *
+     * <p>{@code _} is a reserved keyword (Java 9). Java 22 reuses that keyword as an unnamed
+     * parameter, local, or pattern binding; it is never reclassified as an identifier.
+     */
+    protected boolean atUnnamed(int ahead) {
+        Token token = peek(ahead);
+        return languageLevel.isAtLeast(LanguageLevel.JAVA_22) && token.kind() == TokenKind.KEYWORD && token.is("_");
+    }
+
+    protected boolean atUnnamed() {
+        return atUnnamed(0);
+    }
+
+    /** An identifier, or {@code _} where unnamed variables are allowed. */
+    protected boolean atName() {
+        return atIdentifier() || atUnnamed();
+    }
+
     /** Whether the next token is the given contextual keyword, e.g. {@code sealed} or {@code when}. */
     protected boolean atContextual(String word) {
         return peek().kind() == TokenKind.IDENTIFIER && peek().is(word);
@@ -152,6 +172,14 @@ abstract class ParserBase {
 
     protected GreenNode identifier() {
         return expect(TokenKind.IDENTIFIER, "an identifier");
+    }
+
+    /** An identifier, or the unnamed variable {@code _}. */
+    protected GreenNode name() {
+        if (atUnnamed()) {
+            return advance();
+        }
+        return identifier();
     }
 
     /** Fails the current construct. */

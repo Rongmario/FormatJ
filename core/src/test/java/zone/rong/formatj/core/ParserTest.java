@@ -8,6 +8,7 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
+import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
 import java.util.ArrayList;
@@ -82,6 +83,23 @@ class ParserTest {
                 "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
                 "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
                 "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
+                "class A { Function<Integer, Integer> g = _ -> 1; }\n",
+                "class A { Function<Integer, Integer> g = (_) -> 1; }\n",
+                "class A { BiFunction<Integer, Integer, Integer> g = (_, x) -> x; }\n",
+                "class A { IntPredicate p = (int _) -> true; }\n",
+                "class A { Function<Integer, Integer> g = (var _) -> 1; }\n",
+                "class A { IntBinaryOperator op = (int _, int y) -> y; }\n",
+                "class A { Function<Integer, Integer> g = (final int _) -> 1; }\n",
+                "class A { void f() { var _ = q.remove(); int _ = 1, y = 2; } }\n",
+                "class A { void f() { for (int i = 0, _ = sideEffect(); i < 10; i++) { g(i); } } }\n",
+                "class A { void f() { for (int _ : orderIDs) { total++; } } }\n",
+                "class A { void f() { for (final char _ : s.toCharArray()) { len++; } } }\n",
+                "class A { void f() { try (var _ = open(); var _ = create()) { work(); } } }\n",
+                "class A { void f() { try { parse(); } catch (NumberFormatException _) { log(); } catch (IOException | RuntimeException _) { log(); } } }\n",
+                "class A { String f(Object o) { return switch (o) { case Freelancer _, Intern _ -> \"other\"; case Salaried r -> r.name(); }; } }\n",
+                "class A { String f(Object o) { return switch (o) { case _ -> \"none\"; case Integer _ -> \"int\"; }; } }\n",
+                "class A { boolean f(Object o) { return o instanceof Point(_, int y) && y > 0; } }\n",
+                "class A { boolean f(Object o) { return o instanceof ColoredPoint(Point p, Color _) || o instanceof ColoredPoint(Point p, _); } }\n",
                 "class A { Runnable r = () -> {}; Function<Integer, Integer> g = (Integer x) -> x * 2; }\n",
                 "class A { Object o = new Object() { public String toString() { return \"anon\"; } }; }\n",
                 "class A { int x = (int) 3.5; Object y = (Runnable & Serializable) r; }\n",
@@ -104,6 +122,49 @@ class ParserTest {
             })
     void parsesEveryConstructWithoutFallingBack(String source) {
         assertParses(source);
+    }
+
+    @Test
+    void anUnnamedLambdaParameterStaysAKeyword() {
+        ParseResult result = parse("class A { Function<Integer, Integer> g = _ -> 1; }\n");
+        GreenNode lambda = find(result.root().green(), SyntaxKind.LAMBDA_EXPRESSION);
+        GreenNode parameters = lambda.children().getFirst();
+        assertEquals(SyntaxKind.LAMBDA_PARAMETERS, parameters.kind());
+        assertTrue(
+                parameters.children().getFirst() instanceof GreenNode.Leaf leaf
+                        && leaf.lexeme().equals("_")
+                        && leaf.token().token().kind() == TokenKind.KEYWORD);
+    }
+
+    @Test
+    void unnamedVariablesNeedJava22() {
+        String[] sources = {
+            "class A { Function<Integer, Integer> g = _ -> 1; }\n",
+            "class A { void f() { var _ = q.remove(); } }\n",
+            "class A { void f() { for (int _ : xs) { n++; } } }\n",
+            "class A { void f() { try (var _ = open()) { work(); } } }\n",
+            "class A { void f() { try { parse(); } catch (Exception _) { } } }\n"
+        };
+        for (String source : sources) {
+            assertParses(source);
+            ParseResult java21 = JavaParser.parse(source, LanguageLevel.JAVA_21, false);
+            assertEquals(source, java21.root().text(), source);
+            assertFalse(unparsedText(java21.root()).isEmpty(), "unnamed variables are Java 22: " + source);
+        }
+    }
+
+    @Test
+    void unnamedVariablesAreNotFieldsOrMethodParameters() {
+        assertFalse(unparsedText(parse("class A { int _ = 1; }\n").root()).isEmpty(), "fields cannot be unnamed");
+        assertFalse(
+                unparsedText(parse("class A { int x = 1, _ = 2; }\n").root()).isEmpty(),
+                "later field declarators cannot be unnamed");
+        assertFalse(
+                unparsedText(parse("class A { void f(int _) {} }\n").root()).isEmpty(),
+                "method parameters cannot be unnamed");
+        assertFalse(
+                unparsedText(parse("record Point(int _) {}\n").root()).isEmpty(),
+                "record components cannot be unnamed");
     }
 
     @Test

@@ -157,7 +157,7 @@ abstract class StatementParser extends ExpressionParser {
         int start = mark();
         try {
             parseType();
-            if (!atIdentifier()) {
+            if (!atName()) {
                 return false;
             }
             advance();
@@ -178,10 +178,10 @@ abstract class StatementParser extends ExpressionParser {
             children.add(at("@") ? parseAnnotation() : advance());
         }
         children.add(parseType());
-        children.add(parseVariableDeclarator());
+        children.add(parseVariableDeclarator(true));
         while (at(",")) {
             children.add(advance());
-            children.add(parseVariableDeclarator());
+            children.add(parseVariableDeclarator(true));
         }
         if (terminated) {
             children.add(expect(";"));
@@ -190,8 +190,16 @@ abstract class StatementParser extends ExpressionParser {
     }
 
     protected GreenNode parseVariableDeclarator() {
+        return parseVariableDeclarator(false);
+    }
+
+    /**
+     * @param unnamedAllowed whether {@code _} is accepted as the declarator name; locals and for
+     *     headers allow it as of Java 22, fields do not
+     */
+    protected GreenNode parseVariableDeclarator(boolean unnamedAllowed) {
         List<GreenNode> children = new ArrayList<>();
-        children.add(identifier());
+        children.add(unnamedAllowed ? name() : identifier());
         while (at("[") && peek(1).is("]")) {
             children.add(advance());
             children.add(advance());
@@ -273,7 +281,7 @@ abstract class StatementParser extends ExpressionParser {
                 return false;
             }
             parseType();
-            if (!atIdentifier()) {
+            if (!atName()) {
                 return false;
             }
             advance();
@@ -291,7 +299,7 @@ abstract class StatementParser extends ExpressionParser {
             children.add(at("@") ? parseAnnotation() : advance());
         }
         children.add(parseType());
-        children.add(identifier());
+        children.add(name());
         children.add(expect(":"));
         children.add(parseExpression());
         return branch(SyntaxKind.PARAMETER, children);
@@ -438,7 +446,7 @@ abstract class StatementParser extends ExpressionParser {
             children.add(advance());
             children.add(parseType());
         }
-        children.add(identifier());
+        children.add(name());
         return branch(SyntaxKind.PARAMETER, children);
     }
 
@@ -464,7 +472,7 @@ abstract class StatementParser extends ExpressionParser {
                 children.add(at("@") ? parseAnnotation() : advance());
             }
             children.add(parseType());
-            children.add(identifier());
+            children.add(name());
             children.add(expect("="));
             children.add(parseExpression());
         } else {

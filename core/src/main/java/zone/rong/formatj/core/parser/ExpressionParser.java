@@ -51,7 +51,7 @@ abstract class ExpressionParser extends ParserBase {
         if (atPrimitiveType()) {
             children.add(advance());
             base = branch(SyntaxKind.PRIMITIVE_TYPE, children);
-        } else if (atContextual("var") && peek(1).kind() == TokenKind.IDENTIFIER) {
+        } else if (atContextual("var") && (peek(1).kind() == TokenKind.IDENTIFIER || atUnnamed(1))) {
             children.add(advance());
             base = branch(SyntaxKind.VAR_TYPE, children);
         } else {
@@ -642,7 +642,7 @@ abstract class ExpressionParser extends ParserBase {
     // ------------------------------------------------------------- lambdas
 
     protected boolean atLambda() {
-        if (atIdentifier() && peek(1).is("->")) {
+        if (atName() && peek(1).is("->")) {
             return true;
         }
         if (!at("(")) {
@@ -679,8 +679,8 @@ abstract class ExpressionParser extends ParserBase {
 
     private GreenNode parseLambdaParameters() {
         List<GreenNode> children = new ArrayList<>();
-        if (atIdentifier()) {
-            children.add(identifier());
+        if (atName()) {
+            children.add(name());
             return branch(SyntaxKind.LAMBDA_PARAMETERS, children);
         }
         children.add(expect("("));
@@ -697,22 +697,25 @@ abstract class ExpressionParser extends ParserBase {
 
     private GreenNode parseLambdaParameter() {
         // Either a bare name, or a typed parameter with optional final and annotations.
-        if (atIdentifier() && (peek(1).is(",") || peek(1).is(")"))) {
-            return branch(SyntaxKind.PARAMETER, List.of(identifier()));
+        if (atName() && (peek(1).is(",") || peek(1).is(")"))) {
+            return branch(SyntaxKind.PARAMETER, List.of(name()));
         }
         List<GreenNode> children = new ArrayList<>();
         while (at("final") || at("@")) {
             children.add(at("@") ? parseAnnotation() : advance());
         }
         children.add(parseType());
-        children.add(identifier());
+        children.add(name());
         return branch(SyntaxKind.PARAMETER, children);
     }
 
     // ------------------------------------------------------------ patterns
 
-    /** A type pattern, record pattern, or {@code var} pattern. */
+    /** A type pattern, record pattern, {@code var} pattern, or unnamed pattern {@code _}. */
     protected GreenNode parsePattern() {
+        if (atUnnamed()) {
+            return branch(SyntaxKind.TYPE_PATTERN, List.of(advance()));
+        }
         List<GreenNode> children = new ArrayList<>();
         while (at("final") || at("@")) {
             children.add(at("@") ? parseAnnotation() : advance());
@@ -732,8 +735,8 @@ abstract class ExpressionParser extends ParserBase {
             children.add(branch(SyntaxKind.PATTERN_COMPONENTS, components));
             return branch(SyntaxKind.RECORD_PATTERN, children);
         }
-        if (atIdentifier()) {
-            children.add(identifier());
+        if (atName()) {
+            children.add(name());
         }
         return branch(SyntaxKind.TYPE_PATTERN, children);
     }
@@ -742,14 +745,14 @@ abstract class ExpressionParser extends ParserBase {
     protected boolean atPatternLabel() {
         int start = mark();
         try {
-            if (at("final")) {
+            if (atUnnamed() || at("final")) {
                 return true;
             }
             if (!atTypeStart()) {
                 return false;
             }
             parseType();
-            return at("(") || atIdentifier();
+            return at("(") || atName();
         } catch (ParseFailure failure) {
             return false;
         } finally {

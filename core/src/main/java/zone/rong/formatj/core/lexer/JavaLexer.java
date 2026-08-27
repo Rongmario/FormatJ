@@ -18,6 +18,10 @@ import java.util.Set;
  */
 public final class JavaLexer {
 
+    /**
+     * Reserved words, including {@code true}/{@code false}/{@code null} and {@code _} (reserved since
+     * Java 9). Java 22 reuses {@code _} as an unnamed variable; the lexer still emits it as a keyword.
+     */
     private static final Set<String> KEYWORDS =
             Set.of(
                     "abstract",
