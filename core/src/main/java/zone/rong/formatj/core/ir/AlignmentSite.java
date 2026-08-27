@@ -25,7 +25,13 @@ public enum AlignmentSite {
     ANNOTATION_VALUE,
     /** Before the {@code ->} of a switch case. */
     SWITCH_ARROW,
-    /** Before the spacing in front of a comment trailing a line of code. */
+    /**
+     * At the start of a comment trailing a line of code, padded independently to
+     * {@code comments.trailing-comment-column}. Applied before {@link #TRAILING_COMMENT} so a run
+     * that still wants to share a column can move further out.
+     */
+    TRAILING_COMMENT_COLUMN,
+    /** At the start of a comment trailing a line of code. */
     TRAILING_COMMENT
 
 }

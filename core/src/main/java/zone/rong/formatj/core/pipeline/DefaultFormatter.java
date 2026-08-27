@@ -6,6 +6,7 @@ import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.WrappingRules;
@@ -253,7 +254,10 @@ public final class DefaultFormatter implements Formatter {
      */
     String layout(SyntaxNode root) {
         DocPrinter.Printed printed = printer().printMarked(new DocEmitter(style).emit(root));
-        String text = new ColumnAligner(style.get(FileRules.TAB_WIDTH)).align(printed);
+        String text =
+                new ColumnAligner(
+                        style.get(FileRules.TAB_WIDTH),
+                        style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(printed);
         String separator = lineSeparator();
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;

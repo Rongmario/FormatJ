@@ -116,6 +116,40 @@ class DocPrinterTest {
     }
 
     @Test
+    void lineIndentReplacesTheIndentOfTheCurrentLine() {
+        Doc document =
+                Doc.concat(
+                        Doc.text("{"),
+                        Doc.indent(
+                                4,
+                                Doc.concat(
+                                        Doc.hardLine(),
+                                        Doc.lineIndent(0, Doc.text("// first")),
+                                        Doc.hardLine(),
+                                        Doc.text("x"))),
+                        Doc.hardLine(),
+                        Doc.text("}"));
+        assertEquals("{\n// first\n    x\n}", DocPrinter.ofSpaces(80).print(document));
+    }
+
+    @Test
+    void lineIndentCanKeepAShallowerAuthorIndent() {
+        Doc document =
+                Doc.concat(
+                        Doc.text("{"),
+                        Doc.indent(
+                                4,
+                                Doc.concat(
+                                        Doc.hardLine(),
+                                        Doc.lineIndent(2, Doc.text("// two")),
+                                        Doc.hardLine(),
+                                        Doc.text("x"))),
+                        Doc.hardLine(),
+                        Doc.text("}"));
+        assertEquals("{\n  // two\n    x\n}", DocPrinter.ofSpaces(80).print(document));
+    }
+
+    @Test
     void lineSuffixIsHeldUntilTheNextBreak() {
         Doc document =
                 Doc.concat(

@@ -123,6 +123,16 @@ public final class DocPrinter {
                                         mode,
                                         nested.content()));
                 case Doc.Align align -> commands.push(new Command(column, mode, align.content()));
+                case Doc.LineIndent lineIndent -> {
+                    if (lineIsAllWhitespace(out)) {
+                        int start = out.lastIndexOf(lineSeparator);
+                        int lineStart = start < 0 ? 0 : start + lineSeparator.length();
+                        out.setLength(lineStart);
+                        out.append(indentation(lineIndent.columns()));
+                        column = lineIndent.columns();
+                    }
+                    commands.push(new Command(lineIndent.columns(), mode, lineIndent.content()));
+                }
                 case Doc.Group group -> {
                     boolean always = group.kind() == Doc.GroupKind.ALWAYS;
                     boolean flat = !always
@@ -266,6 +276,7 @@ public final class DocPrinter {
                 // Indentation has no width on the line being measured: it is spent after a break.
                 case Doc.IndentIfBreak indent -> queue.push(new Command(0, mode, indent.content()));
                 case Doc.Align align -> queue.push(new Command(0, mode, align.content()));
+                case Doc.LineIndent indent -> queue.push(new Command(0, mode, indent.content()));
                 case Doc.IfBreak ifBreak ->
                         queue.push(new Command(0, mode, mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
                 case Doc.LineSuffix ignored -> {

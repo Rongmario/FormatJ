@@ -72,6 +72,10 @@ public final class DocBreaks {
                 Rewritten content = rewrite(align.content());
                 yield new Rewritten(Doc.align(content.doc()), content.forcesBreak());
             }
+            case Doc.LineIndent indent -> {
+                Rewritten content = rewrite(indent.content());
+                yield new Rewritten(Doc.lineIndent(indent.columns(), content.doc()), content.forcesBreak());
+            }
             case Doc.IfBreak ifBreak -> {
                 Rewritten broken = rewrite(ifBreak.broken());
                 Rewritten flat = rewrite(ifBreak.flat());

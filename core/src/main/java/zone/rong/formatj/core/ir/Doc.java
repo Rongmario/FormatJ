@@ -74,6 +74,16 @@ public sealed interface Doc {
     /** Indents {@code content} to the current column rather than by a fixed amount. */
     record Align(Doc content) implements Doc { }
 
+    /**
+     * Sets the indent of {@code content} to {@code columns} absolutely, rather than adding to the
+     * indent that is already in force.
+     *
+     * <p>If this document is the first thing on its line, the indent that was just written is replaced
+     * so the line actually starts at that column. That is how a comment can sit in column one, or keep
+     * the indent the author wrote, while the code around it follows the ordinary indent rules.
+     */
+    record LineIndent(int columns, Doc content) implements Doc { }
+
     /** Fills as many parts onto each line as fit, breaking between them as needed. */
     record Fill(List<Doc> parts) implements Doc { }
 
@@ -149,6 +159,11 @@ public sealed interface Doc {
 
     static Doc align(Doc content) {
         return new Align(content);
+    }
+
+    /** Indentation measured from the left margin rather than from the enclosing indent. */
+    static Doc lineIndent(int columns, Doc content) {
+        return new LineIndent(columns, content);
     }
 
     static Doc fill(List<Doc> parts) {

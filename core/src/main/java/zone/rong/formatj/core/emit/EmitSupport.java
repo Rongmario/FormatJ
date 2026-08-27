@@ -79,7 +79,11 @@ abstract class EmitSupport {
                     case ANNOTATION_VALUE -> AlignmentRules.ANNOTATION_VALUES;
                     case SWITCH_ARROW -> AlignmentRules.SWITCH_ARROWS;
                     case TRAILING_COMMENT -> AlignmentRules.TRAILING_COMMENTS;
+                    case TRAILING_COMMENT_COLUMN -> null;
                 };
+        if (option == null) {
+            return Doc.EMPTY;
+        }
         return rule(option) == AlignmentPolicy.NONE ? Doc.EMPTY : Doc.mark(site);
     }
 
@@ -247,10 +251,16 @@ abstract class EmitSupport {
         }
         boolean first = true;
         for (Token comment : token.trailingComments()) {
-            // Only the first comment of a line has a column of its own to share with its neighbours.
-            Doc mark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
+            // Only the first comment of a line has a column of its own to share with its neighbours,
+            // or to pad out to comments.trailing-comment-column. Marks sit at the start of the comment
+            // so that column is the column the comment actually starts at.
+            Doc columnMark =
+                    first && rule(CommentRules.TRAILING_COMMENT_COLUMN) > 0
+                    ? Doc.mark(AlignmentSite.TRAILING_COMMENT_COLUMN)
+                    : Doc.EMPTY;
+            Doc alignMark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
             first = false;
-            parts.add(Doc.lineSuffix(Doc.concat(mark, trailingSpacing(), comments.trailing(comment))));
+            parts.add(Doc.lineSuffix(Doc.concat(trailingSpacing(), columnMark, alignMark, comments.trailing(comment))));
         }
         return Doc.concat(parts);
     }
@@ -270,13 +280,18 @@ abstract class EmitSupport {
         if (token == null) {
             return Doc.EMPTY;
         }
-        List<Token> attached = token.leadingComments();
+        List<Token> leading = token.leading();
         List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < attached.size(); i++) {
-            if (i > 0) {
+        boolean first = true;
+        for (int i = 0; i < leading.size(); i++) {
+            if (!leading.get(i).kind().isComment()) {
+                continue;
+            }
+            if (!first) {
                 parts.add(Doc.hardLine());
             }
-            parts.add(comments.ownLine(List.of(attached.get(i))));
+            first = false;
+            parts.add(placedOwnLine(List.of(leading.get(i)), leading, i));
         }
         return Doc.concat(parts);
     }
@@ -349,20 +364,20 @@ abstract class EmitSupport {
                 run.add(leading.get(next));
                 last = next;
             }
-            parts.add(comments.ownLine(run));
-            i = last;
-
             int newlines = newlinesAfter(leading, last);
             if (newlines == 0 && leading.get(last).kind() != TokenKind.LINE_COMMENT) {
                 // A block comment the author kept inline stays inline.
+                parts.add(comments.ownLine(run));
                 parts.add(Doc.text(" "));
             } else {
+                parts.add(placedOwnLine(run, leading, i));
                 int cap =
                         Math.min(
                                 rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
                                 rule(BlankLineRules.MAX_CONSECUTIVE));
                 parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
             }
+            i = last;
         }
         return Doc.concat(parts);
     }
@@ -406,6 +421,64 @@ abstract class EmitSupport {
     /** A comment, re-indented but never re-worded. */
     protected Doc commentDoc(Token comment) {
         return comments.verbatim(comment);
+    }
+
+    /**
+     * An own-line comment run, honouring {@code comments.keep-first-column-comments} and
+     * {@code comments.indent-with-code}.
+     *
+     * <p>Default is to take the indent of the code that follows, which is what the printer already
+     * does. The two rules only wrap the document when they need a different column: first-column
+     * comments pinned to the left margin, or comments that keep the indent the author wrote.
+     */
+    private Doc placedOwnLine(List<Token> run, List<Token> leading, int firstIndex) {
+        return placed(comments.ownLine(run), run.getFirst(), leading, firstIndex);
+    }
+
+    private Doc placed(Doc body, Token comment, List<Token> leading, int index) {
+        if (comment.isSynthetic()) {
+            return body;
+        }
+        if (rule(CommentRules.KEEP_FIRST_COLUMN_COMMENTS) && comment.column() == 1) {
+            return Doc.lineIndent(0, body);
+        }
+        if (!rule(CommentRules.INDENT_WITH_CODE)) {
+            return Doc.lineIndent(visualIndent(rawIndent(leading, index)), body);
+        }
+        return body;
+    }
+
+    /**
+     * The author's indent in front of the comment at {@code commentIndex}: the whitespace after the
+     * last line break that precedes it.
+     */
+    private static String rawIndent(List<Token> leading, int commentIndex) {
+        StringBuilder text = new StringBuilder();
+        for (int i = commentIndex - 1; i >= 0; i--) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment()) {
+                break;
+            }
+            text.insert(0, trivia.text());
+        }
+        String whitespace = text.toString();
+        int lastBreak = -1;
+        for (int i = 0; i < whitespace.length(); i++) {
+            char current = whitespace.charAt(i);
+            if (current == '\n' || current == '\r') {
+                lastBreak = i;
+            }
+        }
+        return lastBreak < 0 ? whitespace : whitespace.substring(lastBreak + 1);
+    }
+
+    private int visualIndent(String indent) {
+        int columns = 0;
+        int tabWidth = rule(FileRules.TAB_WIDTH);
+        for (int i = 0; i < indent.length(); i++) {
+            columns = indent.charAt(i) == '\t' ? (columns / tabWidth + 1) * tabWidth : columns + 1;
+        }
+        return columns;
     }
 
     /** Token text; multi-line tokens such as text blocks are emitted exactly as written. */
@@ -527,7 +600,7 @@ abstract class EmitSupport {
         for (int i = 0; i < offIndex; i++) {
             Token trivia = token.leading().get(i);
             if (trivia.kind().isComment()) {
-                parts.add(commentDoc(trivia));
+                parts.add(placed(commentDoc(trivia), trivia, token.leading(), i));
                 parts.add(Doc.hardLine());
             }
         }

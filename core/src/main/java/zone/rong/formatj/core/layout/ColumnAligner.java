@@ -29,9 +29,19 @@ import java.util.List;
 public final class ColumnAligner {
 
     private final int tabWidth;
+    private final int trailingCommentColumn;
 
     public ColumnAligner(int tabWidth) {
+        this(tabWidth, 0);
+    }
+
+    /**
+     * @param trailingCommentColumn 1-based column a trailing comment should start at; {@code 0}
+     *     disables the rule
+     */
+    public ColumnAligner(int tabWidth, int trailingCommentColumn) {
         this.tabWidth = tabWidth;
+        this.trailingCommentColumn = trailingCommentColumn;
     }
 
     /** The printed text with every alignment run padded to its shared column. */
@@ -61,6 +71,9 @@ public final class ColumnAligner {
 
     private List<Insertion> insertionsFor(String text, List<DocPrinter.Mark> marks, AlignmentSite site) {
         List<Position> positions = positions(text, marks, site);
+        if (site == AlignmentSite.TRAILING_COMMENT_COLUMN) {
+            return padsToColumn(positions);
+        }
         List<Insertion> insertions = new ArrayList<>();
         int start = 0;
         while (start < positions.size()) {
@@ -81,6 +94,26 @@ public final class ColumnAligner {
                 }
             }
             start = end;
+        }
+        return insertions;
+    }
+
+    /**
+     * Pads each trailing comment independently so it starts at the configured column.
+     *
+     * <p>A line whose code already reaches past that column is left with its ordinary spacing: padding
+     * cannot move a comment backwards, and it cannot move a line break.
+     */
+    private List<Insertion> padsToColumn(List<Position> positions) {
+        if (trailingCommentColumn <= 0) {
+            return List.of();
+        }
+        int target = trailingCommentColumn - 1;
+        List<Insertion> insertions = new ArrayList<>();
+        for (Position position : positions) {
+            if (position.column() < target) {
+                insertions.add(new Insertion(position.offset(), target - position.column()));
+            }
         }
         return insertions;
     }
