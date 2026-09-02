@@ -62,6 +62,11 @@ public abstract class FormatJTask extends DefaultTask {
     @PathSensitive(PathSensitivity.NONE)
     public abstract RegularFileProperty getStyleFile();
 
+    /** Style document applied on top of the preset, for callers that hold the text rather than a file. */
+    @Input
+    @Optional
+    public abstract Property<String> getStyle();
+
     @Input
     @Optional
     public abstract Property<Preset> getPreset();
@@ -158,6 +163,9 @@ public abstract class FormatJTask extends DefaultTask {
         }
         if (getStyleFile().isPresent()) {
             builder.apply(StyleFiles.load(getStyleFile().get().getAsFile().toPath()));
+        }
+        if (getStyle().isPresent()) {
+            builder.apply(StyleFiles.parse(getStyle().get()));
         }
         Map<String, String> rules = getRules().get();
         rules.forEach(builder::setRaw);

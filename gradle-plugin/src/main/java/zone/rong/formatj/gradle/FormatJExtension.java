@@ -34,6 +34,9 @@ public abstract class FormatJExtension {
     /** A style file whose rules are applied on top of the preset. */
     public abstract RegularFileProperty getStyleFile();
 
+    /** Style document applied on top of the preset, for callers that hold the text rather than a file. */
+    public abstract Property<String> getStyle();
+
     /** Individual rule overrides, applied last. Values are converted with the option's own parser. */
     public abstract MapProperty<String, String> getRules();
 

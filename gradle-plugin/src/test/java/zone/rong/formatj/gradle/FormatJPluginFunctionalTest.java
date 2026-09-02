@@ -137,6 +137,32 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void anInlineStyleDocumentIsAppliedOnTopOfThePreset() throws IOException {
+        Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+
+                formatJ {
+                    style.set("[indent]\\nsize = 2\\n")
+                    sourceSets("main")
+                }
+                """);
+
+        BuildResult failure = runner("formatJavaCheck").buildAndFail();
+        assertEquals(TaskOutcome.FAILED, failure.task(":formatJavaCheck").getOutcome());
+        assertTrue(failure.getOutput().contains("not formatted"), failure.getOutput());
+
+        assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
+        assertTrue(
+                Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java"))
+                        .contains("\n  void run()"));
+    }
+
+    @Test
     void changingARuleInvalidatesTheTaskAndTheNewRuleApplies() throws IOException {
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaCheck").task(":formatJavaCheck").getOutcome());
 

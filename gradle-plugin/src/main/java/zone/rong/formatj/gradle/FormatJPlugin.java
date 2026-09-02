@@ -69,6 +69,7 @@ public class FormatJPlugin implements Plugin<Project> {
     private static void configure(FormatJTask task, FormatJExtension extension, Provider<FileCollection> sources) {
         task.getSource().from(sources);
         task.getStyleFile().set(extension.getStyleFile());
+        task.getStyle().set(extension.getStyle());
         task.getPreset().set(extension.getPreset());
         task.getRules().set(extension.getRules());
         task.getLanguageLevel().set(extension.getLanguageLevel());
