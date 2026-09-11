@@ -83,6 +83,8 @@ class ParserTest {
                 "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
                 "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
                 "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
+                "class A { String[] f(List<String> l) { return l.toArray(String[]::new); } }\n",
+                "class A { Class<?> c = String[][].class; }\n",
                 "class A { Function<Integer, Integer> g = _ -> 1; }\n",
                 "class A { Function<Integer, Integer> g = (_) -> 1; }\n",
                 "class A { BiFunction<Integer, Integer, Integer> g = (_, x) -> x; }\n",

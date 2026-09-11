@@ -433,6 +433,10 @@ abstract class ExpressionParser extends ParserBase {
                 }
                 continue;
             }
+            if (at("[") && peek(1).is("]")) {
+                current = parseArraySuffix(current);
+                continue;
+            }
             if (at("[")) {
                 List<GreenNode> children = new ArrayList<>();
                 children.add(current);
