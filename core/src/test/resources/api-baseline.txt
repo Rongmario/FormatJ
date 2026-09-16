@@ -424,6 +424,24 @@ TYPE public static final class zone.rong.formatj.api.rules.IndentRules$Builder
   METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.ternary(int)
   METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.throwsClause(int)
   METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.useTabs(boolean)
+TYPE public final enum zone.rong.formatj.api.rules.JavadocClosingTagForm
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.JavadocClosingTagForm>
+  ENUM PRESERVE
+  ENUM SLASH_FIRST
+  FIELD public static final zone.rong.formatj.api.rules.JavadocClosingTagForm zone.rong.formatj.api.rules.JavadocClosingTagForm.PRESERVE
+  FIELD public static final zone.rong.formatj.api.rules.JavadocClosingTagForm zone.rong.formatj.api.rules.JavadocClosingTagForm.SLASH_FIRST
+  METHOD public static zone.rong.formatj.api.rules.JavadocClosingTagForm zone.rong.formatj.api.rules.JavadocClosingTagForm.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.JavadocClosingTagForm[] zone.rong.formatj.api.rules.JavadocClosingTagForm.values()
+TYPE public final enum zone.rong.formatj.api.rules.JavadocOpeningTagPosition
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.JavadocOpeningTagPosition>
+  ENUM PRESERVE
+  ENUM NEW_LINE
+  ENUM SAME_LINE
+  FIELD public static final zone.rong.formatj.api.rules.JavadocOpeningTagPosition zone.rong.formatj.api.rules.JavadocOpeningTagPosition.NEW_LINE
+  FIELD public static final zone.rong.formatj.api.rules.JavadocOpeningTagPosition zone.rong.formatj.api.rules.JavadocOpeningTagPosition.PRESERVE
+  FIELD public static final zone.rong.formatj.api.rules.JavadocOpeningTagPosition zone.rong.formatj.api.rules.JavadocOpeningTagPosition.SAME_LINE
+  METHOD public static zone.rong.formatj.api.rules.JavadocOpeningTagPosition zone.rong.formatj.api.rules.JavadocOpeningTagPosition.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.JavadocOpeningTagPosition[] zone.rong.formatj.api.rules.JavadocOpeningTagPosition.values()
 TYPE public final class zone.rong.formatj.api.rules.JavadocRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.JavadocRules.ADD_PARAGRAPH_TAGS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.JavadocRules.ALIGN_TAG_DESCRIPTIONS
@@ -431,13 +449,17 @@ TYPE public final class zone.rong.formatj.api.rules.JavadocRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.JavadocRules.KEEP_SINGLE_LINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.JavadocRules.WRAP
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.JavadocRules.TAG_CONTINUATION_INDENT
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocClosingTagForm> zone.rong.formatj.api.rules.JavadocRules.CLOSING_TAG_FORM
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocOpeningTagPosition> zone.rong.formatj.api.rules.JavadocRules.OPENING_TAG_POSITION
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocTagOrder> zone.rong.formatj.api.rules.JavadocRules.TAG_ORDER
 TYPE public static final class zone.rong.formatj.api.rules.JavadocRules$Builder
   CTOR public zone.rong.formatj.api.rules.JavadocRules$Builder(zone.rong.formatj.api.StyleBuilder)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.addParagraphTags(boolean)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.alignTagDescriptions(boolean)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.blankLineBeforeTags(boolean)
+  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.closingTagForm(zone.rong.formatj.api.rules.JavadocClosingTagForm)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.keepSingleLine(boolean)
+  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.openingTagPosition(zone.rong.formatj.api.rules.JavadocOpeningTagPosition)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.tagContinuationIndent(int)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.tagOrder(zone.rong.formatj.api.rules.JavadocTagOrder)
   METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.wrap(boolean)

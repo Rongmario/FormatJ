@@ -30,6 +30,18 @@ public final class JavadocRules {
     public static final Option<Integer> TAG_CONTINUATION_INDENT =
             Option.ofInt("javadoc.tag-continuation-indent", 8, "Columns a wrapped block tag description is indented");
 
+    public static final Option<JavadocClosingTagForm> CLOSING_TAG_FORM =
+            Option.ofEnum(
+                    "javadoc.closing-tag-form",
+                    JavadocClosingTagForm.PRESERVE,
+                    "Written form of a Javadoc paragraph closer");
+
+    public static final Option<JavadocOpeningTagPosition> OPENING_TAG_POSITION =
+            Option.ofEnum(
+                    "javadoc.opening-tag-position",
+                    JavadocOpeningTagPosition.PRESERVE,
+                    "Placement of a Javadoc paragraph marker relative to its paragraph");
+
     private JavadocRules() { }
 
     /** Fluent view of the {@code javadoc.*} rules. */
@@ -73,6 +85,16 @@ public final class JavadocRules {
 
         public Builder tagContinuationIndent(int value) {
             style.set(TAG_CONTINUATION_INDENT, value);
+            return this;
+        }
+
+        public Builder closingTagForm(JavadocClosingTagForm value) {
+            style.set(CLOSING_TAG_FORM, value);
+            return this;
+        }
+
+        public Builder openingTagPosition(JavadocOpeningTagPosition value) {
+            style.set(OPENING_TAG_POSITION, value);
             return this;
         }
 

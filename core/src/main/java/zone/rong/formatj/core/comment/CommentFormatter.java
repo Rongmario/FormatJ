@@ -5,6 +5,8 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.CommentReflow;
 import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.FileRules;
+import zone.rong.formatj.api.rules.JavadocClosingTagForm;
+import zone.rong.formatj.api.rules.JavadocOpeningTagPosition;
 import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.core.ir.Doc;
@@ -16,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Turns a comment into a document, under the rules that are allowed to rearrange it.
@@ -165,7 +169,9 @@ public final class CommentFormatter {
     private boolean restructures(Javadoc parsed) {
         if (rule(JavadocRules.WRAP)
                 || rule(JavadocRules.ADD_PARAGRAPH_TAGS)
-                || rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS)) {
+                || rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS)
+                || rule(JavadocRules.CLOSING_TAG_FORM) != JavadocClosingTagForm.PRESERVE
+                || rule(JavadocRules.OPENING_TAG_POSITION) != JavadocOpeningTagPosition.PRESERVE) {
             return true;
         }
         if (rule(JavadocRules.TAG_ORDER) != JavadocTagOrder.PRESERVE && !sorted(parsed.tags())) {
@@ -219,12 +225,21 @@ public final class CommentFormatter {
         }
         List<String> paragraph = new ArrayList<>();
         for (String line : lines) {
-            boolean marker = line.strip().equalsIgnoreCase("<p>");
+            boolean marker = isMarkerLine(line);
             if (line.isBlank() || marker) {
                 parts.addAll(paragraphDocs(paragraph));
                 paragraph.clear();
                 parts.add(Doc.hardLine());
-                parts.add(marker ? starred(line) : Doc.text(" *"));
+                parts.add(marker ? starred(normaliseMarkerLine(line)) : Doc.text(" *"));
+                continue;
+            }
+            String leading = leadingMarker(line);
+            if (leading != null) {
+                // A same-line `<p> text` opens a new paragraph; the marker stays with its text
+                // so wrapping keeps them on one line.
+                parts.addAll(paragraphDocs(paragraph));
+                paragraph.clear();
+                paragraph.add(line);
                 continue;
             }
             paragraph.add(line);
@@ -259,15 +274,215 @@ public final class CommentFormatter {
 
     /** The description, with paragraph markers written on its blank lines when the rule asks. */
     private List<String> describe(Javadoc parsed) {
-        List<String> lines = parsed.description();
-        if (!rule(JavadocRules.ADD_PARAGRAPH_TAGS)) {
-            return lines;
+        List<String> lines = new ArrayList<>(parsed.description());
+        if (rule(JavadocRules.ADD_PARAGRAPH_TAGS)) {
+            for (int i = 0; i < lines.size(); i++) {
+                if (lines.get(i).isBlank()) {
+                    lines.set(i, " <p>");
+                }
+            }
         }
-        List<String> marked = new ArrayList<>(lines.size());
+        if (rule(JavadocRules.CLOSING_TAG_FORM) == JavadocClosingTagForm.SLASH_FIRST) {
+            lines = normaliseClosingForm(lines);
+        }
+        if (rule(JavadocRules.OPENING_TAG_POSITION) != JavadocOpeningTagPosition.PRESERVE) {
+            lines = normalisePosition(lines, rule(JavadocRules.OPENING_TAG_POSITION));
+        }
+        return List.copyOf(lines);
+    }
+
+    // ------------------------------------------------- paragraph markers (<p> family)
+
+    /**
+     * Standalone compact paragraph markers: {@code <p>}, {@code </p>} and {@code <p/>} in any
+     * case, bounded by whitespace or line ends. Forms with spaces inside the brackets
+     * ({@code <p />}) are left alone: splitting them would cut one word into two and fail the
+     * prose check.
+     */
+    private static final Pattern PARAGRAPH_MARKER =
+            Pattern.compile("(^|\\s)(</p>|<p/>|<p>)(\\s|$)", Pattern.CASE_INSENSITIVE);
+
+    private static boolean isParagraphMarkerToken(String token) {
+        return token.equalsIgnoreCase("<p>") || token.equalsIgnoreCase("</p>") || token.equalsIgnoreCase("<p/>");
+    }
+
+    private static boolean isCloserToken(String token) {
+        return token.equalsIgnoreCase("</p>") || token.equalsIgnoreCase("<p/>");
+    }
+
+    /** Whether the whole line is one paragraph marker, e.g. {@code " <p>"}. */
+    private static boolean isMarkerLine(String line) {
+        return isParagraphMarkerToken(line.strip());
+    }
+
+    /**
+     * The marker a line opens with when it leads with one followed by text, e.g. {@code "<p>"}
+     * for {@code " <p> Second"}, or null for marker-only, blank and ordinary lines.
+     */
+    private static String leadingMarker(String line) {
+        String stripped = line.strip();
+        int space = stripped.indexOf(' ');
+        if (space < 0) {
+            space = stripped.indexOf('\t');
+        }
+        if (space < 0) {
+            return null;
+        }
+        String first = stripped.substring(0, space);
+        if (!isParagraphMarkerToken(first) || stripped.substring(space).isBlank()) {
+            return null;
+        }
+        return first;
+    }
+
+    /** A marker-only line in canonical spacing, so {@code "<P/>"} still prints as {@code " * <p/>"}. */
+    private static String normaliseMarkerLine(String line) {
+        String stripped = line.strip();
+        if (!isParagraphMarkerToken(stripped)) {
+            return line;
+        }
+        return " " + stripped;
+    }
+
+    /** The line with one leading paragraph marker removed, for block-markup detection. */
+    private static String withoutLeadingMarker(String line) {
+        String leading = leadingMarker(line);
+        if (leading == null) {
+            return line.strip();
+        }
+        return line.strip().substring(leading.length()).strip();
+    }
+
+    /**
+     * Rewrites standalone closers slash-first: {@code <p/>} (any case) becomes {@code </p>},
+     * and {@code </P>} becomes {@code </p>}. Openers are untouched. Markers inside
+     * {@code <pre>}, {@code {@code}} or {@code @snippet} regions are content and are skipped.
+     */
+    private static List<String> normaliseClosingForm(List<String> lines) {
+        List<int[]> verbatim = Prose.verbatimRanges(String.join("\n", lines));
+        List<String> out = new ArrayList<>(lines.size());
+        int offset = 0;
         for (String line : lines) {
-            marked.add(line.isBlank() ? " <p>" : line);
+            StringBuilder rebuilt = null;
+            Matcher matcher = PARAGRAPH_MARKER.matcher(line);
+            while (matcher.find()) {
+                String token = matcher.group(2);
+                if (!isCloserToken(token) || Prose.isInside(verbatim, offset + matcher.start(2))) {
+                    continue;
+                }
+                if (rebuilt == null) {
+                    rebuilt = new StringBuilder(line);
+                }
+                rebuilt.replace(matcher.start(2), matcher.end(2), "</p>");
+            }
+            out.add(rebuilt == null ? line : rebuilt.toString());
+            offset += line.length() + 1;
         }
-        return marked;
+        return out;
+    }
+
+    /**
+     * Moves standalone paragraph markers to the configured position. Markers inside verbatim
+     * regions are left where they are.
+     *
+     * <p>Both positions expand through the same split: every standalone marker outside verbatim
+     * gets its own entry, text around it becomes neighbouring entries. {@code NEW_LINE} stops
+     * there; {@code SAME_LINE} then merges each marker-only entry with the text entry
+     * immediately after it. Expand-then-merge is idempotent, which is what keeps formatting a
+     * fixed point.
+     */
+    private static List<String> normalisePosition(List<String> lines, JavadocOpeningTagPosition position) {
+        List<int[]> verbatim = Prose.verbatimRanges(String.join("\n", lines));
+        List<String> split = new ArrayList<>(lines.size());
+        int offset = 0;
+        for (String line : lines) {
+            List<String> parts = splitMarkers(line, offset, verbatim);
+            if (parts == null) {
+                split.add(line);
+            } else {
+                split.addAll(parts);
+            }
+            offset += line.length() + 1;
+        }
+        if (position != JavadocOpeningTagPosition.SAME_LINE) {
+            return split;
+        }
+        List<String> merged = new ArrayList<>(split.size());
+        for (int i = 0; i < split.size(); i++) {
+            String line = split.get(i);
+            if (isMarkerLine(line) && i + 1 < split.size()) {
+                String next = split.get(i + 1);
+                if (!next.isBlank() && !isMarkerLine(next)) {
+                    merged.add(" " + line.strip() + " " + next.strip());
+                    i++;
+                    continue;
+                }
+            }
+            merged.add(line);
+        }
+        return merged;
+    }
+
+    /**
+     * Splits a line around its standalone markers outside verbatim, or null when there is
+     * nothing to split. Text fragments keep their leading space so {@code " *" + line} still
+     * prints under the star; markers are canonicalised to {@code " <marker>"}.
+     */
+    private static List<String> splitMarkers(String line, int offset, List<int[]> verbatim) {
+        Matcher matcher = PARAGRAPH_MARKER.matcher(line);
+        List<int[]> hits = new ArrayList<>();
+        List<String> tokens = new ArrayList<>();
+        while (matcher.find()) {
+            if (Prose.isInside(verbatim, offset + matcher.start(2))) {
+                continue;
+            }
+            hits.add(new int[] {matcher.start(2), matcher.end(2)});
+            tokens.add(matcher.group(2));
+        }
+        if (hits.isEmpty()) {
+            return null;
+        }
+        List<String> parts = new ArrayList<>(hits.size() * 2 + 1);
+        int cursor = 0;
+        for (int i = 0; i < hits.size(); i++) {
+            String before = line.substring(cursor, hits.get(i)[0]);
+            if (!before.isBlank()) {
+                parts.add(stripTrailingOnly(before));
+            }
+            parts.add(" " + tokens.get(i));
+            cursor = hits.get(i)[1];
+        }
+        String after = line.substring(cursor);
+        if (!after.isBlank()) {
+            parts.add(ensureLeadingSpace(after));
+        }
+        if (parts.isEmpty()) {
+            return null;
+        }
+        // A line that was already exactly one marker needs no rewrite.
+        if (parts.size() == 1 && isMarkerLine(parts.getFirst())) {
+            return null;
+        }
+        return parts;
+    }
+
+    private static String stripTrailingOnly(String text) {
+        int end = text.length();
+        while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t')) {
+            end--;
+        }
+        return text.substring(0, end);
+    }
+
+    private static String ensureLeadingSpace(String text) {
+        String strippedTrailing = stripTrailingOnly(text);
+        String stripped = strippedTrailing.stripLeading();
+        if (stripped.isEmpty()) {
+            return "";
+        }
+        return strippedTrailing.startsWith(" ") || strippedTrailing.startsWith("\t")
+               ? strippedTrailing
+               : " " + stripped;
     }
 
     /**
@@ -408,9 +623,10 @@ public final class CommentFormatter {
             }
         }
         for (String line : lines) {
-            String stripped = line.strip();
+            String stripped = withoutLeadingMarker(line);
             if (stripped.startsWith("<") || stripped.startsWith("|") || holdsMarker(line)) {
                 // Block markup and tables are laid out by their own lines, not by the margin.
+                // A leading paragraph marker is not markup: `<p> text` still refills.
                 return false;
             }
         }

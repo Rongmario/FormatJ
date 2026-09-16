@@ -463,23 +463,36 @@ no rule here has anything to say about is reproduced character for character, so
 on does not re-space every other comment in the file.
 
 - `JavadocTagOrder` values are `preserve` and `canonical`.
+- `JavadocClosingTagForm` values are `preserve` and `slash-first`.
+- `JavadocOpeningTagPosition` values are `preserve`, `new-line` and `same-line`.
 - `canonical` is `@author`, `@version`, `@param`, `@return`, `@throws`, `@exception`, `@see`,
   `@since`, `@serial`, `@serialField`, `@serialData`, `@deprecated`; tags outside that list keep to
   the end in the order the author had them. The sort is stable, so two `@param` tags never swap.
 - Wrapping declines a paragraph holding a code sample, block markup or a table row: those are laid
-  out by their own lines rather than by the margin.
+  out by their own lines rather than by the margin. A leading paragraph marker is not markup:
+  `·* <p> text` still refills.
 - `javadoc.align-tag-descriptions` aligns each kind of tag with its own kind. A lone long `@throws`
   does not push every `@param` description across the line.
+- `javadoc.closing-tag-form = slash-first` rewrites standalone closers only: `<p/>` becomes `</p>`
+  (and `</P>` becomes `</p>`). Openers (`<p>`) are untouched. Markers inside `<pre>`, `{@code}`
+  and `@snippet` regions are content and are never rewritten. Balancing validation comes later.
+- `javadoc.opening-tag-position` moves standalone `<p>`, `</p>` and `<p/>` markers only
+  (`<p>` family, description only): `new-line` puts each marker on its own `·* <p>` line,
+  `same-line` joins it with the paragraph's first words (`·* <p> text`). Markers glued to other
+  text without whitespace (`foo<p>bar`) and forms with spaces inside the brackets (`<p />`)
+  are left alone.
 
-| Key                               | Values            | Default    | Effect                                                     | Example                                                        |
-|-----------------------------------|-------------------|------------|------------------------------------------------------------|----------------------------------------------------------------|
-| `javadoc.wrap`                    | boolean           | `false`    | Wrap Javadoc prose to the configured line length           | `true`: description paragraphs are refilled to the margin      |
-| `javadoc.tag-order`               | `JavadocTagOrder` | `preserve` | Ordering of Javadoc block tags                             | `canonical`: `@param`, then `@return`, then `@throws`          |
-| `javadoc.blank-line-before-tags`  | boolean           | `true`     | Blank line between the description and the first block tag | `true`: `·* text`<br>`·*`<br>`·* @param a x`                   |
-| `javadoc.align-tag-descriptions`  | boolean           | `false`    | Align the descriptions following block tags                | `true`: `@param a··x`<br>`@param bb y`                         |
-| `javadoc.add-paragraph-tags`      | boolean           | `false`    | Write `<p>` on blank description lines                     | `true`: a blank description line becomes `·* <p>`              |
-| `javadoc.keep-single-line`        | boolean           | `true`     | Leave a one-line Javadoc comment on one line               | `true`: `/** Text. */` stays as written                        |
-| `javadoc.tag-continuation-indent` | integer           | `8`        | Columns a wrapped block tag description is indented        | `8`: the second line of a long `@param` is indented 8 columns  |
+| Key                               | Values                     | Default    | Effect                                                     | Example                                                        |
+|-----------------------------------|----------------------------|------------|------------------------------------------------------------|----------------------------------------------------------------|
+| `javadoc.wrap`                    | boolean                    | `false`    | Wrap Javadoc prose to the configured line length           | `true`: description paragraphs are refilled to the margin      |
+| `javadoc.tag-order`               | `JavadocTagOrder`          | `preserve` | Ordering of Javadoc block tags                             | `canonical`: `@param`, then `@return`, then `@throws`          |
+| `javadoc.blank-line-before-tags`  | boolean                    | `true`     | Blank line between the description and the first block tag | `true`: `·* text`<br>`·*`<br>`·* @param a x`                   |
+| `javadoc.align-tag-descriptions`  | boolean                    | `false`    | Align the descriptions following block tags                | `true`: `@param a··x`<br>`@param bb y`                         |
+| `javadoc.add-paragraph-tags`      | boolean                    | `false`    | Write `<p>` on blank description lines                     | `true`: a blank description line becomes `·* <p>`              |
+| `javadoc.keep-single-line`        | boolean                    | `true`     | Leave a one-line Javadoc comment on one line               | `true`: `/** Text. */` stays as written                        |
+| `javadoc.tag-continuation-indent` | integer                    | `8`        | Columns a wrapped block tag description is indented        | `8`: the second line of a long `@param` is indented 8 columns  |
+| `javadoc.closing-tag-form`        | `JavadocClosingTagForm`    | `preserve` | Written form of a Javadoc paragraph closer                 | `slash-first`: `<p/>` becomes `</p>`; `<p>` untouched           |
+| `javadoc.opening-tag-position`    | `JavadocOpeningTagPosition`| `preserve` | Placement of a Javadoc paragraph marker relative to its paragraph | `new-line`: `·* <p>` own line — `same-line`: `·* <p> text` |
 
 ### `switch`
 
