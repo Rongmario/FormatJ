@@ -9,6 +9,7 @@ import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Token cursor, trivia attachment and error recovery shared by every layer of the parser.
@@ -259,6 +260,33 @@ abstract class ParserBase {
             raw.add(GreenNode.leaf(SyntaxToken.of(tokens.get(position))));
         }
         return GreenNode.branch(SyntaxKind.UNPARSED, raw);
+    }
+
+    /**
+     * Parses one construct, degrading to a verbatim region when it cannot: a statement, a member, or a
+     * module directive all recover the same way, rolling back and skipping to the next point parsing
+     * can sensibly resume from.
+     *
+     * @param what names the construct in the diagnostic, e.g. {@code "statement"}
+     */
+    protected GreenNode parseWithRecovery(String what, Supplier<GreenNode> parse) {
+        int start = mark();
+        try {
+            return parse.get();
+        } catch (ParseFailure failure) {
+            reset(start);
+            skipToRecoveryPoint();
+            if (mark() == start) {
+                // No progress would loop forever; take one token verbatim and carry on.
+                advance();
+            }
+            report(
+                    Diagnostic.warning(
+                            failure.getMessage() + "; " + what + " left unformatted",
+                            failure.token().line(),
+                            failure.token().column()));
+            return unparsedFrom(start);
+        }
     }
 
     /**

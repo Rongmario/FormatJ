@@ -1,6 +1,5 @@
 package zone.rong.formatj.core.parser;
 
-import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -39,23 +38,7 @@ abstract class StatementParser extends ExpressionParser {
 
     /** Parses one statement, degrading to a verbatim region when it cannot. */
     protected GreenNode parseStatementWithRecovery() {
-        int start = mark();
-        try {
-            return parseStatement();
-        } catch (ParseFailure failure) {
-            reset(start);
-            skipToRecoveryPoint();
-            if (mark() == start) {
-                // No progress would loop forever; take one token verbatim and carry on.
-                advance();
-            }
-            report(
-                    Diagnostic.warning(
-                            failure.getMessage() + "; statement left unformatted",
-                            failure.token().line(),
-                            failure.token().column()));
-            return unparsedFrom(start);
-        }
+        return parseWithRecovery("statement", this::parseStatement);
     }
 
     protected GreenNode parseStatement() {

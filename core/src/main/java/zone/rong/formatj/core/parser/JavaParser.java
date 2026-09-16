@@ -1,6 +1,5 @@
 package zone.rong.formatj.core.parser;
 
-import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -55,22 +54,7 @@ public final class JavaParser extends StatementParser {
         List<GreenNode> children = new ArrayList<>();
 
         while (!atEnd()) {
-            int start = mark();
-            try {
-                children.add(parseTopLevelDeclaration());
-            } catch (ParseFailure failure) {
-                reset(start);
-                skipToRecoveryPoint();
-                if (mark() == start) {
-                    advance();
-                }
-                report(
-                        Diagnostic.warning(
-                                failure.getMessage() + "; declaration left unformatted",
-                                failure.token().line(),
-                                failure.token().column()));
-                children.add(unparsedFrom(start));
-            }
+            children.add(parseWithRecovery("declaration", this::parseTopLevelDeclaration));
         }
         // The end-of-file token carries the file's trailing trivia, so it must be consumed.
         children.add(advance());
@@ -89,11 +73,116 @@ public final class JavaParser extends StatementParser {
         if (at(";")) {
             return branch(SyntaxKind.EMPTY_STATEMENT, List.of(advance()));
         }
+        int start = mark();
         List<GreenNode> modifiers = parseModifierList();
         if (at("package")) {
             return parsePackageDeclaration(modifiers);
         }
-        return parseTypeDeclaration(modifiers);
+        if (atContextual("module") || (atContextual("open") && peek(1).is("module"))) {
+            return parseModuleDeclaration(modifiers);
+        }
+        if (at("class")
+                || at("interface")
+                || at("enum")
+                || (at("@") && peek(1).is("interface"))
+                || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
+            return parseTypeDeclaration(modifiers);
+        }
+        // JEP 512: a compact source file has no top-level type declaration at all; its fields,
+        // methods and initializers are members of the file's implicit unnamed class.
+        reset(start);
+        return parseMember("", false);
+    }
+
+    // ---------------------------------------------------------- modules (JLS 7.7)
+
+    private GreenNode parseModuleDeclaration(List<GreenNode> modifiers) {
+        List<GreenNode> children = withModifiers(modifiers);
+        if (atContextual("open")) {
+            children.add(advance());
+        }
+        children.add(advance()); // module
+        children.add(parseQualifiedName());
+        children.add(parseModuleBody());
+        return branch(SyntaxKind.MODULE_DECLARATION, children);
+    }
+
+    private GreenNode parseModuleBody() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("{"));
+        while (!at("}") && !atEnd()) {
+            children.add(parseWithRecovery("directive", this::parseModuleDirective));
+        }
+        children.add(expect("}"));
+        return branch(SyntaxKind.MODULE_BODY, children);
+    }
+
+    private GreenNode parseModuleDirective() {
+        if (atContextual("requires")) {
+            return parseRequiresDirective();
+        }
+        if (atContextual("exports")) {
+            return parseExportsOrOpensDirective(SyntaxKind.EXPORTS_DIRECTIVE);
+        }
+        if (atContextual("opens")) {
+            return parseExportsOrOpensDirective(SyntaxKind.OPENS_DIRECTIVE);
+        }
+        if (atContextual("uses")) {
+            List<GreenNode> children = new ArrayList<>();
+            children.add(advance());
+            children.add(parseQualifiedName());
+            children.add(expect(";"));
+            return branch(SyntaxKind.USES_DIRECTIVE, children);
+        }
+        if (atContextual("provides")) {
+            return parseProvidesDirective();
+        }
+        throw fail("Expected a module directive");
+    }
+
+    private GreenNode parseRequiresDirective() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(advance()); // requires
+        // transitive/static are modifiers only when a module name still follows; requires
+        // transitive; alone requires a module literally named "transitive".
+        while ((atContextual("transitive") || at("static")) && !peek(1).is(";") && !peek(1).is(".")) {
+            children.add(advance());
+        }
+        children.add(parseQualifiedName());
+        children.add(expect(";"));
+        return branch(SyntaxKind.REQUIRES_DIRECTIVE, children);
+    }
+
+    private GreenNode parseExportsOrOpensDirective(SyntaxKind kind) {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(advance()); // exports/opens
+        children.add(parseQualifiedName());
+        if (atContextual("to")) {
+            children.add(parseModuleNameList(SyntaxKind.TO_CLAUSE));
+        }
+        children.add(expect(";"));
+        return branch(kind, children);
+    }
+
+    private GreenNode parseProvidesDirective() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(advance()); // provides
+        children.add(parseQualifiedName());
+        children.add(parseModuleNameList(SyntaxKind.WITH_CLAUSE));
+        children.add(expect(";"));
+        return branch(SyntaxKind.PROVIDES_DIRECTIVE, children);
+    }
+
+    /** The {@code to} list of an exports/opens directive, or the {@code with} list of a provides one. */
+    private GreenNode parseModuleNameList(SyntaxKind kind) {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(advance()); // to/with
+        children.add(parseQualifiedName());
+        while (at(",")) {
+            children.add(advance());
+            children.add(parseQualifiedName());
+        }
+        return branch(kind, children);
     }
 
     private GreenNode parsePackageDeclaration(List<GreenNode> modifiers) {
@@ -362,22 +451,7 @@ public final class JavaParser extends StatementParser {
     }
 
     private GreenNode parseMemberWithRecovery(String enclosingName, boolean isRecord) {
-        int start = mark();
-        try {
-            return parseMember(enclosingName, isRecord);
-        } catch (ParseFailure failure) {
-            reset(start);
-            skipToRecoveryPoint();
-            if (mark() == start) {
-                advance();
-            }
-            report(
-                    Diagnostic.warning(
-                            failure.getMessage() + "; member left unformatted",
-                            failure.token().line(),
-                            failure.token().column()));
-            return unparsedFrom(start);
-        }
+        return parseWithRecovery("member", () -> parseMember(enclosingName, isRecord));
     }
 
     /** Whether a generic constructor, {@code <T> Name(...)}, starts here. */
