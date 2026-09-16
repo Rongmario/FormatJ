@@ -419,6 +419,12 @@ abstract class ExpressionParser extends ParserBase {
                     current = branch(SyntaxKind.MEMBER_ACCESS, children);
                     continue;
                 }
+                if (at("super")) {
+                    // A qualified super, Outer.super, naming the superclass of an enclosing class.
+                    children.add(advance());
+                    current = branch(SyntaxKind.MEMBER_ACCESS, children);
+                    continue;
+                }
                 if (at("class")) {
                     children.add(advance());
                     current = branch(SyntaxKind.CLASS_LITERAL, children);
