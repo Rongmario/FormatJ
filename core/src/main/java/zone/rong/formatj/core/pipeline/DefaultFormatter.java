@@ -136,6 +136,7 @@ public final class DefaultFormatter implements Formatter {
         // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
         // so one broken statement does not cost the rest of the file its formatting.
         Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete, source);
+        String text;
         if (attempt.failed() && attempt.rewrote()) {
             Attempt withoutRewrites = attempt(parsed, false, source);
             if (withoutRewrites.failed()) {
@@ -144,13 +145,31 @@ public final class DefaultFormatter implements Formatter {
             diagnostics.add(
                     Diagnostic.warning(
                             "Rules that add or remove code were skipped for this file: " + attempt.problem()));
-            return FormatResult.formatted(source, withoutRewrites.text()).withDiagnostics(diagnostics);
-        }
-        if (attempt.failed()) {
+            text = withoutRewrites.text();
+        } else if (attempt.failed()) {
             return FormatResult.failed(source, List.of(Diagnostic.error(attempt.problem())));
+        } else {
+            text = attempt.text();
         }
 
-        return FormatResult.formatted(source, attempt.text()).withDiagnostics(diagnostics);
+        if (!request.isWholeFile()) {
+            // Splicing only touches whole lines that the requested ranges overlap; anything else is the
+            // caller's own characters, so it cannot introduce a syntax error the full-file pass didn't
+            // already rule out. This is still checked because a hunk boundary is a line boundary, not a
+            // token boundary, and cutting between two identical lines inside a differing multi-line token
+            // (a text block, a block comment) is not something the diff itself can see.
+            String spliced = LineDiffer.splice(source, text, request.ranges());
+            if (verify
+                    && !spliced.equals(source)
+                    && JavaParser.parse(spliced, languageLevel, previewFeatures).hasErrors()) {
+                return FormatResult.failed(
+                        source,
+                        List.of(Diagnostic.error("Formatting the selection would leave the file unparsable")));
+            }
+            text = spliced;
+        }
+
+        return FormatResult.formatted(source, text).withDiagnostics(diagnostics);
     }
 
     /**
