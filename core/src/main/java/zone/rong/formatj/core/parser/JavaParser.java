@@ -526,6 +526,13 @@ public final class JavaParser extends StatementParser {
             children.add(advance());
             return branch(SyntaxKind.PARAMETER, children);
         }
+        if (atIdentifier() && peek(1).is(".") && peek(2).is("this")) {
+            // An inner class constructor's receiver names its enclosing instance, e.g. Outer.this.
+            children.add(identifier());
+            children.add(advance());
+            children.add(advance());
+            return branch(SyntaxKind.PARAMETER, children);
+        }
         children.add(identifier());
         while (at("[") && peek(1).is("]")) {
             children.add(advance());
