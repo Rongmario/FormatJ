@@ -20,6 +20,8 @@ import java.util.Set;
  * imports by rule rather than by position, so the whole run can be rearranged freely. Deleting one is
  * a different matter, and is done only under {@code imports.remove-unused} and only where
  * {@link ImportUsage} finds no mention of the name anywhere else in the file, comments included.
+ * Removal is skipped entirely for a file that uses a Unicode escape, since the lexer does not decode
+ * them and so cannot tell whether an escaped identifier is one of the names it found.
  *
  * <p>The blank line between groups is not this rewrite's business. Blank lines are whitespace, the
  * emitter owns whitespace, and both consult {@link ImportOrder} so that they agree on where one group
@@ -55,7 +57,8 @@ public final class ImportRewrite implements Rewrite {
         }
 
         boolean sorts = ImportOrder.sorts(context.style());
-        List<ImportEntry> kept = context.rule(ImportRules.REMOVE_UNUSED) ? used(entries, node) : entries;
+        boolean removeUnused = context.rule(ImportRules.REMOVE_UNUSED) && !hasUnicodeEscape(node);
+        List<ImportEntry> kept = removeUnused ? used(entries, node) : entries;
         List<ImportEntry> ordered = sorts ? ImportOrder.sorted(kept, context.style()) : kept;
 
         List<String> before = lexemes(entries);
@@ -76,6 +79,19 @@ public final class ImportRewrite implements Rewrite {
         }
 
         return replaceRun(node, entries, ordered, sorts);
+    }
+
+    /**
+     * Whether the file uses a Unicode escape anywhere.
+     *
+     * <p>The lexer does not decode {@code \\uXXXX} escapes (see {@link
+     * zone.rong.formatj.core.lexer.JavaLexer}), so an identifier spelled with one reads as a
+     * different name from its plain-text uses and {@link ImportUsage} would call its import unused
+     * when it is not. Refusing to remove anything is the safe fallback until the lexer translates
+     * escapes the way {@code javac} does.
+     */
+    private static boolean hasUnicodeEscape(GreenNode compilationUnit) {
+        return compilationUnit.text().contains("\\u");
     }
 
     /** The imports whose simple name the rest of the file still mentions. */
