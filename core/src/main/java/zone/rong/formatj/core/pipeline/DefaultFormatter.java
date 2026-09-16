@@ -135,9 +135,9 @@ public final class DefaultFormatter implements Formatter {
 
         // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
         // so one broken statement does not cost the rest of the file its formatting.
-        Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete);
+        Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete, source);
         if (attempt.failed() && attempt.rewrote()) {
-            Attempt withoutRewrites = attempt(parsed, false);
+            Attempt withoutRewrites = attempt(parsed, false, source);
             if (withoutRewrites.failed()) {
                 return FormatResult.failed(source, List.of(Diagnostic.error(withoutRewrites.problem())));
             }
@@ -158,7 +158,7 @@ public final class DefaultFormatter implements Formatter {
      *
      * @param allowed whether rules that add or remove code may run
      */
-    private Attempt attempt(ParseResult parsed, boolean allowed) {
+    private Attempt attempt(ParseResult parsed, boolean allowed, String source) {
         GreenNode original = parsed.root().green();
         RewriteResult rewritten =
                 allowed ? RewriteStage.apply(original, style, this.rewrites) : new RewriteResult(original, List.of());
@@ -178,7 +178,7 @@ public final class DefaultFormatter implements Formatter {
             }
         }
 
-        String formatted = layout(SyntaxNode.root(rewritten.root()));
+        String formatted = layout(SyntaxNode.root(rewritten.root()), source);
         if (!verify) {
             return Attempt.success(formatted, rewrote);
         }
@@ -214,7 +214,7 @@ public final class DefaultFormatter implements Formatter {
                 allowed
                 ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
                 : formattedTree.root().green();
-        String twice = layout(SyntaxNode.root(second));
+        String twice = layout(SyntaxNode.root(second), source);
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
         }
@@ -252,13 +252,13 @@ public final class DefaultFormatter implements Formatter {
      * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
      * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
      */
-    String layout(SyntaxNode root) {
-        DocPrinter.Printed printed = printer().printMarked(new DocEmitter(style).emit(root));
+    String layout(SyntaxNode root, String source) {
+        String separator = lineSeparator(source);
+        DocPrinter.Printed printed = printer(separator).printMarked(new DocEmitter(style).emit(root));
         String text =
                 new ColumnAligner(
                         style.get(FileRules.TAB_WIDTH),
                         style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(printed);
-        String separator = lineSeparator();
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
     }
@@ -271,21 +271,27 @@ public final class DefaultFormatter implements Formatter {
         return text.substring(0, end);
     }
 
-    private DocPrinter printer() {
+    private DocPrinter printer(String separator) {
         return new DocPrinter(
                 style.get(WrappingRules.MAX_LINE_LENGTH),
                 style.get(IndentRules.USE_TABS),
                 style.get(FileRules.TAB_WIDTH),
-                lineSeparator(),
+                separator,
                 style.get(FileRules.TRIM_TRAILING_WHITESPACE),
                 style.get(IndentRules.BLANK_LINES));
     }
 
-    private String lineSeparator() {
+    private String lineSeparator(String source) {
         return switch (style.get(FileRules.LINE_ENDING)) {
             case CRLF -> "\r\n";
             case SYSTEM -> System.lineSeparator();
-            case LF, PRESERVE -> "\n";
+            case LF -> "\n";
+            // The file's own first line ending, so a formatter run does not flip a CRLF file to LF
+            // (or vice versa) on its own; a file with no line ending yet falls back to LF.
+            case PRESERVE -> {
+                int newline = source.indexOf('\n');
+                yield newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
+            }
         };
     }
 

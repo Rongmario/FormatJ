@@ -682,6 +682,16 @@ class LayoutOptionTest {
     }
 
     @Test
+    void preserveLineEndingKeepsTheSourcesOwnTerminator() {
+        String crlfSource = "class A {\r\n\r\n    void f() {\r\n    }\r\n\r\n}\r\n";
+
+        String formatted = format(crlfSource, style -> { });
+
+        assertTrue(formatted.contains("\r\n"), formatted);
+        assertFalse(formatted.replace("\r\n", "").contains("\n"), formatted);
+    }
+
+    @Test
     void theCharsetRuleResolvesToACharset() {
         Style utf16 = Style.builder().file(file -> file.charset("UTF-16")).build();
         Style nonsense = Style.builder().file(file -> file.charset("not-a-charset")).build();
