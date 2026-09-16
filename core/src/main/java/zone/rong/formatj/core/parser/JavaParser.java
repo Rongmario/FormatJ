@@ -53,7 +53,6 @@ public final class JavaParser extends StatementParser {
 
     private ParseResult parseCompilationUnit() {
         List<GreenNode> children = new ArrayList<>();
-        boolean complete = true;
 
         while (!atEnd()) {
             int start = mark();
@@ -71,14 +70,13 @@ public final class JavaParser extends StatementParser {
                                 failure.token().line(),
                                 failure.token().column()));
                 children.add(unparsedFrom(start));
-                complete = false;
             }
         }
         // The end-of-file token carries the file's trailing trivia, so it must be consumed.
         children.add(advance());
 
         GreenNode unit = branch(SyntaxKind.COMPILATION_UNIT, children);
-        return new ParseResult(SyntaxNode.root(unit), diagnostics(), complete);
+        return new ParseResult(SyntaxNode.root(unit), diagnostics());
     }
 
     private GreenNode parseTopLevelDeclaration() {
