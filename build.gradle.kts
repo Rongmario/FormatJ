@@ -40,6 +40,7 @@ dependencies {
 val formatExcludes = listOf(
     "--exclude", "**/build/**",
     "--exclude", "**/src/test/resources/**",
+    "--exclude", "**/.*/**",
 )
 
 tasks.register<JavaExec>("format") {

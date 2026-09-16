@@ -60,6 +60,7 @@ class CorpusInvariantTest {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/build/"))
+                    .filter(path -> !path.toString().contains("/."))
                     .sorted()
                     .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
@@ -166,6 +167,7 @@ class CorpusInvariantTest {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/build/"))
+                    .filter(path -> !path.toString().contains("/."))
                     .sorted()
                     .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
