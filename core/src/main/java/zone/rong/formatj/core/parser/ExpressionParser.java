@@ -61,15 +61,23 @@ abstract class ExpressionParser extends ParserBase {
         return parseArraySuffix(base);
     }
 
-    /** A possibly qualified name with type arguments on any segment: {@code a.b.C<D>.E}. */
+    /**
+     * A possibly qualified name with type arguments on any segment: {@code a.b.C<D>.E}.
+     *
+     * <p>A segment may also carry a type annotation (JSR 308), {@code a.@A b}, which can only mean an
+     * annotated type here: a plain qualified name never has one.
+     */
     private GreenNode parseTypeName() {
         List<GreenNode> children = new ArrayList<>();
         children.add(identifier());
         if (at("<")) {
             children.add(parseTypeArguments());
         }
-        while (at(".") && peek(1).kind() == TokenKind.IDENTIFIER) {
+        while (at(".") && (peek(1).kind() == TokenKind.IDENTIFIER || peek(1).is("@"))) {
             children.add(advance());
+            while (at("@")) {
+                children.add(parseAnnotation());
+            }
             children.add(identifier());
             if (at("<")) {
                 children.add(parseTypeArguments());
@@ -80,9 +88,12 @@ abstract class ExpressionParser extends ParserBase {
 
     private GreenNode parseArraySuffix(GreenNode base) {
         GreenNode current = base;
-        while (at("[") && peek(1).is("]")) {
+        while (atAnnotatedDimension()) {
             List<GreenNode> children = new ArrayList<>();
             children.add(current);
+            while (at("@")) {
+                children.add(parseAnnotation());
+            }
             children.add(advance());
             children.add(advance());
             current = branch(SyntaxKind.ARRAY_TYPE, children);
@@ -94,6 +105,27 @@ abstract class ExpressionParser extends ParserBase {
             current = branch(SyntaxKind.ARRAY_TYPE, children);
         }
         return current;
+    }
+
+    /** Whether an array dimension starts here, {@code []}, possibly type-annotated: {@code @A []}. */
+    private boolean atAnnotatedDimension() {
+        if (at("[")) {
+            return peek(1).is("]");
+        }
+        if (!at("@")) {
+            return false;
+        }
+        int start = mark();
+        try {
+            while (at("@")) {
+                parseAnnotation();
+            }
+            return at("[") && peek(1).is("]");
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
     }
 
     protected GreenNode parseTypeArguments() {
@@ -630,10 +662,13 @@ abstract class ExpressionParser extends ParserBase {
         }
         GreenNode type = atPrimitiveType() ? advance() : parseTypeNameForCreation();
         children.add(type);
-        if (at("[")) {
-            while (at("[")) {
+        if (at("[") || at("@")) {
+            while (at("[") || at("@")) {
                 List<GreenNode> dimension = new ArrayList<>();
-                dimension.add(advance());
+                while (at("@")) {
+                    dimension.add(parseAnnotation());
+                }
+                dimension.add(expect("["));
                 if (!at("]")) {
                     dimension.add(parseExpression());
                 }
