@@ -505,6 +505,11 @@ abstract class ExpressionParser extends ParserBase {
     }
 
     private GreenNode parsePrimary() {
+        if (at("<")) {
+            // No expression otherwise starts with <, so this can only be an explicit constructor
+            // invocation carrying type arguments: <T>this(...) or <T>super(...).
+            return parseExplicitConstructorInvocation();
+        }
         Token token = peek();
         return switch (token.kind()) {
             case NUMBER_LITERAL, STRING_LITERAL, CHAR_LITERAL, TEXT_BLOCK ->
@@ -514,6 +519,14 @@ abstract class ExpressionParser extends ParserBase {
             case SEPARATOR -> parseSeparatorPrimary(token);
             default -> throw fail("Expected an expression");
         };
+    }
+
+    private GreenNode parseExplicitConstructorInvocation() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(parseTypeArguments());
+        children.add(at("super") ? expect("super") : expect("this"));
+        children.add(parseArguments());
+        return branch(SyntaxKind.METHOD_INVOCATION, children);
     }
 
     private GreenNode parseIdentifierPrimary() {
