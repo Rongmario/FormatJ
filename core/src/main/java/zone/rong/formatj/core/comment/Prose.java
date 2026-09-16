@@ -22,7 +22,8 @@ import java.util.Locale;
  * <ul>
  *   <li>{@code {@code ...}} and {@code {@literal ...}}, to the brace that closes them,
  *   <li>{@code <pre>} to {@code </pre>},
- *   <li>{@code @snippet}, inline or as a block tag.
+ *   <li>{@code @snippet}, inline or as a block tag,
+ *   <li>a Markdown fenced code block, from its opening run of backticks to a matching closing line.
  * </ul>
  *
  * <p>Treating those as single atoms does double duty. The wrapper cannot break one across lines
@@ -232,6 +233,9 @@ public final class Prose {
             int close = indexOfIgnoreCase(content, "</pre>", index);
             return close < 0 ? content.length() : close + "</pre>".length();
         }
+        if (content.startsWith("```", index) && atLineStart(content, index)) {
+            return fenceEnd(content, index);
+        }
         for (String tag : new String[] {"{@code", "{@literal", "{@snippet"}) {
             if (content.startsWith(tag, index) && endsTag(content, index + tag.length())) {
                 return matchingBrace(content, index);
@@ -264,6 +268,59 @@ public final class Prose {
             }
         }
         return content.length();
+    }
+
+    /**
+     * Whether nothing but whitespace separates {@code index} from the start of the content or the
+     * line before it.
+     *
+     * <p>Not the same question as the scan's own {@code lineStart} flag, which goes false the moment
+     * it steps over one leading space; a Javadoc line keeps exactly one space after its star, so a
+     * fence marker sits one character past where that flag would still call it a line start.
+     */
+    private static boolean atLineStart(String content, int index) {
+        for (int i = index - 1; i >= 0; i--) {
+            char c = content.charAt(i);
+            if (c == '\n') {
+                return true;
+            }
+            if (!Character.isWhitespace(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A Markdown fenced code block, from the opening run of backticks to a closing line of at
+     * least as many backticks and nothing else, or to the end of the comment when it is never
+     * closed.
+     */
+    private static int fenceEnd(String content, int start) {
+        int fenceLength = start;
+        while (fenceLength < content.length() && content.charAt(fenceLength) == '`') {
+            fenceLength++;
+        }
+        int length = fenceLength - start;
+        int lineEnd = content.indexOf('\n', fenceLength);
+        int index = lineEnd < 0 ? content.length() : lineEnd + 1;
+        while (index < content.length()) {
+            int nextLineEnd = content.indexOf('\n', index);
+            int end = nextLineEnd < 0 ? content.length() : nextLineEnd;
+            if (isClosingFence(content.substring(index, end).strip(), length)) {
+                return nextLineEnd < 0 ? content.length() : nextLineEnd + 1;
+            }
+            index = nextLineEnd < 0 ? content.length() : nextLineEnd + 1;
+        }
+        return content.length();
+    }
+
+    private static boolean isClosingFence(String strippedLine, int minLength) {
+        int count = 0;
+        while (count < strippedLine.length() && strippedLine.charAt(count) == '`') {
+            count++;
+        }
+        return count >= 3 && count >= minLength && count == strippedLine.length();
     }
 
     /** A block tag runs until the line that starts the next one, or to the end of the comment. */

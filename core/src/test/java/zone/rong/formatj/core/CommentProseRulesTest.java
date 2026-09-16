@@ -78,6 +78,16 @@ class CommentProseRulesTest {
         assertTrue(formatted.contains("    //g();\n    //h();\n"), formatted);
     }
 
+    @Test
+    void reflowLeavesAFencedCodeBlockInADocCommentRunAlone() {
+        String formatted =
+                format(
+                        style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                        "    /// ```\n    ///   int x =   1;\n    /// ```\n    void f() { }\n");
+        assertTrue(formatted.contains("///   int x =   1;\n"), formatted);
+    }
+
     // ------------------------------------------------------------- javadoc.*
 
     @Test
@@ -137,6 +147,15 @@ class CommentProseRulesTest {
                 format(
                         style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
                         "    /**\n     * <pre>\n     *   int x =   1;\n     * </pre>\n     */\n    void f() { }\n");
+        assertTrue(formatted.contains("     *   int x =   1;\n"), formatted);
+    }
+
+    @Test
+    void wrappingNeverTouchesAFencedCodeBlock() {
+        String formatted =
+                format(
+                        style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
+                        "    /**\n     * ```\n     *   int x =   1;\n     * ```\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     *   int x =   1;\n"), formatted);
     }
 
