@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Style resolution, formatter reuse and range splicing.
+ * Style resolution and formatter reuse. Range splicing happens inside core's formatter itself.
  * Kept free of IntelliJ types so it can be tested like the other plugins.
  */
 public final class FormatJEngine {
@@ -120,22 +120,7 @@ public final class FormatJEngine {
         if (result.hasErrors()) {
             return new Outcome(request.source(), true, result.diagnostics());
         }
-        String formatted = result.text();
-        if (!wholeFile(request.source(), request.ranges())) {
-            formatted = LineDiffer.splice(request.source(), formatted, request.ranges());
-        }
-        return new Outcome(formatted, formatted.equals(request.source()), result.diagnostics());
-    }
-
-    static boolean wholeFile(String source, List<SourceRange> ranges) {
-        if (ranges == null || ranges.isEmpty()) {
-            return true;
-        }
-        if (ranges.size() != 1) {
-            return false;
-        }
-        SourceRange range = ranges.getFirst();
-        return range.startOffset() == 0 && range.endOffset() >= source.length();
+        return new Outcome(result.text(), result.isUnchanged(), result.diagnostics());
     }
 
 }

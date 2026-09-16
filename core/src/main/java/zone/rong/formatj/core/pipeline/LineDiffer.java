@@ -1,12 +1,13 @@
-package zone.rong.formatj.idea;
+package zone.rong.formatj.core.pipeline;
 
 import zone.rong.formatj.api.SourceRange;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Line-oriented diff used to apply a whole-file FormatJ result only to the ranges IntelliJ asked for.
- * Core still formats the whole file; this reconstructs a document that keeps the rest of the author's layout.
+ * Line-oriented diff between the original source and a whole-file formatting result, used to keep
+ * only the hunks that fall inside a caller's requested ranges. The rest of the file keeps its
+ * original characters even where formatting the whole file would have reflowed it too.
  */
 final class LineDiffer {
 
