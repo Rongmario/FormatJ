@@ -55,6 +55,12 @@ public final class DocEmitter extends StatementEmitter {
 
             case PACKAGE_DECLARATION, IMPORT_DECLARATION -> emitFlatDeclaration(node);
 
+            case MODULE_DECLARATION -> emitModuleDeclaration(node);
+            case MODULE_BODY -> emitModuleBody(node);
+            case REQUIRES_DIRECTIVE, EXPORTS_DIRECTIVE, OPENS_DIRECTIVE, USES_DIRECTIVE, PROVIDES_DIRECTIVE ->
+                    emitFlatDeclaration(node);
+            case TO_CLAUSE, WITH_CLAUSE -> emitModuleNameList(node);
+
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, ANNOTATION_TYPE_DECLARATION ->
                     emitTypeDeclaration(node);
             case RECORD_DECLARATION -> emitTypeDeclaration(node);
@@ -317,6 +323,56 @@ public final class DocEmitter extends StatementEmitter {
             return emitBracedBody(node, EmptyBodyStyle.COMPACT, 0, 0);
         }
         return emitClassBody(node);
+    }
+
+    // ------------------------------------------------------------------ modules
+
+    private Doc emitModuleDeclaration(GreenNode node) {
+        List<GreenNode> children = node.children();
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (child.kind() == SyntaxKind.MODULE_BODY) {
+                parts.add(braceLead(rule(BraceRules.CLASS_PLACEMENT)));
+                parts.add(emit(child));
+                continue;
+            }
+            if (i > 0) {
+                parts.add(space());
+            }
+            parts.add(emit(child));
+        }
+        return Doc.concat(parts);
+    }
+
+    private Doc emitModuleBody(GreenNode node) {
+        return emitBracedBody(
+                node,
+                rule(BraceRules.EMPTY_CLASS_BODY),
+                rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
+                rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE));
+    }
+
+    /**
+     * The {@code to} list of an {@code exports}/{@code opens} directive, or the {@code with} list of a
+     * {@code provides} one: {@code to a, b} or {@code with A, B}.
+     *
+     * <p>Module directives are rare and short enough that wrapping them like a parameter or argument
+     * list would be disproportionate; the list is always kept on one line.
+     */
+    private Doc emitModuleNameList(GreenNode node) {
+        List<GreenNode> children = node.children();
+        List<Doc> parts = new ArrayList<>();
+        parts.add(emit(children.getFirst()));
+        parts.add(space());
+        for (int i = 1; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            parts.add(emit(child));
+            if (is(child, ",")) {
+                parts.add(space());
+            }
+        }
+        return Doc.concat(parts);
     }
 
     @Override

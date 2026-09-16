@@ -16,6 +16,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.tools.Diagnostic;
@@ -33,10 +34,12 @@ import org.junit.jupiter.api.TestFactory;
 /**
  * Fixtures under {@code src/test/resources/jls25} are standalone Java files a JDK accepts.
  *
- * <p>Each one is compiled with {@code javac} to prove the source itself is valid, parsed at the
- * newest language level to prove FormatJ understands the construct completely, formatted and
- * recompiled to catch a rewrite that produced invalid Java, and formatted a second time to prove
- * the result is a fixed point.
+ * <p>A fixture is either one {@code .java} file, or a directory of them that must compile as a
+ * single unit, such as a {@code module-info.java} alongside the packages it exports. Either way,
+ * each is compiled with {@code javac} to prove the source itself is valid, parsed at the newest
+ * language level to prove FormatJ understands the construct completely, formatted and recompiled
+ * to catch a rewrite that produced invalid Java, and formatted a second time to prove the result
+ * is a fixed point.
  */
 class Jls25FixtureTest {
 
@@ -51,31 +54,87 @@ class Jls25FixtureTest {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assumeTrue(compiler != null, "no system Java compiler available");
 
-        try (Stream<Path> files = Files.list(FIXTURES)) {
-            List<Path> fixtures = files.filter(path -> path.toString().endsWith(".java")).sorted().toList();
+        try (Stream<Path> entries = Files.list(FIXTURES)) {
+            List<Path> fixtures = entries.sorted().toList();
             assertTrue(!fixtures.isEmpty(), "no fixtures found under " + FIXTURES);
             return fixtures.stream().map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
-                String source = Files.readString(path, StandardCharsets.UTF_8);
-                assertCompiles(compiler, path.getFileName().toString(), source);
-
-                ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
-                assertTrue(!parsed.hasErrors(), () -> "parse errors in " + path + ": " + parsed.diagnostics());
-                assertTrue(parsed.complete(), () -> "unparsed regions remain in " + path);
-
-                Formatter formatter = FormatJ.defaultFormatter();
-                FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-                assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-                assertCompiles(compiler, path.getFileName().toString(), once.text());
-
-                FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-                assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                if (Files.isDirectory(path)) {
+                    testDirectoryFixture(compiler, path);
+                } else {
+                    testSingleFileFixture(compiler, path);
+                }
             }));
         }
     }
 
-    private static void assertCompiles(JavaCompiler compiler, String fileName, String source) throws IOException {
+    /** A lone {@code .java} file, compiled and formatted on its own. */
+    private static void testSingleFileFixture(JavaCompiler compiler, Path path) throws IOException {
+        String source = Files.readString(path, StandardCharsets.UTF_8);
+        assertCompiles(compiler, List.of(new StringSource(path.getFileName().toString(), source)));
+
+        ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
+        assertTrue(!parsed.hasErrors(), () -> "parse errors in " + path + ": " + parsed.diagnostics());
+        assertTrue(parsed.complete(), () -> "unparsed regions remain in " + path);
+
+        Formatter formatter = FormatJ.defaultFormatter();
+        FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+        assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+        assertCompiles(compiler, List.of(new StringSource(path.getFileName().toString(), once.text())));
+
+        FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+        assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+    }
+
+    /**
+     * A directory of {@code .java} files that only compile together, such as a {@code
+     * module-info.java} exporting packages declared alongside it.
+     */
+    private static void testDirectoryFixture(JavaCompiler compiler, Path directory) throws IOException {
+        List<Path> files;
+        try (Stream<Path> walk = Files.walk(directory)) {
+            files = walk.filter(path -> path.toString().endsWith(".java")).sorted().toList();
+        }
+        assertTrue(!files.isEmpty(), "no .java files found under " + directory);
+
+        List<String> sources = new ArrayList<>(files.size());
+        for (Path file : files) {
+            sources.add(Files.readString(file, StandardCharsets.UTF_8));
+        }
+        assertCompiles(compiler, unitsOf(files, sources));
+
+        Formatter formatter = FormatJ.defaultFormatter();
+        List<String> formattedOnce = new ArrayList<>(files.size());
+        for (int i = 0; i < files.size(); i++) {
+            Path file = files.get(i);
+            String source = sources.get(i);
+            ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
+            assertTrue(!parsed.hasErrors(), () -> "parse errors in " + file + ": " + parsed.diagnostics());
+            assertTrue(parsed.complete(), () -> "unparsed regions remain in " + file);
+
+            FormatResult once = formatter.format(FormatRequest.of(source).withName(file.toString()));
+            assertTrue(!once.hasErrors(), () -> "formatting failed in " + file + ": " + once.diagnostics());
+            formattedOnce.add(once.text());
+        }
+        assertCompiles(compiler, unitsOf(files, formattedOnce));
+
+        for (int i = 0; i < files.size(); i++) {
+            Path file = files.get(i);
+            String formatted = formattedOnce.get(i);
+            FormatResult twice = formatter.format(FormatRequest.of(formatted).withName(file.toString()));
+            assertEquals(formatted, twice.text(), () -> "formatting must be a fixed point: " + file);
+        }
+    }
+
+    private static List<JavaFileObject> unitsOf(List<Path> files, List<String> sources) {
+        List<JavaFileObject> units = new ArrayList<>(files.size());
+        for (int i = 0; i < files.size(); i++) {
+            units.add(new StringSource(files.get(i).getFileName().toString(), sources.get(i)));
+        }
+        return units;
+    }
+
+    private static void assertCompiles(JavaCompiler compiler, List<JavaFileObject> units) throws IOException {
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        JavaFileObject unit = new StringSource(fileName, source);
         try (
                 StandardJavaFileManager base = compiler.getStandardFileManager(
                         diagnostics,
@@ -87,13 +146,13 @@ class Jls25FixtureTest {
                     diagnostics,
                     List.of("--release", "25", "-proc:none"),
                     null,
-                    List.of(unit))
+                    units)
                     .call();
             List<Diagnostic<? extends JavaFileObject>> errors = diagnostics.getDiagnostics()
                     .stream()
                     .filter(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR)
                     .toList();
-            assertTrue(success && errors.isEmpty(), () -> "javac errors in " + fileName + ": " + errors);
+            assertTrue(success && errors.isEmpty(), () -> "javac errors: " + errors);
         }
     }
 
