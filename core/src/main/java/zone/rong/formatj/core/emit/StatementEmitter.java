@@ -470,11 +470,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
             GreenNode child = children.get(i);
             if (i > 0) {
                 GreenNode previous = children.get(i - 1);
-                boolean bracket = is(child, "[") || is(child, "]");
+                // A qualified receiver's Outer.this stays tight, like any other member access.
+                boolean tight = is(child, "[") || is(child, "]") || is(child, ".") || is(previous, ".");
                 if (previous.kind() == SyntaxKind.ANNOTATION) {
                     parts.add(annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children));
                 } else {
-                    parts.add(spaceIf(!bracket));
+                    parts.add(spaceIf(!tight));
                 }
             }
             parts.add(emit(child));

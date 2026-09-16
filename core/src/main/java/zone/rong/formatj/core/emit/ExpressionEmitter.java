@@ -160,6 +160,10 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (previous.kind() == SyntaxKind.ANNOTATION) {
             return true;
         }
+        if (next.kind() == SyntaxKind.ANNOTATION) {
+            // Except straight after a dot: Outer.@A Inner has no space before the annotation there.
+            return !is(previous, ".");
+        }
         if (is(previous, "...")) {
             return rule(SpacingRules.AFTER_VARARGS_ELLIPSIS);
         }
@@ -755,7 +759,15 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (next.kind() == SyntaxKind.ARRAY_INITIALIZER) {
             return true;
         }
+        if (next.kind() == SyntaxKind.DIMENSION && startsWithAnnotation(next)) {
+            return true;
+        }
         return false;
+    }
+
+    private static boolean startsWithAnnotation(GreenNode node) {
+        List<GreenNode> children = node.children();
+        return !children.isEmpty() && children.getFirst().kind() == SyntaxKind.ANNOTATION;
     }
 
     /**

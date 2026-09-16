@@ -380,6 +380,22 @@ public final class JavaParser extends StatementParser {
         }
     }
 
+    /** Whether a generic constructor, {@code <T> Name(...)}, starts here. */
+    private boolean atGenericConstructor(String enclosingName) {
+        if (!at("<")) {
+            return false;
+        }
+        int start = mark();
+        try {
+            parseTypeParameters();
+            return atIdentifier() && peek().is(enclosingName) && peek(1).is("(");
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
+    }
+
     private GreenNode parseMember(String enclosingName, boolean isRecord) {
         if (at(";")) {
             return branch(SyntaxKind.EMPTY_STATEMENT, List.of(advance()));
@@ -398,7 +414,7 @@ public final class JavaParser extends StatementParser {
                 || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
             return parseTypeDeclaration(modifiers);
         }
-        if (atIdentifier() && peek().is(enclosingName) && peek(1).is("(")) {
+        if ((atIdentifier() && peek().is(enclosingName) && peek(1).is("(")) || atGenericConstructor(enclosingName)) {
             return parseConstructor(modifiers, false);
         }
         if (isRecord && atIdentifier() && peek().is(enclosingName) && peek(1).is("{")) {
@@ -469,6 +485,9 @@ public final class JavaParser extends StatementParser {
 
     private GreenNode parseConstructor(List<GreenNode> modifiers, boolean compact) {
         List<GreenNode> children = withModifiers(modifiers);
+        if (at("<")) {
+            children.add(parseTypeParameters());
+        }
         children.add(identifier());
         if (compact) {
             children.add(parseBlock());
@@ -504,6 +523,13 @@ public final class JavaParser extends StatementParser {
         children.add(parseType());
         if (at("this")) {
             // A receiver parameter has no name of its own.
+            children.add(advance());
+            return branch(SyntaxKind.PARAMETER, children);
+        }
+        if (atIdentifier() && peek(1).is(".") && peek(2).is("this")) {
+            // An inner class constructor's receiver names its enclosing instance, e.g. Outer.this.
+            children.add(identifier());
+            children.add(advance());
             children.add(advance());
             return branch(SyntaxKind.PARAMETER, children);
         }
