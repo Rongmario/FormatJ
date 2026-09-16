@@ -454,7 +454,14 @@ abstract class ExpressionParser extends ParserBase {
                 if (at("super")) {
                     // A qualified super, Outer.super, naming the superclass of an enclosing class.
                     children.add(advance());
-                    current = branch(SyntaxKind.MEMBER_ACCESS, children);
+                    if (at("(")) {
+                        // outer.super(args): explicit superclass constructor invocation supplying
+                        // the enclosing instance of a non-static inner class (JLS 8.8.7.1).
+                        children.add(parseArguments());
+                        current = branch(SyntaxKind.METHOD_INVOCATION, children);
+                    } else {
+                        current = branch(SyntaxKind.MEMBER_ACCESS, children);
+                    }
                     continue;
                 }
                 if (at("class")) {
