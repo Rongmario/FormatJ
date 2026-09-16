@@ -89,11 +89,22 @@ public final class JavaParser extends StatementParser {
         if (at(";")) {
             return branch(SyntaxKind.EMPTY_STATEMENT, List.of(advance()));
         }
+        int start = mark();
         List<GreenNode> modifiers = parseModifierList();
         if (at("package")) {
             return parsePackageDeclaration(modifiers);
         }
-        return parseTypeDeclaration(modifiers);
+        if (at("class")
+                || at("interface")
+                || at("enum")
+                || (at("@") && peek(1).is("interface"))
+                || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
+            return parseTypeDeclaration(modifiers);
+        }
+        // JEP 512: a compact source file has no top-level type declaration at all; its fields,
+        // methods and initializers are members of the file's implicit unnamed class.
+        reset(start);
+        return parseMember("", false);
     }
 
     private GreenNode parsePackageDeclaration(List<GreenNode> modifiers) {
