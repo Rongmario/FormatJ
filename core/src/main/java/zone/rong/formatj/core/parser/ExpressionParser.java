@@ -522,7 +522,7 @@ abstract class ExpressionParser extends ParserBase {
     }
 
     private GreenNode parseKeywordPrimary(Token token) {
-        if (LITERAL_KEYWORDS.contains(token.text())) {
+        if (LITERAL_KEYWORDS.contains(token.decodedText())) {
             return branch(SyntaxKind.LITERAL, List.of(advance()));
         }
         if (token.is("this")) {
@@ -545,7 +545,7 @@ abstract class ExpressionParser extends ParserBase {
         if (token.is("switch")) {
             return parseSwitchExpression();
         }
-        if (PRIMITIVE_TYPES.contains(token.text())) {
+        if (PRIMITIVE_TYPES.contains(token.decodedText())) {
             // int.class, int[].class
             GreenNode type = parseType();
             List<GreenNode> children = new ArrayList<>();

@@ -217,6 +217,26 @@ class FormatterPropertyTest {
     }
 
     @Test
+    void anIdentifierWithAUnicodeEscapeFormatsLosslesslyAndIsAFixedPoint() {
+        // L decodes to 'L', so the field type is List spelled with an escape for its first letter.
+        String template = """
+                package demo;
+
+                import java.util.List;
+
+                class T{
+                ESCAPEist<String>run(){return List.of();}
+                }
+                """;
+        String source = template.replace("ESCAPE", "\\" + "u004c");
+
+        FormatResult result = format(source);
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("\\" + "u004cist"), result.text());
+        assertFixedPoint(FormatJ.defaultFormatter(), source);
+    }
+
+    @Test
     void formattingTwiceIsAFixedPointForMessyAndRewriteStyles() {
         String messy = "package a;class A{void run(){if(x){g();}else{h();}list.stream().map(v->v+1).toList();}}\n";
         assertFixedPoint(FormatJ.defaultFormatter(), messy);

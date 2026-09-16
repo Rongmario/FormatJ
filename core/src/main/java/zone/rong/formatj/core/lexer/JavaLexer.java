@@ -12,9 +12,12 @@ import java.util.Set;
  * concatenated back into the original source, the pipeline can verify that formatting changed only
  * layout and never the program, and can fall back to the untouched source whenever it cannot.
  *
- * <p>Unicode escapes ({@code \\u0041} standing in for a source character) are not yet decoded; they
- * are lexed as the characters they are written with, which is lossless but means an identifier
- * spelled with an escape is not recognised as such.
+ * <p>Unicode escapes ({@code \\u0041} standing in for a source character, JLS 3.3) are decoded for
+ * identifiers and keywords: an identifier or keyword spelled with one is classified, and matched by
+ * name elsewhere in the pipeline, by its decoded spelling, while {@link Token#text()} keeps the raw
+ * escape so the token still round-trips. Escapes are not decoded outside identifiers and keywords, so
+ * one that would end a {@code //} comment, open a string, or spell an operator is lexed as the
+ * characters it is written with instead.
  */
 public final class JavaLexer {
 
@@ -184,7 +187,7 @@ public final class JavaLexer {
                 || (first == '.' && offset + 1 < source.length() && Character.isDigit(source.charAt(offset + 1)))) {
             return numberLiteral();
         }
-        if (Character.isJavaIdentifierStart(first)) {
+        if (Character.isJavaIdentifierStart(first) || startsIdentifierViaEscape(offset)) {
             return identifierOrKeyword();
         }
         if (source.startsWith("...", offset)) {
@@ -313,11 +316,23 @@ public final class JavaLexer {
 
     private Token identifierOrKeyword() {
         int end = offset;
-        while (end < source.length() && Character.isJavaIdentifierPart(source.charAt(end))) {
-            end++;
+        while (end < source.length()) {
+            int escapeLength = UnicodeEscapes.lengthAt(source, end);
+            char part = escapeLength > 0 ? UnicodeEscapes.decodedCharAt(source, end, escapeLength) : source.charAt(end);
+            if (!Character.isJavaIdentifierPart(part)) {
+                break;
+            }
+            end += escapeLength > 0 ? escapeLength : 1;
         }
         String text = source.substring(offset, end);
-        return emit(KEYWORDS.contains(text) ? TokenKind.KEYWORD : TokenKind.IDENTIFIER, end);
+        String decoded = text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
+        return emit(KEYWORDS.contains(decoded) ? TokenKind.KEYWORD : TokenKind.IDENTIFIER, end);
+    }
+
+    /** Whether a Unicode escape (JLS 3.3) starts at {@code at} and decodes to a valid identifier start. */
+    private boolean startsIdentifierViaEscape(int at) {
+        int length = UnicodeEscapes.lengthAt(source, at);
+        return length > 0 && Character.isJavaIdentifierStart(UnicodeEscapes.decodedCharAt(source, at, length));
     }
 
     private boolean isSign(int at) {

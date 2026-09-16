@@ -164,7 +164,7 @@ public final class JavaParser extends StatementParser {
             if (token.is("class") || token.is("interface") || token.is("enum") || token.is("record")) {
                 return true;
             }
-            if (token.kind() == TokenKind.KEYWORD && MODIFIER_KEYWORDS.contains(token.text())) {
+            if (token.kind() == TokenKind.KEYWORD && MODIFIER_KEYWORDS.contains(token.decodedText())) {
                 continue;
             }
             if (token.kind() == TokenKind.IDENTIFIER && (token.is("sealed") || token.is("non") || token.is("record"))) {

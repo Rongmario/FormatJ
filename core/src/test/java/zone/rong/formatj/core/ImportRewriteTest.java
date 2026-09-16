@@ -238,25 +238,24 @@ class ImportRewriteTest {
     }
 
     @Test
-    void aUnicodeEscapeAnywhereInTheFileKeepsEveryImport() {
-        // The lexer does not decode \\u escapes, so an escaped identifier could be misjudged unused;
-        // the whole file is left alone rather than risk deleting an import something still needs.
-        String source = """
+    void anIdentifierSpelledWithAUnicodeEscapeIsMatchedByItsDecodedName() {
+        // L decodes to 'L', so this field type is List spelled with an escape for its first letter.
+        String template = """
                 package demo;
 
                 import java.util.List;
-                import java.util.Listener;
 
                 class T {
 
-                    // \\u0041
-                    List<String> run() {
+                    ESCAPEist<String> run() {
                         return List.of();
                     }
 
                 }
                 """;
-        assertTrue(format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.Listener;"));
+        String source = template.replace("ESCAPE", "\\" + "u004c");
+        assertTrue(
+                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;"));
     }
 
     @Test

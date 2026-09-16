@@ -43,7 +43,7 @@ public final class ImportUsage {
     private static void collect(GreenNode node, Set<String> names, boolean insideImport) {
         if (node instanceof GreenNode.Leaf leaf) {
             if (!insideImport && leaf.token().token().kind().isSignificant()) {
-                names.add(leaf.lexeme());
+                names.add(leaf.decodedLexeme());
             }
             return;
         }

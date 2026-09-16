@@ -238,6 +238,16 @@ class ParserTest {
                         .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")));
     }
 
+    @Test
+    void anIfSpelledWithAUnicodeEscapeParsesAsAnIfStatement() {
+        // i decodes to 'i', so "if" is spelled with an escape for its first letter.
+        String template = "class A { void f(boolean b) { ESCAPEf (b) {} } }\n";
+        String source = template.replace("ESCAPE", "\\" + "u0069");
+        assertParses(source);
+        ParseResult result = parse(source);
+        assertEquals(SyntaxKind.IF_STATEMENT, find(result.root().green(), SyntaxKind.IF_STATEMENT).kind());
+    }
+
     private static GreenNode find(GreenNode node, SyntaxKind kind) {
         GreenNode match = findOrNull(node, kind);
         if (match == null) {

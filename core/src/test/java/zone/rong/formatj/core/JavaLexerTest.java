@@ -108,6 +108,48 @@ class JavaLexerTest {
     }
 
     @Test
+    void anEvenNumberOfBackslashesIsNotAnEscape() {
+        // Two literal backslashes, not one escape: the second is preceded by an odd count (JLS 3.3)
+        // and so is ineligible even though a 'u' and four hex digits follow it.
+        String source = "\\" + "\\" + "u0041";
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+        List<Token> significant = tokens.stream().filter(t -> t.kind().isSignificant()).toList();
+        assertEquals(TokenKind.ERROR, significant.get(0).kind());
+        assertEquals(TokenKind.ERROR, significant.get(1).kind());
+        assertEquals(TokenKind.IDENTIFIER, significant.get(2).kind());
+        assertEquals("u0041", significant.get(2).text());
+    }
+
+    @Test
+    void multipleUsAreAllowedInAnEscape() {
+        String source = "\\" + "uuuu0041";
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+        Token identifier = tokens.stream().filter(t -> t.kind() == TokenKind.IDENTIFIER).findFirst().orElseThrow();
+        assertEquals(source, identifier.text());
+        assertEquals("A", identifier.decodedText());
+    }
+
+    @Test
+    void aMalformedEscapeDoesNotCrashAndRoundTrips() {
+        String source = "\\" + "u12XY";
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+    }
+
+    @Test
+    void anEscapedKeywordIsClassifiedAndDecodedAsThatKeyword() {
+        // i decodes to 'i', so this identifier reads "if".
+        String source = "\\" + "u0069" + "f";
+        Token token = JavaLexer.tokenize(source).getFirst();
+        assertEquals(TokenKind.KEYWORD, token.kind());
+        assertEquals(source, token.text());
+        assertEquals("if", token.decodedText());
+        assertTrue(token.is("if"));
+    }
+
+    @Test
     void tracksLineAndColumn() {
         List<Token> tokens = JavaLexer.tokenize("class A {\n    int x;\n}\n");
         Token intKeyword = tokens.stream()

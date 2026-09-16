@@ -51,9 +51,21 @@ public record Token(TokenKind kind, String text, int start, int line, int column
         return kind == other;
     }
 
-    /** Whether this token is the given punctuation or keyword, e.g. {@code is("{")}. */
+    /**
+     * Whether this token is the given punctuation or keyword, e.g. {@code is("{")}. Compares the
+     * decoded spelling, so a keyword written with a Unicode escape (JLS 3.3) still matches.
+     */
     public boolean is(String lexeme) {
-        return text.equals(lexeme);
+        return decodedText().equals(lexeme);
+    }
+
+    /**
+     * This token's text with any Unicode escapes (JLS 3.3) decoded, so an identifier spelled
+     * {@code \\u0041ist} reads as {@code Aist}. {@link #text} always keeps the original spelling;
+     * most tokens contain no escape and this returns {@code text} itself.
+     */
+    public String decodedText() {
+        return text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
     }
 
     @Override

@@ -61,7 +61,7 @@ abstract class StatementParser extends ExpressionParser {
     protected GreenNode parseStatement() {
         Token token = peek();
         if (token.kind() == TokenKind.KEYWORD) {
-            switch (token.text()) {
+            switch (token.decodedText()) {
                 case "if":
                     return parseIf();
                 case "for":

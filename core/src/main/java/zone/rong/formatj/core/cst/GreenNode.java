@@ -64,6 +64,11 @@ public sealed interface GreenNode permits GreenNode.Leaf, GreenNode.Branch {
             return token.text();
         }
 
+        /** {@link #lexeme()} with any Unicode escape (JLS 3.3) decoded. */
+        public String decodedLexeme() {
+            return token.token().decodedText();
+        }
+
     }
 
     /** A node with child nodes. */
