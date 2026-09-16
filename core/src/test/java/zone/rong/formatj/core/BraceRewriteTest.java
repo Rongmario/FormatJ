@@ -93,6 +93,11 @@ class BraceRewriteTest {
     }
 
     @Test
+    void aLocalClassCannotBecomeAnUnbracedBody() {
+        assertTrue(rewrite("        if (n > 0) { class Local {} }", BracePolicy.NEVER).unchanged());
+    }
+
+    @Test
     void anIfWithAnElseKeepsBracesRoundAnInnerIf() {
         assertTrue(rewrite("        if (n > 0) { if (n > 1) log(n); } else log(0);", BracePolicy.NEVER).unchanged());
     }

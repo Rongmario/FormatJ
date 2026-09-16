@@ -180,7 +180,7 @@ public final class JavaParser extends StatementParser {
 
     @Override
     protected GreenNode parseLocalTypeDeclaration() {
-        return parseTypeDeclaration(parseModifierList());
+        return branch(SyntaxKind.LOCAL_TYPE_DECLARATION, List.of(parseTypeDeclaration(parseModifierList())));
     }
 
     private GreenNode parseTypeDeclaration(List<GreenNode> modifiers) {

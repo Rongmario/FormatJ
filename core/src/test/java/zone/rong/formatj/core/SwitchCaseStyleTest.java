@@ -148,6 +148,24 @@ class SwitchCaseStyleTest {
     }
 
     @Test
+    void aGroupDeclaringALocalClassIsRefused() {
+        unchanged(
+                SwitchCaseStyle.ARROW,
+                """
+                    void f(int n) {
+                        switch (n) {
+                            case 1:
+                                class Local {}
+                                g(n);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                """);
+    }
+
+    @Test
     void aBreakThatLeavesTheSwitchFromInsideTheGroupIsRefused() {
         unchanged(
                 SwitchCaseStyle.ARROW,
