@@ -92,6 +92,7 @@ public final class DocPrinter {
         Deque<Command> commands = new ArrayDeque<>();
         commands.push(new Command(0, Mode.BREAK, prepared));
         int column = 0;
+        boolean preserveTrailingWhitespace = false;
 
         while (!commands.isEmpty() || !lineSuffixes.isEmpty()) {
             if (commands.isEmpty()) {
@@ -113,6 +114,10 @@ public final class DocPrinter {
                 case Doc.Text text -> {
                     out.append(text.value());
                     column += text.value().length();
+                    if (!text.value().isEmpty()) {
+                        preserveTrailingWhitespace = text.preserveTrailingWhitespace()
+                                && endsWithHorizontalWhitespace(text.value());
+                    }
                 }
                 case Doc.Concat concat -> pushReversed(commands, concat.parts(), indent, mode);
                 case Doc.Indent nested -> commands.push(new Command(indent + nested.columns(), mode, nested.content()));
@@ -170,11 +175,14 @@ public final class DocPrinter {
                         lineSuffixes.clear();
                         break;
                     }
-                    if (trimTrailingWhitespace && !(indentBlankLines && lineIsAllWhitespace(out))) {
+                    if (trimTrailingWhitespace
+                            && !preserveTrailingWhitespace
+                            && !(indentBlankLines && lineIsAllWhitespace(out))) {
                         trimTrailingSpaces(out);
                     }
                     out.append(lineSeparator).append(indentation(indent));
                     column = indent;
+                    preserveTrailingWhitespace = false;
                 }
             }
         }
@@ -320,6 +328,11 @@ public final class DocPrinter {
             end--;
         }
         out.setLength(end);
+    }
+
+    private static boolean endsWithHorizontalWhitespace(String text) {
+        char last = text.charAt(text.length() - 1);
+        return last == ' ' || last == '\t';
     }
 
 }

@@ -179,4 +179,10 @@ class DocPrinterTest {
         assertEquals("a\nb", DocPrinter.ofSpaces(80).print(document));
     }
 
+    @Test
+    void contentMayProtectMeaningfulTrailingSpaces() {
+        Doc document = Doc.concat(Doc.textPreservingTrailingWhitespace("a  "), Doc.hardLine(), Doc.text("b"));
+        assertEquals("a  \nb", DocPrinter.ofSpaces(80).print(document));
+    }
+
 }

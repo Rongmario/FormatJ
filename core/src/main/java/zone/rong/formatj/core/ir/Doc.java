@@ -38,8 +38,18 @@ public sealed interface Doc {
 
     }
 
-    /** Literal text; must not contain a line terminator. */
-    record Text(String value) implements Doc { }
+    /**
+     * Literal text; must not contain a line terminator.
+     *
+     * @param preserveTrailingWhitespace whether trailing whitespace in this text is content
+     */
+    record Text(String value, boolean preserveTrailingWhitespace) implements Doc {
+
+        public Text(String value) {
+            this(value, false);
+        }
+
+    }
 
     /** A sequence of documents. */
     record Concat(List<Doc> parts) implements Doc { }
@@ -105,10 +115,15 @@ public sealed interface Doc {
      */
     record Mark(AlignmentSite site) implements Doc { }
 
-    Doc EMPTY = new Text("");
+    Doc EMPTY = new Text("", false);
 
     static Doc text(String value) {
-        return value.isEmpty() ? EMPTY : new Text(value);
+        return value.isEmpty() ? EMPTY : new Text(value, false);
+    }
+
+    /** Literal text whose trailing whitespace must survive the printer's file-wide trimming. */
+    static Doc textPreservingTrailingWhitespace(String value) {
+        return value.isEmpty() ? EMPTY : new Text(value, true);
     }
 
     static Doc concat(Doc... parts) {

@@ -97,6 +97,20 @@ class JavadocParagraphMarkerTest {
     }
 
     @Test
+    void traditionalParagraphRulesDoNotRewriteMarkdown() {
+        String formatted =
+                format(
+                        style -> style.set(JavadocRules.ADD_PARAGRAPH_TAGS, true)
+                                .set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST)
+                                .set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
+                        "    /// First paragraph.\n" + "    ///\n" + "    /// <p/> remains Markdown content.\n"
+                                + "    void f() { }\n");
+        assertTrue(
+                formatted.contains("    /// First paragraph.\n    ///\n    /// <p/> remains Markdown content.\n"),
+                formatted);
+    }
+
+    @Test
     void newLinePlusClosingFormIsAFixedPointWhenWrapping() {
         assertFixedPoint(style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE)
                 .set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST)

@@ -74,9 +74,15 @@ public final class Prose {
      */
     public static List<String> contentLines(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
-            return List.of(stripLeadingSlashes(comment.text()));
+            return List.of(
+                    isMarkdownComment(comment) ? comment.text().substring(3) : stripLeadingSlashes(comment.text()));
         }
         return blockContentLines(comment.text());
+    }
+
+    /** Whether this token begins with the delimiter for a Markdown documentation comment. */
+    public static boolean isMarkdownComment(Token comment) {
+        return comment.kind() == TokenKind.LINE_COMMENT && comment.text().startsWith("///");
     }
 
     /** The content of a comment as one string, lines joined with {@code \n}. */
@@ -138,6 +144,9 @@ public final class Prose {
 
     /** The atoms of a comment, in order. */
     public static List<Atom> atoms(Token comment) {
+        if (isMarkdownComment(comment)) {
+            return List.of(Atom.verbatim(content(comment)));
+        }
         return atoms(content(comment));
     }
 

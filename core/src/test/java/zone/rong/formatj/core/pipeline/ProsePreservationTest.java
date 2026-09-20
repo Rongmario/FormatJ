@@ -132,6 +132,69 @@ class ProsePreservationTest {
         assertNotNull(problem);
     }
 
+    @Test
+    void markdownListItemsCannotBeFlattenedTogether() {
+        String problem =
+                difference(
+                        "class T {\n    /// - alpha\n    /// - beta\n    void f() { }\n}\n",
+                        "class T {\n    /// - alpha - beta\n    void f() { }\n}\n");
+        assertNotNull(problem);
+    }
+
+    @Test
+    void markdownIndentationIsContent() {
+        String problem =
+                difference(
+                        "class T {\n    /// - outer\n    ///   - inner\n    void f() { }\n}\n",
+                        "class T {\n    /// - outer\n    /// - inner\n    void f() { }\n}\n");
+        assertNotNull(problem);
+    }
+
+    @Test
+    void markdownHardBreakSpacesAreContent() {
+        String problem =
+                difference(
+                        "class T {\n    /// alpha  \n    /// beta\n    void f() { }\n}\n",
+                        "class T {\n    /// alpha\n    /// beta\n    void f() { }\n}\n");
+        assertNotNull(problem);
+    }
+
+    @Test
+    void markdownOuterIndentationMayChange() {
+        assertNull(
+                difference(
+                        "class T {\n  /// alpha\n  void f() { }\n}\n",
+                        "class T {\n        /// alpha\n        void f() { }\n}\n"));
+    }
+
+    @Test
+    void markdownOrdinaryParagraphMayBeRewrapped() {
+        assertNull(
+                difference(
+                        "class T {\n    /// alpha beta gamma delta\n    void f() { }\n}\n",
+                        "class T {\n    /// alpha beta\n    /// gamma delta\n    void f() { }\n}\n"));
+    }
+
+    @Test
+    void physicalBlankLineKeepsMarkdownRunsSeparate() {
+        String problem =
+                difference(
+                        "class T {\n    /// first\n\n    /// second\n    void f() { }\n}\n",
+                        "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
+        assertNotNull(problem);
+        assertTrue(problem.contains("boundary"), problem);
+    }
+
+    @Test
+    void interveningCommentKeepsMarkdownRunsSeparate() {
+        String problem =
+                difference(
+                        "class T {\n    /// first\n    //\n    /// second\n    void f() { }\n}\n",
+                        "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
+        assertNotNull(problem);
+        assertTrue(problem.contains("boundary"), problem);
+    }
+
     // ------------------------------------------------------------ reordering
 
     @Test
@@ -150,6 +213,42 @@ class ProsePreservationTest {
                         "class T {\n    /**\n     * @param a\n     * @return r\n     */\n    int f(int a) { return a; }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("lost"), problem);
+    }
+
+    @Test
+    void reorderingDoesNotPermitWordsToMoveBetweenTags() {
+        String problem =
+                differenceReordering(
+                        "class T {\n    /**\n     * @return alpha\n     * @param a beta\n     */\n"
+                                + "    int f(int a) { return a; }\n}\n",
+                        "class T {\n    /**\n     * @param a alpha\n     * @return beta\n     */\n"
+                                + "    int f(int a) { return a; }\n}\n");
+        assertNotNull(problem);
+    }
+
+    @Test
+    void reorderingDoesNotPermitWordsToMoveBetweenComments() {
+        String problem =
+                differenceReordering(
+                        "class T {\n    /** @return alpha */\n    int f() { return 1; }\n"
+                                + "    /** @return beta */\n    int g() { return 2; }\n}\n",
+                        "class T {\n    /** @return beta */\n    int f() { return 1; }\n"
+                                + "    /** @return alpha */\n    int g() { return 2; }\n}\n");
+        assertNotNull(problem);
+    }
+
+    @Test
+    void markdownTagsMayBeReorderedOnlyAsWholeBlocks() {
+        String before = "class T {\n" + "    /// @return alpha result\n" + "    /// @param a beta parameter\n"
+                + "    int f(int a) { return a; }\n" + "}\n";
+        String after = "class T {\n" + "    /// @param a beta parameter\n" + "    /// @return alpha result\n"
+                + "    int f(int a) { return a; }\n" + "}\n";
+        assertNotNull(difference(before, after));
+        assertNull(differenceReordering(before, after));
+
+        String migrated = "class T {\n" + "    /// @param a alpha parameter\n" + "    /// @return beta result\n"
+                + "    int f(int a) { return a; }\n" + "}\n";
+        assertNotNull(differenceReordering(before, migrated));
     }
 
 }

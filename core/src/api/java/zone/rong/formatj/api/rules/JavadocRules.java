@@ -3,11 +3,18 @@ package zone.rong.formatj.api.rules;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.StyleBuilder;
 
-/** Javadoc-specific layout, separate from ordinary block comments. */
+/**
+ * Documentation-comment layout for traditional {@code /**} comments and Markdown {@code ///}
+ * runs.
+ *
+ * <p>Wrapping, tag order, the blank line before tags, tag-description alignment, and tag
+ * continuation indentation apply to both forms. Paragraph-tag insertion, single-line retention,
+ * closing-tag form, and opening-tag position apply only to traditional comments.
+ */
 public final class JavadocRules {
 
     public static final Option<Boolean> WRAP =
-            Option.ofBoolean("javadoc.wrap", false, "Wrap Javadoc prose to the configured line length");
+            Option.ofBoolean("javadoc.wrap", false, "Wrap ordinary documentation prose to the configured line length");
 
     public static final Option<JavadocTagOrder> TAG_ORDER =
             Option.ofEnum("javadoc.tag-order", JavadocTagOrder.PRESERVE, "Ordering of Javadoc block tags");
@@ -22,10 +29,16 @@ public final class JavadocRules {
             Option.ofBoolean("javadoc.align-tag-descriptions", false, "Align the descriptions following block tags");
 
     public static final Option<Boolean> ADD_PARAGRAPH_TAGS =
-            Option.ofBoolean("javadoc.add-paragraph-tags", false, "Insert <p> on blank description lines");
+            Option.ofBoolean(
+                    "javadoc.add-paragraph-tags",
+                    false,
+                    "Insert <p> on blank traditional Javadoc description lines");
 
     public static final Option<Boolean> KEEP_SINGLE_LINE =
-            Option.ofBoolean("javadoc.keep-single-line", true, "Leave a one-line Javadoc comment on one line");
+            Option.ofBoolean(
+                    "javadoc.keep-single-line",
+                    true,
+                    "Leave a one-line traditional Javadoc comment on one line");
 
     public static final Option<Integer> TAG_CONTINUATION_INDENT =
             Option.ofInt("javadoc.tag-continuation-indent", 8, "Columns a wrapped block tag description is indented");
@@ -34,13 +47,13 @@ public final class JavadocRules {
             Option.ofEnum(
                     "javadoc.closing-tag-form",
                     JavadocClosingTagForm.PRESERVE,
-                    "Written form of a Javadoc paragraph closer");
+                    "Written form of a traditional Javadoc paragraph closer");
 
     public static final Option<JavadocOpeningTagPosition> OPENING_TAG_POSITION =
             Option.ofEnum(
                     "javadoc.opening-tag-position",
                     JavadocOpeningTagPosition.PRESERVE,
-                    "Placement of a Javadoc paragraph marker relative to its paragraph");
+                    "Placement of a traditional Javadoc paragraph marker relative to its paragraph");
 
     private JavadocRules() { }
 

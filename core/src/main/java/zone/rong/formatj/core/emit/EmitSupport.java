@@ -150,7 +150,7 @@ abstract class EmitSupport {
 
     /** Whether the node is a single token with the given text. */
     protected static boolean is(GreenNode node, String lexeme) {
-        return node instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(lexeme);
+        return node instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(lexeme);
     }
 
     protected static boolean isAny(GreenNode node, String... lexemes) {
@@ -168,7 +168,7 @@ abstract class EmitSupport {
 
     /** The token text of a leaf, or an empty string for a branch. */
     protected static String lexeme(GreenNode node) {
-        return node instanceof GreenNode.Leaf leaf ? leaf.lexeme() : "";
+        return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
     }
 
     /** The first token of a node, which carries its leading trivia. */
@@ -354,11 +354,9 @@ abstract class EmitSupport {
             int last = i;
             List<Token> run = new ArrayList<>();
             run.add(trivia);
-            while (comments.joinsLineComments()
-                    && trivia.kind() == TokenKind.LINE_COMMENT
-                    && newlinesAfter(leading, last) == 1) {
+            while (newlinesAfter(leading, last) == 1) {
                 int next = nextComment(leading, last);
-                if (next < 0 || leading.get(next).kind() != TokenKind.LINE_COMMENT) {
+                if (next < 0 || !comments.joinsLineComments(trivia, leading.get(next))) {
                     break;
                 }
                 run.add(leading.get(next));
@@ -400,22 +398,9 @@ abstract class EmitSupport {
             if (trivia.kind().isComment()) {
                 break;
             }
-            newlines += countNewlines(trivia.text());
+            newlines += trivia.lineTerminatorCount();
         }
         return newlines;
-    }
-
-    private static int countNewlines(String text) {
-        int count = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char current = text.charAt(i);
-            if (current == '\n') {
-                count++;
-            } else if (current == '\r' && (i + 1 >= text.length() || text.charAt(i + 1) != '\n')) {
-                count++;
-            }
-        }
-        return count;
     }
 
     /** A comment, re-indented but never re-worded. */
@@ -459,7 +444,7 @@ abstract class EmitSupport {
             if (trivia.kind().isComment()) {
                 break;
             }
-            text.insert(0, trivia.text());
+            text.insert(0, trivia.decodedText());
         }
         String whitespace = text.toString();
         int lastBreak = -1;
@@ -485,11 +470,12 @@ abstract class EmitSupport {
     protected Doc tokenText(Token token) {
         String text = token.text();
         if (token.kind() == TokenKind.TEXT_BLOCK
+                && !token.hasUnicodeEscape()
                 && rule(TextBlockRules.INDENT_POLICY) != TextBlockIndentPolicy.PRESERVE
                 && TextBlocks.isTextBlock(text)) {
             return textBlock(text);
         }
-        if (text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
+        if (!token.hasLineTerminator()) {
             return Doc.text(text);
         }
         // A text block carries its own line structure, so it must break every group around it.
@@ -568,7 +554,7 @@ abstract class EmitSupport {
         List<Token> leading = token.leading();
         for (int i = 0; i < leading.size(); i++) {
             Token trivia = leading.get(i);
-            if (trivia.kind().isComment() && trivia.text().contains(marker)) {
+            if (trivia.kind().isComment() && trivia.decodedText().contains(marker)) {
                 return i;
             }
         }

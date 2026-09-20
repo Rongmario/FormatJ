@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,6 +37,8 @@ import java.util.regex.Pattern;
  *       it was written with. The region's own whitespace is content.
  *   <li>A run of {@code //} lines with no space after the slashes is left alone. That is what
  *       commented-out code looks like, and re-flowing it would run the statements together.
+ *   <li>Markdown blocks with structural syntax keep their lines exactly as written. Only plain
+ *       paragraphs may be refilled.
  *   <li>Anything carrying a formatter-off or formatter-on marker, which has to stay legible as the
  *       marker the reader wrote.
  * </ul>
@@ -73,32 +74,38 @@ public final class CommentFormatter {
      * shorter. The run is what the caller has already decided belongs together.
      */
     public Doc ownLine(List<Token> run) {
+        if (run.stream().anyMatch(Token::hasUnicodeEscape)) {
+            return verbatimRun(run);
+        }
         if (run.size() == 1 && run.getFirst().kind() == TokenKind.JAVADOC_COMMENT) {
             return javadoc(run.getFirst());
         }
         if (run.size() == 1 && run.getFirst().kind() == TokenKind.BLOCK_COMMENT) {
             return blockComment(run.getFirst());
         }
+        if (Prose.isMarkdownComment(run.getFirst())) {
+            return markdownJavadoc(run);
+        }
         return lineComments(run);
     }
 
-    /** Whether a run of line comments may be laid out as one unit rather than one at a time. */
-    public boolean joinsLineComments() {
-        return rule(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH;
+    /** Whether two adjacent line comments belong to the same layout unit. */
+    public boolean joinsLineComments(Token first, Token next) {
+        if (first.kind() != TokenKind.LINE_COMMENT || next.kind() != TokenKind.LINE_COMMENT) {
+            return false;
+        }
+        boolean markdown = Prose.isMarkdownComment(first);
+        if (markdown != Prose.isMarkdownComment(next)) {
+            return false;
+        }
+        return markdown || rule(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH;
     }
 
     // ------------------------------------------------------------ line comments
 
     private Doc lineComments(List<Token> run) {
         if (rule(CommentRules.REFLOW) != CommentReflow.REFLOW_TO_LINE_LENGTH || !reflowable(run)) {
-            List<Doc> parts = new ArrayList<>();
-            for (int i = 0; i < run.size(); i++) {
-                if (i > 0) {
-                    parts.add(Doc.hardLine());
-                }
-                parts.add(verbatim(run.get(i)));
-            }
-            return Doc.concat(parts);
+            return verbatimRun(run);
         }
 
         String marker = slashes(run.getFirst().text());
@@ -163,6 +170,154 @@ public final class CommentFormatter {
         }
 
         return Doc.align(Doc.concat(Doc.text("/**"), Doc.concat(lines), Doc.hardLine(), Doc.text(" */")));
+    }
+
+    private Doc markdownJavadoc(List<Token> run) {
+        Javadoc parsed = Javadoc.parseMarkdown(run);
+        if (!parsed.safeToFormat() || !restructuresMarkdown(parsed)) {
+            return verbatimRun(run);
+        }
+
+        List<Doc> lines = new ArrayList<>();
+        for (Javadoc.Block block : parsed.descriptionBlocks()) {
+            addMarkdownBlock(lines, block);
+        }
+
+        List<Javadoc.Tag> tags = ordered(parsed.tags());
+        if (!tags.isEmpty() && !lines.isEmpty() && rule(JavadocRules.BLANK_LINE_BEFORE_TAGS)) {
+            addMarkdownLine(lines, "");
+        }
+        Map<String, Integer> columns = rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) ? descriptionColumns(tags) : Map.of();
+        for (Javadoc.Tag tag : tags) {
+            addMarkdownTag(lines, tag, columns.getOrDefault(tag.name(), 0));
+        }
+        if (lines.isEmpty()) {
+            return verbatimRun(run);
+        }
+        return Doc.align(Doc.concat(lines));
+    }
+
+    private boolean restructuresMarkdown(Javadoc parsed) {
+        if (rule(JavadocRules.WRAP) || rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS)) {
+            return true;
+        }
+        if (rule(JavadocRules.TAG_ORDER) != JavadocTagOrder.PRESERVE && !sorted(parsed.tags())) {
+            return true;
+        }
+        return !parsed.tags().isEmpty()
+                && !parsed.description().isEmpty()
+                && parsed.blankBeforeTags() != rule(JavadocRules.BLANK_LINE_BEFORE_TAGS);
+    }
+
+    private void addMarkdownBlock(List<Doc> output, Javadoc.Block block) {
+        if (block.kind() == Javadoc.BlockKind.PARAGRAPH && rule(JavadocRules.WRAP)) {
+            String prefix = leadingWhitespace(block.lines().getFirst());
+            addMarkdownDoc(output, markdownParagraph(block, prefix, prefix));
+            return;
+        }
+        for (String line : block.lines()) {
+            addMarkdownLine(output, line);
+        }
+    }
+
+    private void addMarkdownTag(List<Doc> output, Javadoc.Tag tag, int column) {
+        String first = tag.lines().getFirst();
+        String prefix = leadingWhitespace(first);
+        String rest = first.strip().substring(tag.head().length()).stripLeading();
+        String padding = " ".repeat(Math.max(0, column - tag.head().length()));
+
+        if (!rule(JavadocRules.WRAP)) {
+            String opening =
+                    rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) && !rest.isEmpty()
+                    ? prefix + tag.head() + padding + " " + rest
+                    : first;
+            addMarkdownLine(output, opening);
+            for (String line : tag.lines().subList(1, tag.lines().size())) {
+                addMarkdownLine(output, line);
+            }
+            return;
+        }
+
+        List<Javadoc.Block> blocks = tag.description();
+        int nextBlock = 0;
+        if (!blocks.isEmpty() && blocks.getFirst().kind() == Javadoc.BlockKind.PARAGRAPH) {
+            List<String> words = blockWords(blocks.getFirst());
+            if (words.isEmpty()) {
+                addMarkdownLine(output, prefix + tag.head());
+            } else {
+                String continuation = prefix + " ".repeat(Math.max(0, rule(JavadocRules.TAG_CONTINUATION_INDENT)));
+                addMarkdownDoc(
+                        output,
+                        Doc.concat(
+                                markdownText(prefix + tag.head() + padding + " "),
+                                fill(words, "///" + continuation)));
+            }
+            nextBlock = 1;
+        } else if (!blocks.isEmpty() && tag.descriptionStartsOnTagLine()) {
+            Javadoc.Block firstBlock = blocks.getFirst();
+            String firstBody = firstBlock.lines().getFirst().stripLeading();
+            addMarkdownLine(output, prefix + tag.head() + padding + " " + firstBody);
+            for (String line : firstBlock.lines().subList(1, firstBlock.lines().size())) {
+                addMarkdownLine(output, line);
+            }
+            nextBlock = 1;
+        } else {
+            addMarkdownLine(output, prefix + tag.head());
+        }
+
+        for (Javadoc.Block block : blocks.subList(nextBlock, blocks.size())) {
+            addMarkdownBlock(output, block);
+        }
+    }
+
+    private Doc markdownParagraph(Javadoc.Block block, String firstPrefix, String continuationPrefix) {
+        List<String> words = blockWords(block);
+        if (words.isEmpty()) {
+            return markdownText(firstPrefix);
+        }
+        return Doc.concat(markdownText(firstPrefix), fill(words, "///" + continuationPrefix));
+    }
+
+    private static List<String> blockWords(Javadoc.Block block) {
+        List<String> words = new ArrayList<>();
+        for (Prose.Atom atom : Prose.atoms(String.join("\n", block.lines()))) {
+            words.add(atom.text());
+        }
+        return words;
+    }
+
+    private static String leadingWhitespace(String line) {
+        int index = 0;
+        while (index < line.length() && Character.isWhitespace(line.charAt(index))) {
+            index++;
+        }
+        return line.substring(0, index);
+    }
+
+    private static Doc markdownText(String content) {
+        return Doc.textPreservingTrailingWhitespace("///" + content);
+    }
+
+    private static void addMarkdownLine(List<Doc> output, String content) {
+        addMarkdownDoc(output, markdownText(content));
+    }
+
+    private static void addMarkdownDoc(List<Doc> output, Doc line) {
+        if (!output.isEmpty()) {
+            output.add(Doc.hardLine());
+        }
+        output.add(line);
+    }
+
+    private Doc verbatimRun(List<Token> run) {
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < run.size(); i++) {
+            if (i > 0) {
+                parts.add(Doc.hardLine());
+            }
+            parts.add(verbatim(run.get(i)));
+        }
+        return Doc.concat(parts);
     }
 
     /** Whether any rule that is on would rearrange this comment; if none would, it is left alone. */
@@ -496,7 +651,7 @@ public final class CommentFormatter {
     private static Map<String, Integer> descriptionColumns(List<Javadoc.Tag> tags) {
         Map<String, Integer> columns = new LinkedHashMap<>();
         for (Javadoc.Tag tag : tags) {
-            columns.merge(tag.name(), head(tag.lines().getFirst()).length(), Math::max);
+            columns.merge(tag.name(), tag.head().length(), Math::max);
         }
         return columns;
     }
@@ -506,17 +661,7 @@ public final class CommentFormatter {
      * take one, the parameter or exception after it.
      */
     private static String head(String line) {
-        String stripped = line.strip();
-        int space = stripped.indexOf(' ');
-        if (space < 0) {
-            return stripped;
-        }
-        String tag = stripped.substring(0, space).toLowerCase(Locale.ROOT);
-        if (!tag.equals("@param") && !tag.equals("@throws") && !tag.equals("@exception")) {
-            return stripped.substring(0, space);
-        }
-        int second = stripped.indexOf(' ', space + 1);
-        return second < 0 ? stripped : stripped.substring(0, second);
+        return Javadoc.tagHead(line);
     }
 
     private List<Doc> tagLines(Javadoc.Tag tag, int column) {
@@ -647,7 +792,9 @@ public final class CommentFormatter {
     /** A comment re-indented but never re-worded, which is what every rule here defaults to. */
     public Doc verbatim(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
-            return Doc.text(stripTrailing(comment.text()));
+            return Prose.isMarkdownComment(comment)
+                   ? Doc.textPreservingTrailingWhitespace(comment.text())
+                   : Doc.text(stripTrailing(comment.text()));
         }
         String[] lines = comment.text().split("\r\n|\r|\n", -1);
         if (lines.length == 1) {

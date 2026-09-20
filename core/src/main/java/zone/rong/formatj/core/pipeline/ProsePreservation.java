@@ -3,14 +3,15 @@ package zone.rong.formatj.core.pipeline;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.api.rules.JavadocRules;
+import zone.rong.formatj.core.comment.Javadoc;
 import zone.rong.formatj.core.comment.Prose;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Checks that laying the file out did not change what its comments say.
@@ -21,12 +22,10 @@ import java.util.Map;
  * every other check the formatter has. This is the check that tells them apart, and it is what
  * {@code comments.reflow} and the {@code javadoc.*} rules were waiting for.
  *
- * <p>The law is: <em>the same words, in the same order, and every verbatim region character for
- * character.</em> Whitespace between words is layout and may change freely — that is the entire
- * point of re-wrapping — but a word may not be altered, added, dropped, or joined to its neighbour,
- * and a {@code {@code}} block, a {@code <pre>} block or a {@code @snippet} may not be reformatted at
- * all. {@link Prose} defines both halves, so the rule that rewraps and the check that polices it
- * cannot disagree about where a code sample begins.
+ * <p>Traditional comments keep the same words in the same order, and every verbatim region survives
+ * character for character. Markdown documentation keeps comment, block, and tag boundaries. Plain
+ * paragraph words may move between lines, while structural blocks survive character for character.
+ * {@link Prose} defines the protected regions shared by the formatter and this check.
  *
  * <h2>Where it is anchored</h2>
  *
@@ -41,13 +40,13 @@ import java.util.Map;
  * <ul>
  *   <li>A bare {@code <p>} is dropped from both sides. It marks a paragraph rather than saying
  *       anything, which is what lets {@code javadoc.add-paragraph-tags} write one.
- *   <li>{@code javadoc.tag-order = canonical} reorders whole block tags on purpose, so with that rule
- *       on the comparison falls back to a bag when the sequence differs. Nothing else is relaxed: a
- *       word that went missing still fails, and the strict sequence check is what runs whenever the
- *       rule is off.
+ *   <li>{@code javadoc.tag-order = canonical} sorts whole tag blocks before comparison. Tag and
+ *       comment boundaries remain strict, so text cannot move between unrelated tags or comments.
  * </ul>
  */
 public final class ProsePreservation {
+
+    private static final String STRUCTURE = "\u0000documentation-structure:";
 
     private ProsePreservation() { }
 
@@ -60,26 +59,44 @@ public final class ProsePreservation {
      * @return a description of the first problem, or null when the prose came through intact
      */
     public static String firstDifference(GreenNode before, GreenNode after, Style style) {
-        List<Prose.Atom> was = prose(before);
-        List<Prose.Atom> now = prose(after);
-        String difference = compare(was, now);
-        if (difference == null) {
-            return null;
-        }
-        if (style.get(JavadocRules.TAG_ORDER) == JavadocTagOrder.PRESERVE) {
-            return difference;
-        }
-        // Reordering block tags reorders the words riding on them, which is what the rule is for.
-        String reordered = sameBag(was, now);
-        return reordered == null ? null : reordered;
+        return compare(prose(before, style), prose(after, style));
     }
 
     // ------------------------------------------------------------ gathering
 
     /** Every atom of every comment in the tree, in source order. */
     static List<Prose.Atom> prose(GreenNode node) {
+        return prose(node, Style.defaults());
+    }
+
+    private static List<Prose.Atom> prose(GreenNode node, Style style) {
         List<Prose.Atom> atoms = new ArrayList<>();
-        for (Token comment : comments(node)) {
+        List<Token> comments = comments(node);
+        boolean canonical = style.get(JavadocRules.TAG_ORDER) == JavadocTagOrder.CANONICAL;
+        for (int i = 0; i < comments.size(); i++) {
+            Token comment = comments.get(i);
+            if (comment.hasUnicodeEscape()) {
+                atoms.add(Prose.Atom.verbatim(trimLineEnds(comment.text())));
+                continue;
+            }
+            if (Prose.isMarkdownComment(comment)) {
+                List<Token> run = new ArrayList<>();
+                run.add(comment);
+                while (i + 1 < comments.size()) {
+                    Token next = comments.get(i + 1);
+                    if (!Prose.isMarkdownComment(next) || next.line() != comments.get(i).line() + 1) {
+                        break;
+                    }
+                    run.add(next);
+                    i++;
+                }
+                addDocumentation(atoms, Javadoc.parseMarkdown(run), canonical);
+                continue;
+            }
+            if (comment.kind() == TokenKind.JAVADOC_COMMENT) {
+                addDocumentation(atoms, Javadoc.parse(comment.text()), canonical);
+                continue;
+            }
             for (Prose.Atom atom : Prose.atoms(comment)) {
                 if (atom.isParagraphMarker()) {
                     continue;
@@ -88,6 +105,72 @@ public final class ProsePreservation {
             }
         }
         return List.copyOf(atoms);
+    }
+
+    private static void addDocumentation(List<Prose.Atom> atoms, Javadoc comment, boolean canonical) {
+        atoms.add(structure("comment-start:" + comment.form()));
+        if (comment.form() == Javadoc.Form.MARKDOWN) {
+            addMarkdownBlocks(atoms, comment.descriptionBlocks(), comment.markdownIndent());
+        } else {
+            addTraditionalWords(atoms, comment.description());
+        }
+        atoms.add(structure("tags-start"));
+
+        List<Javadoc.Tag> tags = new ArrayList<>(comment.tags());
+        if (canonical) {
+            tags.sort(Comparator.comparingInt(Javadoc::canonicalRank));
+        }
+        for (Javadoc.Tag tag : tags) {
+            atoms.add(structure("tag-start:" + tag.name() + ":" + tag.head()));
+            if (comment.form() == Javadoc.Form.MARKDOWN) {
+                addMarkdownBlocks(atoms, tag.description(), comment.markdownIndent());
+            } else {
+                List<String> body = new ArrayList<>();
+                for (Javadoc.Block block : tag.description()) {
+                    body.addAll(block.lines());
+                }
+                addTraditionalWords(atoms, body);
+            }
+            atoms.add(structure("tag-end"));
+        }
+        atoms.add(structure("comment-end"));
+    }
+
+    private static void addTraditionalWords(List<Prose.Atom> atoms, List<String> lines) {
+        for (Prose.Atom atom : Prose.atoms(String.join("\n", lines))) {
+            if (atom.isParagraphMarker()) {
+                continue;
+            }
+            atoms.add(atom.verbatim() ? Prose.Atom.verbatim(trimLineEnds(atom.text())) : atom);
+        }
+    }
+
+    private static void addMarkdownBlocks(List<Prose.Atom> atoms, List<Javadoc.Block> blocks, int indent) {
+        for (Javadoc.Block block : blocks) {
+            atoms.add(structure("block-start:" + block.kind()));
+            if (block.kind() == Javadoc.BlockKind.PARAGRAPH) {
+                atoms.addAll(Prose.atoms(markdownContent(block.lines(), indent)));
+            } else if (block.kind() == Javadoc.BlockKind.PRESERVED) {
+                atoms.add(Prose.Atom.verbatim(markdownContent(block.lines(), indent)));
+            }
+            atoms.add(structure("block-end"));
+        }
+    }
+
+    private static String markdownContent(List<String> lines, int indent) {
+        List<String> shifted = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            shifted.add(Javadoc.removeIndent(line, indent));
+        }
+        return String.join("\n", shifted);
+    }
+
+    private static Prose.Atom structure(String name) {
+        return Prose.Atom.verbatim(STRUCTURE + name);
+    }
+
+    private static boolean isStructure(Prose.Atom atom) {
+        return atom.verbatim() && atom.text().startsWith(STRUCTURE);
     }
 
     private static List<Token> comments(GreenNode node) {
@@ -109,7 +192,7 @@ public final class ProsePreservation {
     }
 
     /**
-     * Drops the trailing spaces of every line of a verbatim region.
+     * Drops the trailing spaces of every line of a traditional comment's verbatim region.
      *
      * <p>Applied to both sides, so it forgives nothing but the one difference that is already the
      * file rule's to make: {@code file.trim-trailing-whitespace} strips them as the line is closed,
@@ -141,6 +224,15 @@ public final class ProsePreservation {
             if (left.equals(right)) {
                 continue;
             }
+            if (isStructure(left) && !isStructure(right)) {
+                return "a documentation boundary was changed";
+            }
+            if (!isStructure(left) && isStructure(right)) {
+                return "comment text was lost: " + describe(left) + " is no longer there";
+            }
+            if (isStructure(left)) {
+                return "a documentation boundary was changed";
+            }
             if (left.verbatim() || right.verbatim()) {
                 return "a verbatim region was reformatted: " + describe(left) + " became " + describe(right);
             }
@@ -155,28 +247,10 @@ public final class ProsePreservation {
         return null;
     }
 
-    /** Whether both sides hold the same atoms, in any order. */
-    private static String sameBag(List<Prose.Atom> was, List<Prose.Atom> now) {
-        Map<Prose.Atom, Integer> counts = new LinkedHashMap<>();
-        for (Prose.Atom atom : was) {
-            counts.merge(atom, 1, Integer::sum);
-        }
-        for (Prose.Atom atom : now) {
-            Integer count = counts.get(atom);
-            if (count == null || count == 0) {
-                return "comment text appeared: " + describe(atom) + " was not there";
-            }
-            counts.put(atom, count - 1);
-        }
-        for (Map.Entry<Prose.Atom, Integer> entry : counts.entrySet()) {
-            if (entry.getValue() > 0) {
-                return "comment text was lost: " + describe(entry.getKey()) + " is no longer there";
-            }
-        }
-        return null;
-    }
-
     private static String describe(Prose.Atom atom) {
+        if (isStructure(atom)) {
+            return "a documentation boundary";
+        }
         String text = atom.text();
         String shortened = text.length() <= 40 ? text : text.substring(0, 37) + "...";
         return "'" + shortened.replace("\n", "\\n") + "'";
