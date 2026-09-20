@@ -83,7 +83,7 @@ public final class SwitchRewrite implements Rewrite {
             return switchCase;
         }
         List<GreenNode> children = switchCase.children();
-        if (!(children.get(1) instanceof GreenNode.Leaf arrow) || !arrow.lexeme().equals("->")) {
+        if (!(children.get(1) instanceof GreenNode.Leaf arrow) || !arrow.decodedLexeme().equals("->")) {
             return switchCase;
         }
 

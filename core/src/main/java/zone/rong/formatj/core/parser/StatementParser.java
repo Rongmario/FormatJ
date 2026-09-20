@@ -144,7 +144,8 @@ abstract class StatementParser extends ExpressionParser {
                 return false;
             }
             advance();
-            return at("=") || at(";") || at(",") || (at("[") && peek(1).is("]"));
+            parseDeclaratorDimensions(new ArrayList<>());
+            return at("=") || at(";") || at(",");
         } catch (ParseFailure failure) {
             return false;
         } finally {
@@ -183,10 +184,7 @@ abstract class StatementParser extends ExpressionParser {
     protected GreenNode parseVariableDeclarator(boolean unnamedAllowed) {
         List<GreenNode> children = new ArrayList<>();
         children.add(unnamedAllowed ? name() : identifier());
-        while (at("[") && peek(1).is("]")) {
-            children.add(advance());
-            children.add(advance());
-        }
+        parseDeclaratorDimensions(children);
         if (at("=")) {
             children.add(advance());
             children.add(at("{") ? parseArrayInitializer() : parseExpression());

@@ -3,6 +3,7 @@ package zone.rong.formatj.core.imports;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
+import zone.rong.formatj.core.lexer.UnicodeEscapes;
 import java.util.List;
 
 /**
@@ -47,13 +48,13 @@ public record ImportEntry(
     }
 
     private static ImportEntry parse(GreenNode node, List<String> tokens) {
-        if (tokens.size() < 3 || !tokens.getFirst().equals("import")) {
+        if (tokens.size() < 3 || !decoded(tokens.getFirst()).equals("import")) {
             return null;
         }
 
         int at = 1;
-        boolean isStatic = tokens.get(at).equals("static");
-        boolean isModule = tokens.get(at).equals("module");
+        boolean isStatic = decoded(tokens.get(at)).equals("static");
+        boolean isModule = decoded(tokens.get(at)).equals("module");
         if (isStatic || isModule) {
             at++;
         }
@@ -61,7 +62,7 @@ public record ImportEntry(
         StringBuilder name = new StringBuilder();
         boolean isWildcard = false;
         for (; at < tokens.size(); at++) {
-            String token = tokens.get(at);
+            String token = decoded(tokens.get(at));
             if (token.equals(";")) {
                 break;
             }
@@ -109,6 +110,10 @@ public record ImportEntry(
     private static String lastSegment(String dotted) {
         int dot = dotted.lastIndexOf('.');
         return dot < 0 ? dotted : dotted.substring(dot + 1);
+    }
+
+    private static String decoded(String text) {
+        return text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
     }
 
 }

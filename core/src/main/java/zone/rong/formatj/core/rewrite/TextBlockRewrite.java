@@ -76,7 +76,7 @@ public final class TextBlockRewrite implements Rewrite {
         }
         SyntaxToken syntax = leaf.token();
         Token token = syntax.token();
-        if (token.kind() != TokenKind.TEXT_BLOCK || !TextBlocks.isTextBlock(token.text())) {
+        if (token.kind() != TokenKind.TEXT_BLOCK || token.hasUnicodeEscape() || !TextBlocks.isTextBlock(token.text())) {
             return child;
         }
 

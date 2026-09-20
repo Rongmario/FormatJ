@@ -194,9 +194,7 @@ class FormatterPropertyTest {
 
     @Test
     void aTopLevelUnparsedRegionDoesNotBlockNeighbouringTypes() {
-        // A method cannot sit at the compilation-unit level. Recovery must keep that region
-        // verbatim and still lay out the well-formed types on either side.
-        String source = "class Good{int y=2;} void bad(){int x=1;} class Also{int z=3;}";
+        String source = "class Good{int y=2;} int bad = = 1; class Also{int z=3;}";
 
         FormatResult result = FormatJ.defaultFormatter().format(FormatRequest.of(source).withName("T.java"));
 
@@ -206,8 +204,10 @@ class FormatterPropertyTest {
                 () -> result.diagnostics().toString());
         assertTrue(result.text().contains("int y = 2"), result.text());
         assertTrue(result.text().contains("int z = 3"), result.text());
-        assertTrue(result.text().contains("void bad()"), result.text());
-        assertTrue(result.text().contains("int x=1") || result.text().contains("int x = 1"), result.text());
+        assertTrue(result.text().contains("int bad = = 1;"), result.text());
+        assertTrue(
+                result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                () -> result.diagnostics().toString());
         assertTrue(result.text().contains("class Good"), result.text());
         assertTrue(result.text().contains("class Also"), result.text());
 

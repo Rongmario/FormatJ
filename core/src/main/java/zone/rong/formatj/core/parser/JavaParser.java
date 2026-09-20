@@ -78,7 +78,7 @@ public final class JavaParser extends StatementParser {
         if (at("package")) {
             return parsePackageDeclaration(modifiers);
         }
-        if (atContextual("module") || (atContextual("open") && peek(1).is("module"))) {
+        if (atModuleDeclaration()) {
             return parseModuleDeclaration(modifiers);
         }
         if (at("class")
@@ -92,6 +92,18 @@ public final class JavaParser extends StatementParser {
         // methods and initializers are members of the file's implicit unnamed class.
         reset(start);
         return parseMember("", false);
+    }
+
+    private boolean atModuleDeclaration() {
+        int ahead = atContextual("open") && peek(1).is("module") ? 2 : atContextual("module") ? 1 : -1;
+        if (ahead < 0 || peek(ahead).kind() != TokenKind.IDENTIFIER) {
+            return false;
+        }
+        ahead++;
+        while (peek(ahead).is(".") && peek(ahead + 1).kind() == TokenKind.IDENTIFIER) {
+            ahead += 2;
+        }
+        return peek(ahead).is("{");
     }
 
     // ---------------------------------------------------------- modules (JLS 7.7)
@@ -227,7 +239,7 @@ public final class JavaParser extends StatementParser {
                 modifiers.add(parseAnnotation());
                 continue;
             }
-            if (peek().kind() == TokenKind.KEYWORD && MODIFIER_KEYWORDS.contains(peek().text())) {
+            if (peek().kind() == TokenKind.KEYWORD && MODIFIER_KEYWORDS.contains(peek().decodedText())) {
                 modifiers.add(advance());
                 continue;
             }
@@ -505,10 +517,7 @@ public final class JavaParser extends StatementParser {
 
         if (at("(")) {
             children.add(parseParameters());
-            while (at("[") && peek(1).is("]")) {
-                children.add(advance());
-                children.add(advance());
-            }
+            parseDeclaratorDimensions(children);
             if (at("throws")) {
                 children.add(parseTypeList(SyntaxKind.THROWS_CLAUSE));
             }
@@ -546,10 +555,7 @@ public final class JavaParser extends StatementParser {
         children.remove(children.size() - 1);
         List<GreenNode> declarator = new ArrayList<>();
         declarator.add(name);
-        while (at("[") && peek(1).is("]")) {
-            declarator.add(advance());
-            declarator.add(advance());
-        }
+        parseDeclaratorDimensions(declarator);
         if (at("=")) {
             declarator.add(advance());
             declarator.add(at("{") ? parseArrayInitializer() : parseExpression());
@@ -608,10 +614,7 @@ public final class JavaParser extends StatementParser {
             return branch(SyntaxKind.PARAMETER, children);
         }
         children.add(identifier());
-        while (at("[") && peek(1).is("]")) {
-            children.add(advance());
-            children.add(advance());
-        }
+        parseDeclaratorDimensions(children);
         return branch(SyntaxKind.PARAMETER, children);
     }
 
@@ -624,7 +627,7 @@ public final class JavaParser extends StatementParser {
     }
 
     private static String nameOf(GreenNode name) {
-        return name instanceof GreenNode.Leaf leaf ? leaf.lexeme() : "";
+        return name instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
     }
 
 }

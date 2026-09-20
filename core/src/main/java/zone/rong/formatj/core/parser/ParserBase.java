@@ -219,7 +219,7 @@ abstract class ParserBase {
         while (index < tokens.size()) {
             Token token = tokens.get(index);
             if (token.kind() == TokenKind.WHITESPACE) {
-                if (containsNewline(token.text())) {
+                if (token.hasLineTerminator()) {
                     break;
                 }
                 pending.add(token);
@@ -240,10 +240,6 @@ abstract class ParserBase {
         }
         index = committed;
         return trailing;
-    }
-
-    private static boolean containsNewline(String text) {
-        return text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0;
     }
 
     // ------------------------------------------------------------- recovery

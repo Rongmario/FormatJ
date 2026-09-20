@@ -65,11 +65,11 @@ final class AuthorLines {
                 return false;
             }
             first[0] = false;
-            if (hasNewline(token.text())) {
+            if (token.token().hasLineTerminator()) {
                 return false;
             }
             for (Token trivia : token.trailing()) {
-                if (hasNewline(trivia.text())) {
+                if (trivia.hasLineTerminator()) {
                     return false;
                 }
             }
@@ -86,7 +86,7 @@ final class AuthorLines {
     /** Whether anything attached before this token ended a line, comments included. */
     private static boolean breaksBefore(SyntaxToken token) {
         for (Token trivia : token.leading()) {
-            if (hasNewline(trivia.text())) {
+            if (trivia.hasLineTerminator()) {
                 return true;
             }
         }
@@ -109,10 +109,6 @@ final class AuthorLines {
             }
         }
         return null;
-    }
-
-    private static boolean hasNewline(String text) {
-        return text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0;
     }
 
 }

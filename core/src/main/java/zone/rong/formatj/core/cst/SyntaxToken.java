@@ -78,7 +78,7 @@ public record SyntaxToken(List<Token> leading, Token token, List<Token> trailing
             if (trivia.kind().isComment()) {
                 break;
             }
-            newlines += countNewlines(trivia.text());
+            newlines += trivia.lineTerminatorCount();
         }
         return Math.max(0, newlines - 1);
     }
@@ -86,7 +86,7 @@ public record SyntaxToken(List<Token> leading, Token token, List<Token> trailing
     /** Whether the author started a new line before this token. */
     public boolean startsNewLine() {
         for (Token trivia : leading) {
-            if (!trivia.kind().isComment() && countNewlines(trivia.text()) > 0) {
+            if (!trivia.kind().isComment() && trivia.hasLineTerminator()) {
                 return true;
             }
         }
@@ -96,19 +96,6 @@ public record SyntaxToken(List<Token> leading, Token token, List<Token> trailing
     /** Whether any comment is attached to this token. */
     public boolean hasComments() {
         return !leadingComments().isEmpty() || !trailingComments().isEmpty();
-    }
-
-    private static int countNewlines(String text) {
-        int count = 0;
-        for (int i = 0; i < text.length(); i++) {
-            char current = text.charAt(i);
-            if (current == '\n') {
-                count++;
-            } else if (current == '\r' && (i + 1 >= text.length() || text.charAt(i + 1) != '\n')) {
-                count++;
-            }
-        }
-        return count;
     }
 
     @Override

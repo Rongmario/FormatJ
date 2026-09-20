@@ -234,7 +234,7 @@ public final class LambdaRewrite implements Rewrite {
             case UNARY_EXPRESSION -> {
                 GreenNode first = expression.children().getFirst();
                 yield first instanceof GreenNode.Leaf leaf
-                        && (leaf.lexeme().equals("++") || leaf.lexeme().equals("--"));
+                        && (leaf.decodedLexeme().equals("++") || leaf.decodedLexeme().equals("--"));
             }
             default -> false;
         };

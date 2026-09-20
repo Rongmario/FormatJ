@@ -68,6 +68,34 @@ public record Token(TokenKind kind, String text, int start, int line, int column
         return text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
     }
 
+    /** Whether this token contains an eligible Unicode escape. */
+    public boolean hasUnicodeEscape() {
+        return text.indexOf('\\') >= 0 && !decodedText().equals(text);
+    }
+
+    /** Whether the translated spelling contains a line terminator. */
+    public boolean hasLineTerminator() {
+        return lineTerminatorCount() > 0;
+    }
+
+    /** Number of translated CR, LF, or CRLF line terminators in this token. */
+    public int lineTerminatorCount() {
+        String decoded = decodedText();
+        int count = 0;
+        for (int i = 0; i < decoded.length(); i++) {
+            char current = decoded.charAt(i);
+            if (current == '\n') {
+                count++;
+            } else if (current == '\r') {
+                count++;
+                if (i + 1 < decoded.length() && decoded.charAt(i + 1) == '\n') {
+                    i++;
+                }
+            }
+        }
+        return count;
+    }
+
     @Override
     public String toString() {
         return kind + "(" + text.replace("\n", "\\n") + ")@" + line + ":" + column;

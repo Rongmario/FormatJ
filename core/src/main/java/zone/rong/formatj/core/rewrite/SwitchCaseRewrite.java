@@ -135,7 +135,7 @@ public final class SwitchCaseRewrite implements Rewrite {
                 return null;
             }
             GreenNode separator = switchCase.children().get(1);
-            if (!(separator instanceof GreenNode.Leaf leaf) || !leaf.lexeme().equals(":")) {
+            if (!(separator instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(":")) {
                 return null;
             }
             if (Synthetic.carriesComments(separator)) {
@@ -319,7 +319,7 @@ public final class SwitchCaseRewrite implements Rewrite {
                 return null;
             }
             GreenNode arrow = switchCase.children().get(1);
-            if (!(arrow instanceof GreenNode.Leaf leaf) || !leaf.lexeme().equals("->")) {
+            if (!(arrow instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals("->")) {
                 return null;
             }
             if (Synthetic.carriesComments(arrow) || context.firstPosition(arrow) < 0) {
@@ -411,7 +411,7 @@ public final class SwitchCaseRewrite implements Rewrite {
         List<GreenNode> labels = labelsOf(switchCase);
         return labels.size() == 1
                 && labels.getFirst() instanceof GreenNode.Leaf leaf
-                && leaf.lexeme().equals("default");
+                && leaf.decodedLexeme().equals("default");
     }
 
     /** An unlabelled {@code break;}, which is the terminator an arrow case does not need. */

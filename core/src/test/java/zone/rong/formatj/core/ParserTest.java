@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -18,6 +20,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ParserTest {
+
+    private static String escape(String body) {
+        return "\\" + body;
+    }
 
     private static ParseResult parse(String source) {
         return JavaParser.parse(source, LanguageLevel.LATEST, true);
@@ -180,13 +186,23 @@ class ParserTest {
         assertFalse(unparsedText(withoutPreview.root()).isEmpty(), "preview syntax is off by default");
     }
 
-    @Test
-    void aBrokenStatementBecomesAnUnparsedRegionAndTheRestStillParses() {
-        String source = "class A {\n    void f() {\n        int x = = 1;\n    }\n\n    void g() {}\n}\n";
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "int broken = = 1; class kept {}\n",
+                "class A { int broken = = 1; int kept = 2; }\n",
+                "class A { void f() { int broken = = 1; int kept = 2; } }\n",
+                "module example { requires ; uses kept.Service; }\n"
+            })
+    void aBrokenConstructBecomesAnUnparsedRegionAndTheNextConstructStillParses(String source) {
         ParseResult result = parse(source);
 
         assertEquals(source, result.root().text());
-        assertTrue(unparsedText(result.root()).size() == 1, () -> "regions: " + unparsedText(result.root()));
+        assertFalse(result.complete());
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        List<String> unparsed = unparsedText(result.root());
+        assertEquals(1, unparsed.size(), () -> "regions: " + unparsed);
+        assertFalse(unparsed.getFirst().contains("kept"), () -> "regions: " + unparsed);
         assertTrue(result.diagnostics().stream().anyMatch(d -> d.message().contains("left unformatted")));
     }
 
@@ -246,6 +262,84 @@ class ParserTest {
         assertParses(source);
         ParseResult result = parse(source);
         assertEquals(SyntaxKind.IF_STATEMENT, find(result.root().green(), SyntaxKind.IF_STATEMENT).kind());
+    }
+
+    @Test
+    void escapedPrimitiveModifierAndConstructorNamesParse() {
+        assertParses("class A { " + "\\" + "u0069nt x = 1; }\n");
+        assertParses("" + "\\" + "u0070ublic class A { int x = 1; }\n");
+        assertParses("class " + "\\" + "u0041 { " + "\\" + "u0041() {} }\n");
+        assertParses("class A { Object value = " + "\\" + "u006eew String(); }\n");
+        assertParses("class A { String value = (String) " + "\\" + "u006eull; }\n");
+
+        String escapedNew = "class A { Object value = " + "\\" + "u006eew String(); }\n";
+        FormatResult formatted = FormatJ.defaultFormatter().format(FormatRequest.of(escapedNew));
+        assertFalse(formatted.hasErrors(), () -> formatted.diagnostics().toString());
+        assertTrue(formatted.text().contains("\\u006eew String"), formatted.text());
+    }
+
+    @Test
+    void escapedSyntaxAndCommentBoundariesParseThroughTheTranslatedStream() {
+        String source = escape("u0063") + "lass A " + escape("u007b") + " /" + escape("u002a") + " hidden *"
+                + escape("u002f") + " String value " + escape("u003d") + " " + escape("u0022") + "ok" + escape("u0022")
+                + escape("u003b") + " " + escape("u007d") + "\n";
+
+        assertParses(source);
+        FormatResult formatted = FormatJ.defaultFormatter().format(FormatRequest.of(source));
+        assertFalse(formatted.hasErrors(), () -> formatted.diagnostics().toString());
+        assertTrue(formatted.text().contains(escape("u002a") + " hidden *" + escape("u002f")), formatted.text());
+        assertTrue(formatted.text().contains(escape("u0022") + "ok" + escape("u0022")), formatted.text());
+    }
+
+    @Test
+    void escapedGreaterThanParticipatesInAdjacentShiftOperators() {
+        String source = "class A { int f(int value) { return value >" + escape("u003e") + " 1; } }\n";
+
+        assertParses(source);
+        FormatResult formatted = FormatJ.defaultFormatter().format(FormatRequest.of(source));
+        assertFalse(formatted.hasErrors(), () -> formatted.diagnostics().toString());
+        assertTrue(formatted.text().contains(">" + escape("u003e")), formatted.text());
+    }
+
+    @Test
+    void anEscapedTextBlockKeepsItsRawSpellingWhenFormatted() {
+        String quotes = escape("u0022").repeat(3);
+        String block = quotes + escape("u000a") + "text" + escape("u000a") + quotes;
+        String source = "class A { String text = " + block + "; }\n";
+
+        assertParses(source);
+        FormatResult formatted = FormatJ.defaultFormatter().format(FormatRequest.of(source));
+        assertFalse(formatted.hasErrors(), () -> formatted.diagnostics().toString());
+        assertTrue(formatted.text().contains(block), formatted.text());
+    }
+
+    @Test
+    void typeAnnotationsParseAtEveryArrayAndCreationPosition() {
+        String prefix = "import java.lang.annotation.*; class A { " + "@Target(ElementType.TYPE_USE) @interface TA {} ";
+        String[] members = {
+            "void f(String @TA ... args) {}",
+            "String names @TA [];",
+            "void f() { String names @TA [] = null; }",
+            "void f(String names @TA []) {}",
+            "String f() @TA [] { return null; }",
+            "String s = new @TA String();",
+            "int[] numbers = new @TA int[1];",
+            "static class Outer { class Inner {} } Object v = new Outer().new @TA Inner();"
+        };
+        for (String member : members) {
+            assertParses(prefix + member + " }\n");
+        }
+    }
+
+    @Test
+    void aCompactFileMayUseModuleAsATypeName() {
+        assertParses("class module {}\nmodule value = new module();\nvoid main() {}\n");
+    }
+
+    @Test
+    void requiresKeywordsRemainValidModuleNamesWhenUnambiguous() {
+        assertParses(
+                "module example { requires transitive; requires static transitive.dep; requires transitive static dep; }\n");
     }
 
     private static GreenNode find(GreenNode node, SyntaxKind kind) {

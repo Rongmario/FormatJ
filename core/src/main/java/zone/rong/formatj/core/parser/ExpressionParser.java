@@ -34,7 +34,7 @@ abstract class ExpressionParser extends ParserBase {
     // ----------------------------------------------------------------- types
 
     protected boolean atPrimitiveType() {
-        return peek().kind() == TokenKind.KEYWORD && PRIMITIVE_TYPES.contains(peek().text());
+        return peek().kind() == TokenKind.KEYWORD && PRIMITIVE_TYPES.contains(peek().decodedText());
     }
 
     /** Whether a type can start here, used to tell declarations from expressions. */
@@ -98,9 +98,12 @@ abstract class ExpressionParser extends ParserBase {
             children.add(advance());
             current = branch(SyntaxKind.ARRAY_TYPE, children);
         }
-        if (at("...")) {
+        if (atAnnotatedEllipsis()) {
             List<GreenNode> children = new ArrayList<>();
             children.add(current);
+            while (at("@")) {
+                children.add(parseAnnotation());
+            }
             children.add(advance());
             current = branch(SyntaxKind.ARRAY_TYPE, children);
         }
@@ -108,7 +111,7 @@ abstract class ExpressionParser extends ParserBase {
     }
 
     /** Whether an array dimension starts here, {@code []}, possibly type-annotated: {@code @A []}. */
-    private boolean atAnnotatedDimension() {
+    protected boolean atAnnotatedDimension() {
         if (at("[")) {
             return peek(1).is("]");
         }
@@ -121,6 +124,36 @@ abstract class ExpressionParser extends ParserBase {
                 parseAnnotation();
             }
             return at("[") && peek(1).is("]");
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
+    }
+
+    protected void parseDeclaratorDimensions(List<GreenNode> children) {
+        while (atAnnotatedDimension()) {
+            while (at("@")) {
+                children.add(parseAnnotation());
+            }
+            children.add(advance());
+            children.add(advance());
+        }
+    }
+
+    private boolean atAnnotatedEllipsis() {
+        if (at("...")) {
+            return true;
+        }
+        if (!at("@")) {
+            return false;
+        }
+        int start = mark();
+        try {
+            while (at("@")) {
+                parseAnnotation();
+            }
+            return at("...");
         } catch (ParseFailure failure) {
             return false;
         } finally {
@@ -332,7 +365,7 @@ abstract class ExpressionParser extends ParserBase {
             return "";
         }
         if (!token.is(">")) {
-            return token.text();
+            return token.decodedText();
         }
         StringBuilder operator = new StringBuilder(">");
         Token previous = token;
@@ -423,7 +456,7 @@ abstract class ExpressionParser extends ParserBase {
                     || next.is("super")
                     || next.is("new")
                     || next.is("switch")
-                    || LITERAL_KEYWORDS.contains(next.text());
+                    || LITERAL_KEYWORDS.contains(next.decodedText());
         } catch (ParseFailure failure) {
             return false;
         } finally {
@@ -667,7 +700,16 @@ abstract class ExpressionParser extends ParserBase {
         if (at("<")) {
             children.add(parseTypeArguments());
         }
-        GreenNode type = atPrimitiveType() ? advance() : parseTypeNameForCreation();
+        List<GreenNode> annotations = new ArrayList<>();
+        while (at("@")) {
+            annotations.add(parseAnnotation());
+        }
+        boolean primitive = atPrimitiveType();
+        GreenNode type = primitive ? advance() : parseTypeNameForCreation();
+        if (!annotations.isEmpty()) {
+            annotations.add(type);
+            type = branch(primitive ? SyntaxKind.PRIMITIVE_TYPE : SyntaxKind.CLASS_TYPE, annotations);
+        }
         children.add(type);
         if (at("[") || at("@")) {
             while (at("[") || at("@")) {

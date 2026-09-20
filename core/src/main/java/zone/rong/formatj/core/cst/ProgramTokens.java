@@ -100,7 +100,7 @@ public final class ProgramTokens {
     }
 
     private static boolean isSemicolon(GreenNode node) {
-        return node instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";");
+        return node instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(";");
     }
 
 }

@@ -223,6 +223,14 @@ class ImportRewriteTest {
     }
 
     @Test
+    void anImportMentionedOnlyInAnEscapedCommentStays() {
+        String source = "import java.util.List;\nclass T { // \\" + "u004cist is used by generated code\n}\n";
+
+        assertTrue(
+                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;"));
+    }
+
+    @Test
     void anOnDemandImportStaysBecauseItsUseCannotBeSeen() {
         assertTrue(
                 format(UNUSED, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains(
@@ -256,6 +264,37 @@ class ImportRewriteTest {
         String source = template.replace("ESCAPE", "\\" + "u004c");
         assertTrue(
                 format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;"));
+    }
+
+    @Test
+    void anImportSpelledWithAUnicodeEscapeUsesItsDecodedSimpleName() {
+        String template = "import java.util.ESCAPEist; class T { List<String> values; }\n";
+        String source = template.replace("ESCAPE", "\\" + "u004c");
+
+        assertTrue(
+                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("java.util.\\u004cist"));
+    }
+
+    @Test
+    void anEscapedLineTerminatorEndsACommentBeforeImportUsage() {
+        String template = "import java.util.List;\nclass T{// ESCAPE List<String> values;\n}\n";
+        String source = template.replace("ESCAPE", "\\" + "u000a");
+
+        String formatted = format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true));
+        assertTrue(formatted.contains("import java.util.List;"), formatted);
+        assertTrue(formatted.contains("List<String> values;"), formatted);
+        assertTrue(!formatted.equals(source), formatted);
+    }
+
+    @Test
+    void anEscapedQuoteEndsAStringBeforeImportUsage() {
+        String template = "import java.util.List;\nclass T{\n String s=\"ESCAPE; List<String> values; //\";\n}\n";
+        String source = template.replace("ESCAPE", "\\" + "u0022");
+
+        String formatted = format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true));
+        assertTrue(formatted.contains("import java.util.List;"), formatted);
+        assertTrue(formatted.contains("List<String> values;"), formatted);
+        assertTrue(!formatted.equals(source), formatted);
     }
 
     @Test

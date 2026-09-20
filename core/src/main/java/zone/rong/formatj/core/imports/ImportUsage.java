@@ -56,12 +56,12 @@ public final class ImportUsage {
     private static boolean commentsMention(GreenNode node, String name) {
         if (node instanceof GreenNode.Leaf leaf) {
             for (Token comment : leaf.token().leadingComments()) {
-                if (mentions(comment.text(), name)) {
+                if (mentions(comment.decodedText(), name)) {
                     return true;
                 }
             }
             for (Token comment : leaf.token().trailingComments()) {
-                if (mentions(comment.text(), name)) {
+                if (mentions(comment.decodedText(), name)) {
                     return true;
                 }
             }

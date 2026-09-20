@@ -102,7 +102,7 @@ public final class SealedRewrite implements Rewrite {
         List<Integer> slots = new ArrayList<>();
         for (int i = 1; i < children.size(); i++) {
             GreenNode child = children.get(i);
-            if (!(child instanceof GreenNode.Leaf leaf) || !leaf.lexeme().equals(",")) {
+            if (!(child instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(",")) {
                 slots.add(i);
             }
         }

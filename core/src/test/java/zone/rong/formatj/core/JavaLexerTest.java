@@ -6,12 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
+import zone.rong.formatj.core.lexer.UnicodeEscapes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class JavaLexerTest {
+
+    private static String escape(String body) {
+        return "\\" + body;
+    }
 
     private static final String MODERN_SAMPLE = """
             package zone.rong.formatj.sample;
@@ -133,9 +138,11 @@ class JavaLexerTest {
 
     @Test
     void aMalformedEscapeDoesNotCrashAndRoundTrips() {
-        String source = "\\" + "u12XY";
+        String source = escape("uuuu12XY");
         List<Token> tokens = JavaLexer.tokenize(source);
         assertEquals(source, JavaLexer.toSource(tokens));
+        assertEquals(TokenKind.ERROR, tokens.getFirst().kind());
+        assertEquals("\\", tokens.getFirst().text());
     }
 
     @Test
@@ -158,6 +165,117 @@ class JavaLexerTest {
                 .orElseThrow();
         assertEquals(2, intKeyword.line());
         assertEquals(5, intKeyword.column());
+    }
+
+    @Test
+    void escapesCanOpenAndEndComments() {
+        String lineSource = "/" + escape("u002f") + " comment" + escape("u000a") + "class B {}";
+        List<Token> lineTokens = JavaLexer.tokenize(lineSource);
+        assertEquals(lineSource, JavaLexer.toSource(lineTokens));
+        Token lineComment = lineTokens.stream()
+                .filter(token -> token.kind() == TokenKind.LINE_COMMENT)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("/" + escape("u002f") + " comment", lineComment.text());
+        Token classKeyword = lineTokens.stream().filter(token -> token.is("class")).findFirst().orElseThrow();
+        assertEquals(2, classKeyword.line());
+
+        String blockSource = "/* comment *" + escape("u002f") + " class A {}";
+        List<Token> blockTokens = JavaLexer.tokenize(blockSource);
+        assertEquals(blockSource, JavaLexer.toSource(blockTokens));
+        Token blockComment = blockTokens.getFirst();
+        assertEquals(TokenKind.BLOCK_COMMENT, blockComment.kind());
+        assertEquals("/* comment *" + escape("u002f"), blockComment.text());
+        assertTrue(blockTokens.stream().anyMatch(token -> token.is("class")));
+    }
+
+    @Test
+    void escapesCanSpellQuotesOperatorsAndSeparators() {
+        String quoted = escape("u0022") + "text" + escape("u0022");
+        Token string = JavaLexer.tokenize(quoted).getFirst();
+        assertEquals(TokenKind.STRING_LITERAL, string.kind());
+        assertEquals(quoted, string.text());
+        assertEquals("\"text\"", string.decodedText());
+
+        String source = "a " + escape("u002b") + escape("u003d") + " b" + escape("u003b");
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+        Token operator = tokens.stream().filter(token -> token.kind() == TokenKind.OPERATOR).findFirst().orElseThrow();
+        assertEquals(escape("u002b") + escape("u003d"), operator.text());
+        assertEquals("+=", operator.decodedText());
+        assertEquals(source.indexOf(escape("u002b")), operator.start());
+        assertEquals(operator.start() + operator.text().length(), operator.end());
+        assertTrue(tokens.stream().anyMatch(token -> token.kind() == TokenKind.SEPARATOR && token.is(";")));
+    }
+
+    @Test
+    void escapedQuotesCanDelimitATextBlock() {
+        String quotes = escape("u0022").repeat(3);
+        String source = quotes + escape("u000a") + "text" + escape("u000a") + quotes;
+        Token textBlock = JavaLexer.tokenize(source).getFirst();
+
+        assertEquals(TokenKind.TEXT_BLOCK, textBlock.kind());
+        assertEquals(source, textBlock.text());
+        assertEquals("\"\"\"\ntext\n\"\"\"", textBlock.decodedText());
+        assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)));
+    }
+
+    @Test
+    void escapedCrLfIsOneLineTerminator() {
+        String source = "// comment" + escape("u000d") + escape("u000a") + "class A {}";
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+        Token whitespace = tokens.stream()
+                .filter(token -> token.kind() == TokenKind.WHITESPACE)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(escape("u000d") + escape("u000a"), whitespace.text());
+        assertEquals("\r\n", whitespace.decodedText());
+        assertEquals(1, whitespace.lineTerminatorCount());
+        Token classKeyword = tokens.stream().filter(token -> token.is("class")).findFirst().orElseThrow();
+        assertEquals(2, classKeyword.line());
+        assertEquals(1, classKeyword.column());
+    }
+
+    @Test
+    void supplementaryIdentifierCharactersUseBothTranslatedSurrogates() {
+        String source = escape("uD835") + escape("uDC82") + "Name";
+        Token identifier = JavaLexer.tokenize(source).getFirst();
+        assertEquals(TokenKind.IDENTIFIER, identifier.kind());
+        assertEquals(source, identifier.text());
+        assertEquals(new String(Character.toChars(0x1D482)) + "Name", identifier.decodedText());
+
+        String literalSource = new String(Character.toChars(0x1D482)) + "Name";
+        assertEquals(TokenKind.IDENTIFIER, JavaLexer.tokenize(literalSource).getFirst().kind());
+    }
+
+    @Test
+    void anEscapeProducedBackslashAffectsFollowingEscapeEligibility() {
+        String source = "\"" + escape("u005c") + escape("u005c") + escape("u006e") + "\"";
+        Token string = JavaLexer.tokenize(source).getFirst();
+        assertEquals(TokenKind.STRING_LITERAL, string.kind());
+        assertEquals(source, string.text());
+        assertEquals("\"\\\\n\"", string.decodedText());
+    }
+
+    @Test
+    void eligibilityUsesTheTranslatedBackslashRun() {
+        String separated = "\\" + "\\" + "u2122=" + escape("u2122");
+        assertEquals("\\" + "\\" + "u2122=™", UnicodeEscapes.decode(separated));
+
+        String threeBackslashes = "\\" + "\\" + escape("u006e");
+        assertEquals("\\" + "\\" + "n", UnicodeEscapes.decode(threeBackslashes));
+    }
+
+    @Test
+    void escapeTranslationDoesNotRecurse() {
+        String source = escape("u005c") + "u005a";
+        List<Token> tokens = JavaLexer.tokenize(source);
+        assertEquals(source, JavaLexer.toSource(tokens));
+        assertEquals("\\u005a", UnicodeEscapes.decode(source));
+        assertEquals(TokenKind.ERROR, tokens.getFirst().kind());
+        assertEquals(TokenKind.IDENTIFIER, tokens.get(1).kind());
+        assertEquals("u005a", tokens.get(1).text());
     }
 
 }

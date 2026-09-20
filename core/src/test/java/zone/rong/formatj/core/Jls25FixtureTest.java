@@ -10,6 +10,7 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
+import zone.rong.formatj.core.pipeline.TokenEquivalence;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -79,6 +80,9 @@ class Jls25FixtureTest {
         Formatter formatter = FormatJ.defaultFormatter();
         FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
         assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+        assertTrue(
+                TokenEquivalence.equivalent(source, once.text()),
+                () -> "formatting changed the program: " + TokenEquivalence.firstDifference(source, once.text()));
         assertCompiles(compiler, List.of(new StringSource(path.getFileName().toString(), once.text())));
 
         FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
@@ -113,6 +117,10 @@ class Jls25FixtureTest {
 
             FormatResult once = formatter.format(FormatRequest.of(source).withName(file.toString()));
             assertTrue(!once.hasErrors(), () -> "formatting failed in " + file + ": " + once.diagnostics());
+            assertTrue(
+                    TokenEquivalence.equivalent(source, once.text()),
+                    () -> "formatting changed the program in " + file + ": "
+                            + TokenEquivalence.firstDifference(source, once.text()));
             formattedOnce.add(once.text());
         }
         assertCompiles(compiler, unitsOf(files, formattedOnce));
