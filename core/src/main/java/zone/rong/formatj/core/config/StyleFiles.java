@@ -1,7 +1,5 @@
 package zone.rong.formatj.core.config;
 
-import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.OptionRegistry;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
@@ -43,21 +41,10 @@ public final class StyleFiles {
         StyleBuilder builder = Style.builder();
         String preset = entries.remove(PRESET_KEY);
         if (preset != null) {
-            Preset.of(preset)
-                    .style()
-                    .explicitValues()
-                    .forEach((key, value) -> {
-                        Option<?> option = OptionRegistry.require(key);
-                        setChecked(builder, option, value);
-                    });
+            builder.apply(Preset.of(preset).style());
         }
         entries.forEach(builder::setRaw);
         return builder.build();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> void setChecked(StyleBuilder builder, Option<T> option, Object value) {
-        builder.set(option, (T) value);
     }
 
     /** Writes a style out as a commented TOML document. */
