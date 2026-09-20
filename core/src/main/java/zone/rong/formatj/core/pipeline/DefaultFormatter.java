@@ -113,6 +113,10 @@ public final class DefaultFormatter implements Formatter {
     public FormatResult format(FormatRequest request) {
         String source = request.source();
         List<Diagnostic> diagnostics = new ArrayList<>();
+        boolean wholeFile = request.isWholeFile()
+                || (request.ranges().size() == 1
+                        && request.ranges().getFirst().startOffset() == 0
+                        && request.ranges().getFirst().endOffset() >= source.length());
 
         List<Token> tokens = JavaLexer.tokenize(source);
         if (!JavaLexer.toSource(tokens).equals(source)) {
@@ -121,7 +125,6 @@ public final class DefaultFormatter implements Formatter {
                     source,
                     List.of(Diagnostic.error("Lexer did not round-trip the source; file left unchanged")));
         }
-
         ParseResult parsed = JavaParser.parse(tokens, languageLevel, previewFeatures);
         diagnostics.addAll(parsed.diagnostics());
         if (parsed.hasErrors()) {
@@ -135,7 +138,7 @@ public final class DefaultFormatter implements Formatter {
 
         // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
         // so one broken statement does not cost the rest of the file its formatting.
-        Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete, source);
+        Attempt attempt = attempt(parsed, rewritesEnabled && !incomplete && wholeFile, source);
         String text;
         if (attempt.failed() && attempt.rewrote()) {
             Attempt withoutRewrites = attempt(parsed, false, source);
@@ -152,19 +155,34 @@ public final class DefaultFormatter implements Formatter {
             text = attempt.text();
         }
 
-        if (!request.isWholeFile()) {
-            // Splicing only touches whole lines that the requested ranges overlap; anything else is the
-            // caller's own characters, so it cannot introduce a syntax error the full-file pass didn't
-            // already rule out. This is still checked because a hunk boundary is a line boundary, not a
-            // token boundary, and cutting between two identical lines inside a differing multi-line token
-            // (a text block, a block comment) is not something the diff itself can see.
+        if (!wholeFile) {
+            // Diff hunks can cross syntax and comment boundaries, so the selected result needs the same
+            // safety checks as a whole-file result.
             String spliced = LineDiffer.splice(source, text, request.ranges());
-            if (verify
-                    && !spliced.equals(source)
-                    && JavaParser.parse(spliced, languageLevel, previewFeatures).hasErrors()) {
-                return FormatResult.failed(
-                        source,
-                        List.of(Diagnostic.error("Formatting the selection would leave the file unparsable")));
+            if (verify && !spliced.equals(source)) {
+                ParseResult splicedTree = JavaParser.parse(spliced, languageLevel, previewFeatures);
+                if (splicedTree.hasErrors() || parsed.complete() && !splicedTree.complete()) {
+                    return FormatResult.failed(
+                            source,
+                            List.of(Diagnostic.error("Formatting the selection would leave the file unparsable")));
+                }
+                String difference = TokenEquivalence.firstDifference(parsed.root().green(), splicedTree.root().green());
+                if (difference != null) {
+                    return FormatResult.failed(
+                            source,
+                            List.of(
+                                    Diagnostic.error(
+                                            "Formatting the selection would change the program: " + difference)));
+                }
+                String prose =
+                        ProsePreservation.firstDifference(parsed.root().green(), splicedTree.root().green(), style);
+                if (prose != null) {
+                    return FormatResult.failed(
+                            source,
+                            List.of(
+                                    Diagnostic.error(
+                                            "Formatting the selection would change what a comment says: " + prose)));
+                }
             }
             text = spliced;
         }
