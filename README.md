@@ -38,7 +38,7 @@ import zone.rong.formatj.api.Preset
 
 plugins {
     java
-    id("zone.rong.formatj") version "0.4.2"
+id("zone.rong.formatj") version "0.5.0"
 }
 
 formatJ {
@@ -69,7 +69,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>0.4.2</version>
+        <version>0.5.0</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
@@ -108,7 +108,7 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ### Library
 
-`zone.rong.formatj:formatj:0.4.2` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+`zone.rong.formatj:formatj:0.5.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
 
 ```java
 Formatter formatter = FormatJ.newFormatter()
@@ -269,6 +269,10 @@ breaks:
   takes to fit, so a chain can wrap in the middle and keep two links on a line.
 - `never-break` leaves the dots alone and lets the overflow land inside an argument list instead.
 
+`wrapping.instanceof=preserve` defers to `patterns.keep-simple-pattern-inline`, which keeps its
+existing behavior. Every other `wrapping.instanceof` value overrides that pattern rule. The
+placement rule only chooses the side of a break and does not force one.
+
 | Key                                              | Values                              | Default                  | Effect                                                            | Example                                                                          |
 |--------------------------------------------------|-------------------------------------|--------------------------|-------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | `wrapping.max-line-length`                       | integer                             | `120`                    | Maximum columns before a line is wrapped                          | `100`: lines are broken at 100 columns                                           |
@@ -279,6 +283,14 @@ breaks:
 | `wrapping.chain-threshold`                       | integer                             | `3`                      | Chain links required before the chain may be broken at all        | `3`: `a.b().c()` stays on one line however long it is                            |
 | `wrapping.binary-operators`                      | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of a binary expression                                   | `wrap-if-long`: `a + b`<br>`········+ c`                                         |
 | `wrapping.operator-position`                     | `before-operator`, `after-operator` | `before-operator`        | Which line a binary operator lands on when wrapped                | `before-operator`: `a`<br>`········+ b` — `after-operator`: `a +`<br>`········b` |
+| `wrapping.method-reference`                      | `WrapPolicy`                        | `never`                  | Wrapping of a method reference at `::`                            | `chop-down-always`: `Type`<br>`········::method`                                 |
+| `wrapping.method-reference-operator-position`    | `before-operator`, `after-operator` | `before-operator`        | Which line `::` lands on when a method reference wraps            | `after-operator`: `Type ::`<br>`········method`                                  |
+| `wrapping.instanceof`                            | `WrapPolicy`                        | `preserve`               | Wrapping of an `instanceof` test                                  | `chop-down-always`: `value instanceof`<br>`········Type pattern`                  |
+| `wrapping.instanceof-operator-position`          | `before-operator`, `after-operator` | `after-operator`         | Which line `instanceof` lands on when its test wraps              | `before-operator`: `value`<br>`········instanceof Type pattern`                   |
+| `wrapping.multicatch`                            | `WrapPolicy`                        | `never`                  | Wrapping of multi-catch alternatives                              | `chop-down-always`: `First`<br>`········&#124; Second e`                          |
+| `wrapping.multicatch-separator-position`         | `before-operator`, `after-operator` | `before-operator`        | Which line `&#124;` lands on when multi-catch alternatives wrap   | `after-operator`: `First &#124;`<br>`········Second e`                            |
+| `wrapping.intersection-types`                    | `WrapPolicy`                        | `never`                  | Wrapping of intersection type bounds and casts                    | `chop-down-always`: `A`<br>`········& B`                                         |
+| `wrapping.intersection-separator-position`       | `before-operator`, `after-operator` | `before-operator`        | Which line `&` lands on when intersection types wrap              | `after-operator`: `A &`<br>`········B`                                           |
 | `wrapping.ternary`                               | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of a conditional expression                              | `wrap-if-long`: `c`<br>`········? a`<br>`········: b`                            |
 | `wrapping.assignment`                            | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of the right hand side of an assignment                  | `wrap-if-long`: `int x =`<br>`········compute();`                                |
 | `wrapping.array-initializers`                    | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of an array initializer                                  | `wrap-if-long`: `{ 1, 2,`<br>`····3 }`                                           |
@@ -338,6 +350,9 @@ breaks:
 | `spacing.around-unary-operators`                | `false` | Spaces between a unary operator and its operand           | `! x` / `!x`                                                                                            |
 | `spacing.around-lambda-arrow`                   | `true`  | Spaces around the lambda arrow                            | `x -> x` / `x->x`                                                                                       |
 | `spacing.around-ternary-operators`              | `true`  | Spaces around the `?` and `:` of a conditional expression | `c ? a : b` / `c?a:b`                                                                                   |
+| `spacing.around-method-reference-operator`       | `false` | Spaces around the `::` of a method reference               | `Type :: method` / `Type::method`                                                                       |
+| `spacing.around-multicatch-separator`            | `true`  | Spaces around `&#124;` between multi-catch alternatives    | `catch (A &#124; B e)` / `catch (A&#124;B e)`                                                           |
+| `spacing.around-intersection-separator`          | `true`  | Spaces around the `&` between intersection types           | `T extends A & B` / `T extends A&B`                                                                     |
 | `spacing.after-comma`                           | `true`  | Space after a comma                                       | `f(a, b)` / `f(a,b)`                                                                                    |
 | `spacing.before-comma`                          | `false` | Space before a comma                                      | `f(a , b)` / `f(a, b)`                                                                                  |
 | `spacing.after-semicolon-in-for`                | `true`  | Space after the semicolons of a for header                | `for (a; b; c)` / `for (a;b;c)`                                                                         |
@@ -462,6 +477,17 @@ went in: same words, same order, and any `{@code}`, `<pre>` or `@snippet` region
 no rule here has anything to say about is reproduced character for character, so turning one of them
 on does not re-space every other comment in the file.
 
+Traditional `/**` comments and contiguous Markdown `///` runs share wrapping, tag ordering, the blank
+line before tags, tag-description alignment, and tag-continuation indentation. Paragraph-tag
+insertion, single-line retention, closing-tag form, and opening-tag position apply only to traditional
+comments because they control traditional Javadoc's HTML paragraph markers.
+
+Markdown wrapping refills plain paragraphs only. Code spans, fenced and indented code blocks,
+headings, lists, tables, block quotes, links, reference definitions, HTML blocks, and hard line breaks
+keep their source lines. Unclosed delimiters and other ambiguous Markdown leave the whole run
+unchanged. Tag ordering moves complete tag blocks, and verification keeps every tag and comment
+boundary so text cannot migrate between unrelated tags or comments.
+
 - `JavadocTagOrder` values are `preserve` and `canonical`.
 - `JavadocClosingTagForm` values are `preserve` and `slash-first`.
 - `JavadocOpeningTagPosition` values are `preserve`, `new-line` and `same-line`.
@@ -484,15 +510,40 @@ on does not re-space every other comment in the file.
 
 | Key                               | Values                     | Default    | Effect                                                     | Example                                                        |
 |-----------------------------------|----------------------------|------------|------------------------------------------------------------|----------------------------------------------------------------|
-| `javadoc.wrap`                    | boolean                    | `false`    | Wrap Javadoc prose to the configured line length           | `true`: description paragraphs are refilled to the margin      |
+| `javadoc.wrap`                    | boolean                    | `false`    | Wrap ordinary documentation prose to the configured line length | `true`: safe description paragraphs are refilled to the margin |
 | `javadoc.tag-order`               | `JavadocTagOrder`          | `preserve` | Ordering of Javadoc block tags                             | `canonical`: `@param`, then `@return`, then `@throws`          |
 | `javadoc.blank-line-before-tags`  | boolean                    | `true`     | Blank line between the description and the first block tag | `true`: `·* text`<br>`·*`<br>`·* @param a x`                   |
 | `javadoc.align-tag-descriptions`  | boolean                    | `false`    | Align the descriptions following block tags                | `true`: `@param a··x`<br>`@param bb y`                         |
-| `javadoc.add-paragraph-tags`      | boolean                    | `false`    | Write `<p>` on blank description lines                     | `true`: a blank description line becomes `·* <p>`              |
-| `javadoc.keep-single-line`        | boolean                    | `true`     | Leave a one-line Javadoc comment on one line               | `true`: `/** Text. */` stays as written                        |
+| `javadoc.add-paragraph-tags`      | boolean                    | `false`    | Write `<p>` on blank traditional Javadoc description lines | `true`: a blank description line becomes `·* <p>`              |
+| `javadoc.keep-single-line`        | boolean                    | `true`     | Leave a one-line traditional Javadoc comment on one line   | `true`: `/** Text. */` stays as written                        |
 | `javadoc.tag-continuation-indent` | integer                    | `8`        | Columns a wrapped block tag description is indented        | `8`: the second line of a long `@param` is indented 8 columns  |
-| `javadoc.closing-tag-form`        | `JavadocClosingTagForm`    | `preserve` | Written form of a Javadoc paragraph closer                 | `slash-first`: `<p/>` becomes `</p>`; `<p>` untouched           |
-| `javadoc.opening-tag-position`    | `JavadocOpeningTagPosition`| `preserve` | Placement of a Javadoc paragraph marker relative to its paragraph | `new-line`: `·* <p>` own line — `same-line`: `·* <p> text` |
+| `javadoc.closing-tag-form`        | `JavadocClosingTagForm`    | `preserve` | Written form of a traditional Javadoc paragraph closer     | `slash-first`: `<p/>` becomes `</p>`; `<p>` untouched           |
+| `javadoc.opening-tag-position`    | `JavadocOpeningTagPosition`| `preserve` | Placement of a traditional Javadoc paragraph marker relative to its paragraph | `new-line`: `·* <p>` own line — `same-line`: `·* <p> text` |
+
+### `module`
+
+The four body rules default to `inherit`, so module declarations keep following the corresponding
+class brace, empty-body, and blank-line rules until a module-specific value is set.
+
+| Key                                            | Values                        | Default   | Effect                                                            | Example                                                     |
+|------------------------------------------------|-------------------------------|-----------|-------------------------------------------------------------------|-------------------------------------------------------------|
+| `module.brace-placement`                       | `inherit` or `BracePlacement` | `inherit` | Opening brace position for a module declaration                   | `next-line`: `module m`<br>`{`                              |
+| `module.empty-body`                            | `inherit` or `EmptyBodyStyle` | `inherit` | Rendering of an empty module body                                 | `compact`: `module m {}`                                    |
+| `module.blank-lines-after-opening-brace`       | `inherit` or integer          | `inherit` | Blank lines after a module's opening brace                        | `0`: the first directive follows on the next line           |
+| `module.blank-lines-before-closing-brace`      | `inherit` or integer          | `inherit` | Blank lines before a module's closing brace                       | `0`: the brace follows the final directive on the next line |
+| `module.blank-lines-between-directive-groups`  | integer                       | `0`       | Blank lines between adjacent groups of different directive types | `1`: separate `requires`, `exports`, and `uses` groups      |
+| `module.exports-opens-target-list-wrapping`    | `WrapPolicy`                  | `never`   | Wrapping of target module lists in `exports` and `opens`          | `chop-down-always`: one target after each comma             |
+| `module.provides-implementation-list-wrapping` | `WrapPolicy`                  | `never`   | Wrapping of implementation lists in `provides`                    | `wrap-if-long`: wrap implementations at the margin          |
+
+### `modifiers`
+
+`canonical` follows the declaration-specific orders documented by `ModifierRules`. Annotations keep
+their source order and their positions among the modifier slots. Modifier lists with comments,
+duplicates, or malformed modifiers remain unchanged.
+
+| Key               | Values                  | Default    | Effect                            | Example                                      |
+|-------------------|-------------------------|------------|-----------------------------------|----------------------------------------------|
+| `modifiers.order` | `preserve`, `canonical` | `preserve` | Ordering of declaration modifiers | `canonical`: `static public` becomes `public static` |
 
 ### `switch`
 
