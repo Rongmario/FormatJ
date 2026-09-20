@@ -4,15 +4,18 @@ import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
+import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.lexer.UnicodeEscapes;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import zone.rong.formatj.core.text.TextBlocks;
 import java.util.ArrayList;
@@ -20,6 +23,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Checks the output of a run that was allowed to change the program.
@@ -61,7 +65,7 @@ public final class RewriteVerification {
      * @return a description of the first problem, or null when the output is exactly what was declared
      */
     public static String verifyOutput(GreenNode before, GreenNode formatted, List<TokenEdit> edits) {
-        String lawProblem = checkEditLaws(edits, formatted);
+        String lawProblem = checkEditLaws(before, edits, formatted);
         if (lawProblem != null) {
             return lawProblem;
         }
@@ -160,9 +164,9 @@ public final class RewriteVerification {
      * rule has no business making. The law is what ties an edit back to the rule the user actually
      * turned on.
      */
-    private static String checkEditLaws(List<TokenEdit> edits, GreenNode formatted) {
+    private static String checkEditLaws(GreenNode before, List<TokenEdit> edits, GreenNode formatted) {
         for (TokenEdit edit : edits) {
-            String problem = checkEditLaw(edit, formatted);
+            String problem = checkEditLaw(edit, before, formatted);
             if (problem != null) {
                 return problem;
             }
@@ -171,7 +175,7 @@ public final class RewriteVerification {
     }
 
     /** The law of the one rule this edit claims to be. */
-    private static String checkEditLaw(TokenEdit edit, GreenNode formatted) {
+    private static String checkEditLaw(TokenEdit edit, GreenNode before, GreenNode formatted) {
         Option<?> authority = edit.authority();
         if (authority == BraceRules.IF_ELSE
                 || authority == BraceRules.FOR_LOOP
@@ -184,6 +188,9 @@ public final class RewriteVerification {
         }
         if (authority == SealedRules.PERMITS_ORDER) {
             return checkPermitsLaw(edit);
+        }
+        if (authority == ModifierRules.ORDER) {
+            return checkModifierLaw(edit, before);
         }
         if (authority == LambdaRules.PARAMETER_STYLE) {
             return checkOnly(edit, "parentheses", "(", ")");
@@ -315,7 +322,7 @@ public final class RewriteVerification {
         List<String> current = new ArrayList<>();
         for (String token : tokens) {
             current.add(token);
-            if (!token.equals(";")) {
+            if (!decoded(token).equals(";")) {
                 continue;
             }
             ImportEntry entry = ImportEntry.ofLexemes(current);
@@ -350,6 +357,198 @@ public final class RewriteVerification {
                : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
     }
 
+    /** A modifier rule may permute one declaration's modifiers and nothing else. */
+    private static String checkModifierLaw(TokenEdit edit, GreenNode beforeTree) {
+        List<ModifierElement> before = modifierSpan(edit.removed());
+        List<ModifierElement> after = modifierSpan(edit.inserted());
+        if (before == null || after == null || !isDeclaredModifierSpan(beforeTree, edit)) {
+            return ModifierRules.ORDER.key() + " may only rewrite one declared modifier span";
+        }
+        if (before.size() != after.size()) {
+            return ModifierRules.ORDER.key() + " inserted or deleted a modifier";
+        }
+
+        List<List<String>> beforeModifiers = new ArrayList<>();
+        List<List<String>> afterModifiers = new ArrayList<>();
+        for (int i = 0; i < before.size(); i++) {
+            ModifierElement was = before.get(i);
+            ModifierElement now = after.get(i);
+            if (was.annotation() != now.annotation()) {
+                return ModifierRules.ORDER.key() + " moved a modifier across an annotation";
+            }
+            if (was.annotation()) {
+                if (!was.tokens().equals(now.tokens())) {
+                    return ModifierRules.ORDER.key() + " changed or reordered annotations";
+                }
+            } else {
+                beforeModifiers.add(was.tokens());
+                afterModifiers.add(now.tokens());
+            }
+        }
+
+        String difference = sameTokenBag(beforeModifiers, afterModifiers);
+        return difference == null
+               ? null
+               : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
+    }
+
+    private static final Set<String> MODIFIERS =
+            Set.of(
+                    "public",
+                    "protected",
+                    "private",
+                    "abstract",
+                    "default",
+                    "static",
+                    "final",
+                    "transient",
+                    "volatile",
+                    "synchronized",
+                    "native",
+                    "strictfp",
+                    "sealed");
+
+    private static boolean isDeclaredModifierSpan(GreenNode tree, TokenEdit edit) {
+        Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(tree);
+        return containsModifierSpan(tree, edit, positions);
+    }
+
+    private static boolean containsModifierSpan(
+            GreenNode node,
+            TokenEdit edit,
+            Map<GreenNode.Leaf, Integer> positions) {
+        if (isModifierDeclaration(node.kind()) && !node.children().isEmpty()) {
+            GreenNode modifiers = node.children().getFirst();
+            List<GreenNode.Leaf> leaves = ProgramTokens.leaves(modifiers);
+            if (modifiers.kind() == SyntaxKind.MODIFIERS
+                    && !leaves.isEmpty()
+                    && positions.get(leaves.getFirst()) == edit.position()
+                    && ProgramTokens.lexemes(modifiers).equals(edit.removed())) {
+                return true;
+            }
+        }
+        for (GreenNode child : node.children()) {
+            if (containsModifierSpan(child, edit, positions)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isModifierDeclaration(SyntaxKind kind) {
+        return switch (kind) {
+            case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
+                    ANNOTATION_TYPE_DECLARATION, FIELD_DECLARATION, METHOD_DECLARATION, CONSTRUCTOR_DECLARATION,
+                    COMPACT_CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> true;
+            default -> false;
+        };
+    }
+
+    /** Splits one modifier branch into modifier units and fixed annotation slots. */
+    private static List<ModifierElement> modifierSpan(List<String> tokens) {
+        List<ModifierElement> elements = new ArrayList<>();
+        for (int i = 0; i < tokens.size();) {
+            String token = decoded(tokens.get(i));
+            if (token.equals("@")) {
+                int end = annotationEnd(tokens, i);
+                if (end < 0) {
+                    return null;
+                }
+                elements.add(new ModifierElement(true, tokens.subList(i, end)));
+                i = end;
+                continue;
+            }
+            if (token.equals("non")
+                    && i + 2 < tokens.size()
+                    && decoded(tokens.get(i + 1)).equals("-")
+                    && decoded(tokens.get(i + 2)).equals("sealed")) {
+                elements.add(new ModifierElement(false, tokens.subList(i, i + 3)));
+                i += 3;
+                continue;
+            }
+            if (!MODIFIERS.contains(token)) {
+                return null;
+            }
+            elements.add(new ModifierElement(false, List.of(tokens.get(i))));
+            i++;
+        }
+        return elements.stream().anyMatch(element -> !element.annotation()) ? List.copyOf(elements) : null;
+    }
+
+    private static int annotationEnd(List<String> tokens, int start) {
+        int next = start + 1;
+        if (next >= tokens.size() || !identifier(decoded(tokens.get(next)))) {
+            return -1;
+        }
+        next++;
+        while (next < tokens.size() && decoded(tokens.get(next)).equals(".")) {
+            if (next + 1 >= tokens.size() || !identifier(decoded(tokens.get(next + 1)))) {
+                return -1;
+            }
+            next += 2;
+        }
+        if (next >= tokens.size() || !decoded(tokens.get(next)).equals("(")) {
+            return next;
+        }
+
+        int depth = 0;
+        do {
+            String token = decoded(tokens.get(next++));
+            if (token.equals("(")) {
+                depth++;
+            } else if (token.equals(")") && --depth < 0) {
+                return -1;
+            }
+        } while (next < tokens.size() && depth > 0);
+        return depth == 0 ? next : -1;
+    }
+
+    private static boolean identifier(String text) {
+        if (text.isEmpty() || !Character.isJavaIdentifierStart(text.codePointAt(0))) {
+            return false;
+        }
+        for (int offset = Character.charCount(text.codePointAt(0)); offset < text.length();) {
+            int codePoint = text.codePointAt(offset);
+            if (!Character.isJavaIdentifierPart(codePoint)) {
+                return false;
+            }
+            offset += Character.charCount(codePoint);
+        }
+        return true;
+    }
+
+    private static String decoded(String token) {
+        return UnicodeEscapes.decode(token);
+    }
+
+    private static String sameTokenBag(List<List<String>> before, List<List<String>> after) {
+        Map<List<String>, Integer> counts = new LinkedHashMap<>();
+        for (List<String> modifier : before) {
+            counts.merge(modifier, 1, Integer::sum);
+        }
+        for (List<String> modifier : after) {
+            Integer count = counts.get(modifier);
+            if (count == null || count == 0) {
+                return "produced " + modifier + ", which was not there";
+            }
+            counts.put(modifier, count - 1);
+        }
+        for (Map.Entry<List<String>, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > 0) {
+                return "dropped " + entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private record ModifierElement(boolean annotation, List<String> tokens) {
+
+        private ModifierElement {
+            tokens = List.copyOf(tokens);
+        }
+
+    }
+
     /**
      * Splits a comma-separated run into its elements, or null when it is not one.
      *
@@ -359,7 +558,8 @@ public final class RewriteVerification {
         List<String> elements = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         int depth = 0;
-        for (String token : tokens) {
+        for (String raw : tokens) {
+            String token = decoded(raw);
             if (token.equals("<")) {
                 depth++;
             } else if (token.equals(">")) {

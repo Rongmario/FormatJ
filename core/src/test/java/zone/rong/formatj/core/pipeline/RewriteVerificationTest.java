@@ -15,6 +15,7 @@ import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
@@ -329,6 +330,105 @@ class RewriteVerificationTest {
                         List.of(permitsEdit(List.of("A", ",", ",", "B"))));
         assertNotNull(problem);
         assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
+    }
+
+    // ----------------------------------------------- the modifier edit law
+
+    private static TokenEdit modifierEdit(List<String> removed, List<String> inserted) {
+        return new TokenEdit(ModifierRules.ORDER, "reordered", 0, removed, inserted, TokenEdit.Bias.INNERMOST_FIRST);
+    }
+
+    @Test
+    void aModifierPermutationIsPermitted() {
+        String before = "static public final class T {\n}\n";
+        String after = "public static final class T {\n}\n";
+        assertNull(
+                RewriteVerification.verifyOutput(
+                        parse(before),
+                        parse(after),
+                        List.of(
+                                modifierEdit(
+                                        List.of("static", "public", "final"),
+                                        List.of("public", "static", "final")))));
+    }
+
+    @Test
+    void nonSealedIsOneModifierInAPermutation() {
+        String before = "non-sealed public class T {\n}\n";
+        String after = "public non-sealed class T {\n}\n";
+        assertNull(
+                RewriteVerification.verifyOutput(
+                        parse(before),
+                        parse(after),
+                        List.of(
+                                modifierEdit(
+                                        List.of("non", "-", "sealed", "public"),
+                                        List.of("public", "non", "-", "sealed")))));
+    }
+
+    @Test
+    void annotationsMustKeepTheirOrderAndModifierSlots() {
+        String before = "static @A public final class T {\n}\n @interface A {\n}\n";
+        String after = "public @A static final class T {\n}\n @interface A {\n}\n";
+        assertNull(
+                RewriteVerification.verifyOutput(
+                        parse(before),
+                        parse(after),
+                        List.of(
+                                modifierEdit(
+                                        List.of("static", "@", "A", "public", "final"),
+                                        List.of("public", "@", "A", "static", "final")))));
+
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse("@A @B public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
+                        parse("@B @A public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
+                        List.of(
+                                modifierEdit(
+                                        List.of("@", "A", "@", "B", "public", "static"),
+                                        List.of("@", "B", "@", "A", "public", "static"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("changed or reordered annotations"), problem);
+    }
+
+    @Test
+    void modifiersCannotBeInsertedDeletedOrSubstituted() {
+        for (List<String> inserted : List.of(
+                List.of("public", "static", "final"),
+                List.of("public"),
+                List.of("public", "abstract"))) {
+            String problem =
+                    RewriteVerification.verifyOutput(
+                            parse("static public class T {\n}\n"),
+                            parse("static public class T {\n}\n"),
+                            List.of(modifierEdit(List.of("static", "public"), inserted)));
+            assertNotNull(problem, inserted.toString());
+        }
+    }
+
+    @Test
+    void aModifierEditCannotClaimTokensOutsideTheModifierSpan() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse("static public class T {\n}\n"),
+                        parse("static public class T {\n}\n"),
+                        List.of(
+                                modifierEdit(
+                                        List.of("static", "public", "class"),
+                                        List.of("public", "static", "class"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("declared modifier span"), problem);
+    }
+
+    @Test
+    void aModifierEditMustCoverTheWholeModifierSpan() {
+        String problem =
+                RewriteVerification.verifyOutput(
+                        parse("static public final class T {\n}\n"),
+                        parse("public static final class T {\n}\n"),
+                        List.of(modifierEdit(List.of("static", "public"), List.of("public", "static"))));
+        assertNotNull(problem);
+        assertTrue(problem.contains("declared modifier span"), problem);
     }
 
     @Test

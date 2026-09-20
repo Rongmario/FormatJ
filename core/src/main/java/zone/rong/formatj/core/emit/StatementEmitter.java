@@ -465,6 +465,10 @@ abstract class StatementEmitter extends ExpressionEmitter {
         if (indexOf(children, ":") >= 0) {
             return emitForEachHeader(node);
         }
+        int firstBar = indexOf(children, "|");
+        if (firstBar >= 0) {
+            return emitMulticatchParameter(node, children, firstBar);
+        }
         List<Doc> parts = new ArrayList<>();
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
@@ -480,6 +484,52 @@ abstract class StatementEmitter extends ExpressionEmitter {
             }
             parts.add(emit(child));
         }
+        return Doc.concat(parts);
+    }
+
+    private Doc emitMulticatchParameter(GreenNode node, List<GreenNode> children, int firstBar) {
+        int firstType = firstBar - 1;
+        int name = children.size() - 1;
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < firstType; i++) {
+            GreenNode child = children.get(i);
+            if (i > 0) {
+                GreenNode previous = children.get(i - 1);
+                parts.add(
+                        previous.kind() == SyntaxKind.ANNOTATION
+                        ? annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children)
+                        : space());
+            }
+            parts.add(emit(child));
+        }
+        if (firstType > 0) {
+            GreenNode previous = children.get(firstType - 1);
+            parts.add(
+                    previous.kind() == SyntaxKind.ANNOTATION
+                    ? annotationSeparator(children.get(firstType), rule(AnnotationRules.PARAMETER_PLACEMENT), children)
+                    : space());
+        }
+
+        List<Doc> alternatives = new ArrayList<>();
+        List<GreenNode> separators = new ArrayList<>();
+        for (int i = firstType; i < name; i++) {
+            GreenNode child = children.get(i);
+            if (is(child, "|")) {
+                separators.add(child);
+            } else {
+                alternatives.add(emit(child));
+            }
+        }
+        parts.add(
+                emitOperatorSeparated(
+                        node,
+                        alternatives,
+                        separators,
+                        rule(SpacingRules.AROUND_MULTICATCH_SEPARATOR),
+                        rule(WrappingRules.MULTICATCH),
+                        rule(WrappingRules.MULTICATCH_SEPARATOR_POSITION)));
+        parts.add(space());
+        parts.add(emit(children.get(name)));
         return Doc.concat(parts);
     }
 

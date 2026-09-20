@@ -9,6 +9,8 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.SwitchRules;
@@ -248,6 +250,124 @@ class RewriteRulesTest {
         assertTrue(format(source, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits a.A, b.B"));
     }
 
+    // --------------------------------------------------------- modifiers.order
+
+    private static final String MODIFIERS = """
+            sealed public abstract class T permits T.Child {
+
+                @Second static @First public final int field = 1;
+
+                synchronized final public void run() {
+                }
+
+                @First private T() {
+                }
+
+                static public interface Nested {
+                }
+
+                static public enum Choice {
+                    ONE
+                }
+
+                static public record Pair(int value) {
+                }
+
+                abstract public @interface Marker {
+                }
+
+                static non-sealed public class Child extends T {
+                }
+
+            }
+
+            @interface First {
+            }
+
+            @interface Second {
+            }
+            """;
+
+    @Test
+    void modifierOrderIsPreservedByDefault() {
+        assertEquals(ModifierOrder.PRESERVE, ModifierRules.ORDER.defaultValue());
+        GreenNode root = JavaParser.parse(MODIFIERS, LanguageLevel.LATEST, true).root().green();
+        assertTrue(RewriteStage.apply(root, Style.builder().build()).unchanged());
+    }
+
+    @Test
+    void declarationKindsUseTheirCanonicalModifierOrders() {
+        String formatted = format(MODIFIERS, ModifierRules.ORDER, ModifierOrder.CANONICAL);
+        GreenNode root = JavaParser.parse(formatted, LanguageLevel.LATEST, true).root().green();
+        String rewritten = String.join(" ", ProgramTokens.lexemes(root));
+        assertTrue(rewritten.contains("public abstract sealed class T"), rewritten);
+        assertTrue(rewritten.contains("@ Second public @ First static final int field"), rewritten);
+        assertTrue(rewritten.contains("public final synchronized void run"), rewritten);
+        assertTrue(rewritten.contains("@ First private T ( )"), rewritten);
+        assertTrue(rewritten.contains("public static interface Nested"), rewritten);
+        assertTrue(rewritten.contains("public static enum Choice"), rewritten);
+        assertTrue(rewritten.contains("public static record Pair"), rewritten);
+        assertTrue(rewritten.contains("public abstract @ interface Marker"), rewritten);
+        assertTrue(rewritten.contains("public static non - sealed class Child"), rewritten);
+    }
+
+    @Test
+    void escapedModifierKeywordsKeepTheirSpelling() {
+        String source = "static \\u0070ublic class T {\n}\n";
+        String rewritten = tokens(source, ModifierRules.ORDER, ModifierOrder.CANONICAL);
+        assertTrue(rewritten.startsWith("\\u0070ublic static class T"), rewritten);
+    }
+
+    @Test
+    void commentsAndMalformedModifierListsLeaveTheSequenceAlone() {
+        assertTrue(
+                rewrite(
+                        "static /* boundary */ public class T {\n}\n",
+                        ModifierRules.ORDER,
+                        ModifierOrder.CANONICAL).unchanged());
+        assertTrue(
+                rewrite(
+                        "static public public class T {\n}\n",
+                        ModifierRules.ORDER,
+                        ModifierOrder.CANONICAL).unchanged());
+        assertTrue(rewrite("native public class T {\n}\n", ModifierRules.ORDER, ModifierOrder.CANONICAL).unchanged());
+    }
+
+    @Test
+    void formatterOffRegionsKeepTheirModifierOrder() {
+        String source = """
+                class T {
+                    static public int sorted;
+                    // formatj:off
+                    static public int untouched;
+                    // formatj:on
+                }
+                """;
+        String formatted = format(source, ModifierRules.ORDER, ModifierOrder.CANONICAL);
+        assertTrue(formatted.contains("static public int untouched;"), formatted);
+        assertTrue(formatted.contains("public static int sorted;"), formatted);
+    }
+
+    @Test
+    void modifierOrderingComposesWithOtherRewrites() {
+        String source = """
+                sealed public interface I permits C, A, B {
+                    static public void run(boolean ready) {
+                        if (ready) work();
+                    }
+                }
+                """;
+        Style style = Style.builder()
+                .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
+                .sealedTypes(sealed -> sealed.permitsOrder(SortOrder.ASCENDING))
+                .braces(braces -> braces.ifElse(BracePolicy.ALWAYS))
+                .build();
+        String formatted = FormatJ.newFormatter().style(style).build().format(source);
+        assertTrue(formatted.contains("public sealed interface I permits A, B, C"), formatted);
+        assertTrue(formatted.contains("public static void run"), formatted);
+        assertTrue(formatted.contains("if (ready) {"), formatted);
+    }
+
     // ------------------------------------------------ switch.arrow-case-braces
 
     private static String statementSwitch(String cases) {
@@ -345,6 +465,7 @@ class RewriteRulesTest {
                 LambdaRules.PARAMETER_STYLE,
                 LambdaParameterStyle.OMIT_WHEN_POSSIBLE);
         assertSettles(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING);
+        assertSettles(MODIFIERS, ModifierRules.ORDER, ModifierOrder.CANONICAL);
         assertSettles(
                 statementSwitch("            case 1 -> { f(); }"),
                 SwitchRules.ARROW_CASE_BRACES,

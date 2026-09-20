@@ -39,6 +39,48 @@ public final class WrappingRules {
                     OperatorWrap.BEFORE_OPERATOR,
                     "Which line a binary operator lands on when wrapped");
 
+    public static final Option<WrapPolicy> METHOD_REFERENCE =
+            Option.ofEnum(
+                    "wrapping.method-reference",
+                    WrapPolicy.NEVER,
+                    "Wrapping of a method reference at its :: operator");
+
+    public static final Option<OperatorWrap> METHOD_REFERENCE_OPERATOR_POSITION =
+            Option.ofEnum(
+                    "wrapping.method-reference-operator-position",
+                    OperatorWrap.BEFORE_OPERATOR,
+                    "Which line :: lands on when a method reference wraps");
+
+    public static final Option<WrapPolicy> INSTANCEOF =
+            Option.ofEnum("wrapping.instanceof", WrapPolicy.PRESERVE, "Wrapping of an instanceof test");
+
+    public static final Option<OperatorWrap> INSTANCEOF_OPERATOR_POSITION =
+            Option.ofEnum(
+                    "wrapping.instanceof-operator-position",
+                    OperatorWrap.AFTER_OPERATOR,
+                    "Which line instanceof lands on when its test wraps");
+
+    public static final Option<WrapPolicy> MULTICATCH =
+            Option.ofEnum("wrapping.multicatch", WrapPolicy.NEVER, "Wrapping of multi-catch alternatives");
+
+    public static final Option<OperatorWrap> MULTICATCH_SEPARATOR_POSITION =
+            Option.ofEnum(
+                    "wrapping.multicatch-separator-position",
+                    OperatorWrap.BEFORE_OPERATOR,
+                    "Which line | lands on when multi-catch alternatives wrap");
+
+    public static final Option<WrapPolicy> INTERSECTION_TYPES =
+            Option.ofEnum(
+                    "wrapping.intersection-types",
+                    WrapPolicy.NEVER,
+                    "Wrapping of intersection type bounds and casts");
+
+    public static final Option<OperatorWrap> INTERSECTION_SEPARATOR_POSITION =
+            Option.ofEnum(
+                    "wrapping.intersection-separator-position",
+                    OperatorWrap.BEFORE_OPERATOR,
+                    "Which line & lands on when intersection types wrap");
+
     public static final Option<WrapPolicy> TERNARY =
             Option.ofEnum("wrapping.ternary", WrapPolicy.WRAP_IF_LONG, "Wrapping of a conditional expression");
 
@@ -176,6 +218,46 @@ public final class WrappingRules {
 
         public Builder operatorPosition(OperatorWrap value) {
             style.set(OPERATOR_POSITION, value);
+            return this;
+        }
+
+        public Builder methodReference(WrapPolicy value) {
+            style.set(METHOD_REFERENCE, value);
+            return this;
+        }
+
+        public Builder methodReferenceOperatorPosition(OperatorWrap value) {
+            style.set(METHOD_REFERENCE_OPERATOR_POSITION, value);
+            return this;
+        }
+
+        public Builder instanceofExpression(WrapPolicy value) {
+            style.set(INSTANCEOF, value);
+            return this;
+        }
+
+        public Builder instanceofOperatorPosition(OperatorWrap value) {
+            style.set(INSTANCEOF_OPERATOR_POSITION, value);
+            return this;
+        }
+
+        public Builder multicatch(WrapPolicy value) {
+            style.set(MULTICATCH, value);
+            return this;
+        }
+
+        public Builder multicatchSeparatorPosition(OperatorWrap value) {
+            style.set(MULTICATCH_SEPARATOR_POSITION, value);
+            return this;
+        }
+
+        public Builder intersectionTypes(WrapPolicy value) {
+            style.set(INTERSECTION_TYPES, value);
+            return this;
+        }
+
+        public Builder intersectionSeparatorPosition(OperatorWrap value) {
+            style.set(INTERSECTION_SEPARATOR_POSITION, value);
             return this;
         }
 

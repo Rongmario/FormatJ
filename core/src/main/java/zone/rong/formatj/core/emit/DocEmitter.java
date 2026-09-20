@@ -5,6 +5,7 @@ import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SpacingRules;
@@ -91,7 +92,8 @@ public final class DocEmitter extends StatementEmitter {
                     THIS_EXPRESSION, SUPER_EXPRESSION, CLASS_LITERAL -> emitTypeLike(node);
             case TYPE_ARGUMENTS -> emitTypeArguments(node);
             case TYPE_PARAMETERS -> emitTypeParameters(node);
-            case TYPE_PARAMETER, TYPE_BOUND -> emitSpaced(node);
+            case TYPE_PARAMETER -> emitSpaced(node);
+            case TYPE_BOUND -> emitTypeBound(node);
 
             case FIELD_DECLARATION -> emitDeclarationLine(node.children());
             case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION ->
@@ -138,7 +140,8 @@ public final class DocEmitter extends StatementEmitter {
             case BINARY_EXPRESSION -> emitBinary(node);
             case INSTANCEOF_EXPRESSION -> emitInstanceof(node);
             case UNARY_EXPRESSION -> emitUnary(node);
-            case POSTFIX_EXPRESSION, METHOD_REFERENCE -> emitConcatenated(node);
+            case POSTFIX_EXPRESSION -> emitConcatenated(node);
+            case METHOD_REFERENCE -> emitMethodReference(node);
             case ARRAY_ACCESS, DIMENSION -> emitBracketed(node);
             case CAST_EXPRESSION -> emitCast(node);
             case LAMBDA_EXPRESSION -> emitLambda(node);
@@ -333,7 +336,7 @@ public final class DocEmitter extends StatementEmitter {
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (child.kind() == SyntaxKind.MODULE_BODY) {
-                parts.add(braceLead(rule(BraceRules.CLASS_PLACEMENT)));
+                parts.add(braceLead(rule(ModuleRules.BRACE_PLACEMENT).orElse(rule(BraceRules.CLASS_PLACEMENT))));
                 parts.add(emit(child));
                 continue;
             }
@@ -348,31 +351,76 @@ public final class DocEmitter extends StatementEmitter {
     private Doc emitModuleBody(GreenNode node) {
         return emitBracedBody(
                 node,
-                rule(BraceRules.EMPTY_CLASS_BODY),
-                rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
-                rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE));
+                rule(ModuleRules.EMPTY_BODY).orElse(rule(BraceRules.EMPTY_CLASS_BODY)),
+                rule(ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE).orElse(
+                        rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE)),
+                rule(ModuleRules.BLANK_LINES_BEFORE_CLOSING_BRACE).orElse(
+                        rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE)));
     }
 
     /**
      * The {@code to} list of an {@code exports}/{@code opens} directive, or the {@code with} list of a
      * {@code provides} one: {@code to a, b} or {@code with A, B}.
      *
-     * <p>Module directives are rare and short enough that wrapping them like a parameter or argument
-     * list would be disproportionate; the list is always kept on one line.
+     * <p>The two list kinds have independent wrapping rules, but both use ordinary comma spacing and
+     * the shared continuation indent.
      */
     private Doc emitModuleNameList(GreenNode node) {
         List<GreenNode> children = node.children();
-        List<Doc> parts = new ArrayList<>();
-        parts.add(emit(children.getFirst()));
-        parts.add(space());
-        for (int i = 1; i < children.size(); i++) {
-            GreenNode child = children.get(i);
-            parts.add(emit(child));
+        WrapPolicy policy =
+                rule(
+                        node.kind() == SyntaxKind.TO_CLAUSE
+                        ? ModuleRules.EXPORTS_OPENS_TARGET_LIST_WRAPPING
+                        : ModuleRules.PROVIDES_IMPLEMENTATION_LIST_WRAPPING);
+        Doc list = emitModuleCommaList(node, children.subList(1, children.size()), policy);
+        Doc lead = policy == WrapPolicy.PRESERVE && authorBrokeBefore(children.get(1)) ? Doc.hardLine() : space();
+        return Doc.indent(continuation(), Doc.concat(emit(children.getFirst()), lead, list));
+    }
+
+    /** A comma list without surrounding delimiters, as used after {@code to} and {@code with}. */
+    private Doc emitModuleCommaList(GreenNode owner, List<GreenNode> children, WrapPolicy policy) {
+        List<GreenNode> starts = new ArrayList<>();
+        List<Doc> elements = new ArrayList<>();
+        List<Doc> current = new ArrayList<>();
+        GreenNode start = null;
+        for (GreenNode child : children) {
+            if (start == null) {
+                start = child;
+            }
+            current.add(emit(child));
             if (is(child, ",")) {
-                parts.add(space());
+                starts.add(start);
+                elements.add(Doc.concat(current));
+                start = null;
+                current = new ArrayList<>();
             }
         }
-        return Doc.concat(parts);
+        if (!current.isEmpty()) {
+            starts.add(start);
+            elements.add(Doc.concat(current));
+        }
+
+        Doc flatSeparator = spaceIf(rule(SpacingRules.AFTER_COMMA));
+        if (policy == WrapPolicy.NEVER) {
+            return Doc.join(flatSeparator, elements);
+        }
+        if (policy == WrapPolicy.PRESERVE) {
+            List<Doc> parts = new ArrayList<>();
+            for (int i = 0; i < elements.size(); i++) {
+                if (i > 0) {
+                    parts.add(authorBrokeBefore(starts.get(i)) ? Doc.hardLine() : flatSeparator);
+                }
+                parts.add(elements.get(i));
+            }
+            return Doc.concat(parts);
+        }
+
+        Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
+        Doc content =
+                policy == WrapPolicy.WRAP_IF_LONG
+                ? Doc.fill(withSeparators(elements, separator))
+                : Doc.join(separator, elements);
+        return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(content) : authorGroup(owner, content);
     }
 
     @Override
@@ -399,6 +447,9 @@ public final class DocEmitter extends StatementEmitter {
 
     @Override
     protected int minimumBetween(GreenNode previous, GreenNode next) {
+        if (isModuleDirective(previous) && isModuleDirective(next) && previous.kind() != next.kind()) {
+            return rule(ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS);
+        }
         if (previous.kind() == SyntaxKind.ENUM_CONSTANTS) {
             return rule(BlankLineRules.AFTER_ENUM_CONSTANTS);
         }
@@ -413,6 +464,13 @@ public final class DocEmitter extends StatementEmitter {
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
                     ANNOTATION_TYPE_DECLARATION -> rule(BlankLineRules.BEFORE_CLASS);
             default -> 0;
+        };
+    }
+
+    private static boolean isModuleDirective(GreenNode node) {
+        return switch (node.kind()) {
+            case REQUIRES_DIRECTIVE, EXPORTS_DIRECTIVE, OPENS_DIRECTIVE, USES_DIRECTIVE, PROVIDES_DIRECTIVE -> true;
+            default -> false;
         };
     }
 

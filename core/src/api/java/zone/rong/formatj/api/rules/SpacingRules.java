@@ -78,6 +78,24 @@ public final class SpacingRules {
                     true,
                     "Spaces around the ? and : of a conditional expression");
 
+    public static final Option<Boolean> AROUND_METHOD_REFERENCE_OPERATOR =
+            Option.ofBoolean(
+                    "spacing.around-method-reference-operator",
+                    false,
+                    "Spaces around the :: of a method reference");
+
+    public static final Option<Boolean> AROUND_MULTICATCH_SEPARATOR =
+            Option.ofBoolean(
+                    "spacing.around-multicatch-separator",
+                    true,
+                    "Spaces around the | between multi-catch alternatives");
+
+    public static final Option<Boolean> AROUND_INTERSECTION_SEPARATOR =
+            Option.ofBoolean(
+                    "spacing.around-intersection-separator",
+                    true,
+                    "Spaces around the & between intersection types");
+
     public static final Option<Boolean> AFTER_COMMA =
             Option.ofBoolean("spacing.after-comma", true, "Space after a comma");
 
@@ -213,6 +231,21 @@ public final class SpacingRules {
 
         public Builder aroundTernaryOperators(boolean value) {
             style.set(AROUND_TERNARY_OPERATORS, value);
+            return this;
+        }
+
+        public Builder aroundMethodReferenceOperator(boolean value) {
+            style.set(AROUND_METHOD_REFERENCE_OPERATOR, value);
+            return this;
+        }
+
+        public Builder aroundMulticatchSeparator(boolean value) {
+            style.set(AROUND_MULTICATCH_SEPARATOR, value);
+            return this;
+        }
+
+        public Builder aroundIntersectionSeparator(boolean value) {
+            style.set(AROUND_INTERSECTION_SEPARATOR, value);
             return this;
         }
 

@@ -24,20 +24,28 @@ public final class Option<T> {
         INTEGER,
         STRING,
         ENUM,
-        STRING_LIST
+        STRING_LIST,
+        INHERITABLE_INTEGER,
+        INHERITABLE_ENUM
 
     }
 
     private final String key;
     private final Kind kind;
     private final Class<T> type;
+    private final Class<?> valueType;
     private final T defaultValue;
     private final String description;
 
     private Option(String key, Kind kind, Class<T> type, T defaultValue, String description) {
+        this(key, kind, type, type, defaultValue, description);
+    }
+
+    private Option(String key, Kind kind, Class<T> type, Class<?> valueType, T defaultValue, String description) {
         this.key = Objects.requireNonNull(key, "key");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.type = Objects.requireNonNull(type, "type");
+        this.valueType = Objects.requireNonNull(valueType, "valueType");
         this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue");
         this.description = Objects.requireNonNull(description, "description");
         OptionRegistry.register(this);
@@ -57,6 +65,23 @@ public final class Option<T> {
 
     public static <E extends Enum<E>> Option<E> ofEnum(String key, E defaultValue, String description) {
         return new Option<>(key, Kind.ENUM, defaultValue.getDeclaringClass(), defaultValue, description);
+    }
+
+    /** An integer option whose {@code inherit} value defers to another rule. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Option<Inheritable<Integer>> ofInheritableInt(String key, String description) {
+        Class<Inheritable<Integer>> type = (Class) Inheritable.class;
+        return new Option<>(key, Kind.INHERITABLE_INTEGER, type, Integer.class, Inheritable.inherit(), description);
+    }
+
+    /** An enum option whose {@code inherit} value defers to another rule. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static <E extends Enum<E>> Option<Inheritable<E>> ofInheritableEnum(
+            String key,
+            Class<E> valueType,
+            String description) {
+        Class<Inheritable<E>> type = (Class) Inheritable.class;
+        return new Option<>(key, Kind.INHERITABLE_ENUM, type, valueType, Inheritable.inherit(), description);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -89,11 +114,14 @@ public final class Option<T> {
 
     /** The legal values of an enum option, in declaration order; empty for every other kind. */
     public List<String> allowedValues() {
-        if (kind != Kind.ENUM) {
+        if (kind != Kind.ENUM && kind != Kind.INHERITABLE_ENUM) {
             return List.of();
         }
         List<String> names = new ArrayList<>();
-        for (T constant : type.getEnumConstants()) {
+        if (kind == Kind.INHERITABLE_ENUM) {
+            names.add("inherit");
+        }
+        for (Object constant : valueType.getEnumConstants()) {
             names.add(renderEnum((Enum<?>) constant));
         }
         return List.copyOf(names);
@@ -112,6 +140,19 @@ public final class Option<T> {
             }
             throw new IllegalArgumentException(key + " expects a list of strings, got " + value.getClass().getName());
         }
+        if (kind == Kind.INHERITABLE_INTEGER || kind == Kind.INHERITABLE_ENUM) {
+            if (!(value instanceof Inheritable<?> inheritable)) {
+                throw new IllegalArgumentException(
+                        key + " expects Inheritable, got " + value.getClass().getSimpleName());
+            }
+            Object override = inheritable.override();
+            if (override != null && !valueType.isInstance(override)) {
+                throw new IllegalArgumentException(
+                        key + " expects an inherited " + valueType.getSimpleName() + ", got "
+                                + override.getClass().getSimpleName());
+            }
+            return type.cast(value);
+        }
         if (!type.isInstance(value)) {
             throw new IllegalArgumentException(
                     key + " expects " + type.getSimpleName() + ", got " + value.getClass().getSimpleName());
@@ -129,11 +170,20 @@ public final class Option<T> {
             case STRING -> cast(unquote(trimmed));
             case ENUM -> cast(parseEnum(trimmed));
             case STRING_LIST -> cast(parseList(trimmed));
+            case INHERITABLE_INTEGER -> cast(parseInheritableInteger(trimmed));
+            case INHERITABLE_ENUM -> cast(parseInheritableEnum(trimmed));
         };
     }
 
     /** Renders a value back to the textual form {@link #parse(String)} accepts. */
     public String render(T value) {
+        if (value instanceof Inheritable<?> inheritable) {
+            if (inheritable.inherits()) {
+                return "inherit";
+            }
+            Object override = inheritable.override();
+            return override instanceof Enum<?> constant ? renderEnum(constant) : String.valueOf(override);
+        }
         if (value instanceof Enum<?> constant) {
             return renderEnum(constant);
         }
@@ -169,13 +219,29 @@ public final class Option<T> {
     }
 
     private Object parseEnum(String raw) {
+        return parseEnum(raw, valueType);
+    }
+
+    private Object parseEnum(String raw, Class<?> enumType) {
         String normalised = raw.trim().replace('-', '_').replace('.', '_').toUpperCase(Locale.ROOT);
-        for (T constant : type.getEnumConstants()) {
+        for (Object constant : enumType.getEnumConstants()) {
             if (((Enum<?>) constant).name().equals(normalised)) {
                 return constant;
             }
         }
         throw new IllegalArgumentException(key + " expects one of " + allowedValues() + ", got '" + raw + "'");
+    }
+
+    private Inheritable<Integer> parseInheritableInteger(String raw) {
+        return isInherit(raw) ? Inheritable.inherit() : Inheritable.of(parseInt(raw));
+    }
+
+    private Inheritable<?> parseInheritableEnum(String raw) {
+        return isInherit(raw) ? Inheritable.inherit() : Inheritable.of(parseEnum(raw, valueType));
+    }
+
+    private static boolean isInherit(String raw) {
+        return raw.equalsIgnoreCase("inherit");
     }
 
     private List<String> parseList(String raw) {

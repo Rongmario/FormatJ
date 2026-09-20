@@ -10,6 +10,8 @@ import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.ModuleRules;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.RecordRules;
@@ -51,6 +53,8 @@ public final class OptionRegistry {
                     new Group("imports", ImportRules.class),
                     new Group("comments", CommentRules.class),
                     new Group("javadoc", JavadocRules.class),
+                    new Group("module", ModuleRules.class),
+                    new Group("modifiers", ModifierRules.class),
                     new Group("switch", SwitchRules.class),
                     new Group("records", RecordRules.class),
                     new Group("patterns", PatternRules.class),

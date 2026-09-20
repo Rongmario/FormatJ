@@ -21,6 +21,7 @@ import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
+import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -170,10 +171,37 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (is(next, "[") || is(previous, "[") || is(next, "]")) {
             return is(next, "[") && rule(SpacingRules.BEFORE_ARRAY_BRACKETS);
         }
-        if (isAny(previous, "extends", "super", "&") || isAny(next, "extends", "super", "&")) {
+        if (is(previous, "&") || is(next, "&")) {
+            return rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR);
+        }
+        if (isAny(previous, "extends", "super") || isAny(next, "extends", "super")) {
             return true;
         }
         return false;
+    }
+
+    protected Doc emitTypeBound(GreenNode node) {
+        List<GreenNode> children = node.children();
+        List<Doc> types = new ArrayList<>();
+        List<GreenNode> separators = new ArrayList<>();
+        for (int i = 1; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (is(child, "&")) {
+                separators.add(child);
+            } else {
+                types.add(emit(child));
+            }
+        }
+        return Doc.concat(
+                emit(children.getFirst()),
+                space(),
+                emitOperatorSeparated(
+                        node,
+                        types,
+                        separators,
+                        rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
+                        rule(WrappingRules.INTERSECTION_TYPES),
+                        rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
     }
 
     protected Doc emitTypeArguments(GreenNode node) {
@@ -243,6 +271,74 @@ abstract class ExpressionEmitter extends EmitSupport {
             run = policy == WrapPolicy.WRAP_IF_LONG && !logical ? Doc.fill(parts) : Doc.group(Doc.concat(parts));
         }
         return authorGroup(node, Doc.indent(continuation(), run));
+    }
+
+    /** A list whose separators may carry spacing, line breaks and comments of their own. */
+    protected Doc emitOperatorSeparated(
+            GreenNode node,
+            List<Doc> operands,
+            List<GreenNode> separators,
+            boolean spaced,
+            WrapPolicy policy,
+            OperatorWrap position) {
+        if (operands.isEmpty()) {
+            return Doc.EMPTY;
+        }
+        if (separators.isEmpty()) {
+            return operands.getFirst();
+        }
+        if (operands.size() != separators.size() + 1) {
+            throw new IllegalArgumentException("operator-separated operands and separators do not match");
+        }
+
+        if (policy == WrapPolicy.NEVER || (policy == WrapPolicy.PRESERVE && !authorBrokeInside(node))) {
+            List<Doc> flat = new ArrayList<>();
+            flat.add(operands.getFirst());
+            for (int i = 0; i < separators.size(); i++) {
+                GreenNode separator = separators.get(i);
+                flat.add(spaceIf(spaced));
+                flat.add(emit(separator));
+                flat.add(hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced));
+                flat.add(operands.get(i + 1));
+            }
+            return Doc.concat(flat);
+        }
+
+        Doc optionalBreak = spaced ? Doc.line() : Doc.softLine();
+        List<Doc> parts = new ArrayList<>(operands.size() * 2 - 1);
+        if (position == OperatorWrap.BEFORE_OPERATOR) {
+            parts.add(operands.getFirst());
+            for (int i = 0; i < separators.size(); i++) {
+                GreenNode separator = separators.get(i);
+                parts.add(optionalBreak);
+                parts.add(
+                        Doc.concat(
+                                emit(separator),
+                                hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced),
+                                operands.get(i + 1)));
+            }
+        } else {
+            for (int i = 0; i < separators.size(); i++) {
+                GreenNode separator = separators.get(i);
+                parts.add(Doc.concat(operands.get(i), spaceIf(spaced), emit(separator)));
+                parts.add(hasTrailingLineComment(separator) ? Doc.hardLine() : optionalBreak);
+            }
+            parts.add(operands.getLast());
+        }
+
+        Doc run = policy == WrapPolicy.WRAP_IF_LONG && mayJoin(node) ? Doc.fill(parts) : Doc.concat(parts);
+        Doc content = Doc.indent(continuation(), run);
+        return switch (policy) {
+            case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
+            case PRESERVE -> Doc.breakingGroup(content);
+            default -> authorGroup(node, content);
+        };
+    }
+
+    private static boolean hasTrailingLineComment(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null
+                && token.trailingComments().stream().anyMatch(comment -> comment.kind() == TokenKind.LINE_COMMENT);
     }
 
     private static boolean isLogicalRun(GreenNode node) {
@@ -413,34 +509,33 @@ abstract class ExpressionEmitter extends EmitSupport {
      * has to wrap somewhere else; untied, the pattern may take a line of its own when the test does
      * not fit, indented under it. A pattern the author had already put on its own line is untied
      * whatever the rule says, because there is no single line left to keep.
+     *
+     * <p>{@code wrapping.instanceof=preserve} leaves that choice to the pattern rule. Every other
+     * wrapping policy controls the expression directly.
      */
     protected Doc emitInstanceof(GreenNode node) {
         List<GreenNode> children = node.children();
-        if (children.size() < 3 || keepsOnOneLine(node, PatternRules.KEEP_SIMPLE_PATTERN_INLINE)) {
-            List<Doc> parts = new ArrayList<>();
-            for (int i = 0; i < children.size(); i++) {
-                if (i > 0) {
-                    parts.add(space());
-                }
-                parts.add(emit(children.get(i)));
-            }
-            return Doc.concat(parts);
-        }
-        // The children are the operand, the instanceof keyword, then the type or pattern it tests for.
-        List<Doc> pattern = new ArrayList<>();
+        List<Doc> tested = new ArrayList<>();
         for (int i = 2; i < children.size(); i++) {
             if (i > 2) {
-                pattern.add(space());
+                tested.add(space());
             }
-            pattern.add(emit(children.get(i)));
+            tested.add(emit(children.get(i)));
         }
-        return authorGroup(
+        WrapPolicy policy = rule(WrappingRules.INSTANCEOF);
+        if (policy == WrapPolicy.PRESERVE) {
+            policy =
+                    keepsOnOneLine(node, PatternRules.KEEP_SIMPLE_PATTERN_INLINE)
+                    ? WrapPolicy.NEVER
+                    : WrapPolicy.WRAP_IF_LONG;
+        }
+        return emitOperatorSeparated(
                 node,
-                Doc.concat(
-                        emit(children.get(0)),
-                        space(),
-                        emit(children.get(1)),
-                        Doc.indent(continuation(), Doc.concat(Doc.line(), Doc.concat(pattern)))));
+                List.of(emit(children.getFirst()), Doc.concat(tested)),
+                List.of(children.get(1)),
+                true,
+                policy,
+                rule(WrappingRules.INSTANCEOF_OPERATOR_POSITION));
     }
 
     protected Doc emitUnary(GreenNode node) {
@@ -455,18 +550,46 @@ abstract class ExpressionEmitter extends EmitSupport {
         List<GreenNode> children = node.children();
         List<Doc> parts = new ArrayList<>();
         int closing = indexOf(children, ")");
-        for (int i = 0; i <= closing; i++) {
+        parts.add(emit(children.getFirst()));
+        List<Doc> types = new ArrayList<>();
+        List<GreenNode> separators = new ArrayList<>();
+        for (int i = 1; i < closing; i++) {
             GreenNode child = children.get(i);
-            if (i > 0 && !is(child, ")") && !is(children.get(i - 1), "(")) {
-                parts.add(space());
+            if (is(child, "&")) {
+                separators.add(child);
+            } else {
+                types.add(emit(child));
             }
-            parts.add(emit(child));
         }
+        parts.add(
+                emitOperatorSeparated(
+                        node,
+                        types,
+                        separators,
+                        rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
+                        rule(WrappingRules.INTERSECTION_TYPES),
+                        rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
+        parts.add(emit(children.get(closing)));
         parts.add(spaceIf(rule(SpacingRules.AFTER_TYPE_CAST)));
         for (int i = closing + 1; i < children.size(); i++) {
             parts.add(emit(children.get(i)));
         }
         return Doc.concat(parts);
+    }
+
+    protected Doc emitMethodReference(GreenNode node) {
+        List<GreenNode> children = node.children();
+        List<Doc> referenced = new ArrayList<>();
+        for (GreenNode child : children.subList(2, children.size())) {
+            referenced.add(emit(child));
+        }
+        return emitOperatorSeparated(
+                node,
+                List.of(emit(children.getFirst()), Doc.concat(referenced)),
+                List.of(children.get(1)),
+                rule(SpacingRules.AROUND_METHOD_REFERENCE_OPERATOR),
+                rule(WrappingRules.METHOD_REFERENCE),
+                rule(WrappingRules.METHOD_REFERENCE_OPERATOR_POSITION));
     }
 
     protected Doc emitParenthesized(GreenNode node) {
