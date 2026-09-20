@@ -1,2 +1,2 @@
 package sample;
-class Sample{void run(){int x=1;}}
+class Sample{static public class Nested{} void run(){int x=1;}}

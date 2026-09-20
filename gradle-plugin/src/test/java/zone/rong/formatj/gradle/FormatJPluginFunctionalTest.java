@@ -192,4 +192,36 @@ class FormatJPluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaCheck").task(":formatJavaCheck").getOutcome());
     }
 
+    @Test
+    void newCatalogueGroupsReachTheFormatterThroughRawRules() throws IOException {
+        Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+
+                formatJ {
+                    rule("modifiers.order", "canonical")
+                    sourceSets("main")
+                }
+                """);
+        Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
+        Files.writeString(
+                source,
+                """
+                package sample;
+
+                class Sample {
+
+                    static public class Nested { }
+
+                }
+                """);
+
+        assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
+        assertTrue(Files.readString(source).contains("public static class Nested"), Files.readString(source));
+    }
+
 }

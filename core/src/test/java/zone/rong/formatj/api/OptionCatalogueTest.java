@@ -301,6 +301,12 @@ class OptionCatalogueTest {
         assertEquals(
                 List.of("file", "indent", "wrapping", "braces", "spacing", "blank-lines", "alignment"),
                 OptionRegistry.groups().subList(0, 7));
+        assertTrue(OptionRegistry.groups().containsAll(List.of("module", "modifiers")));
+        assertTrue(
+                OptionRegistry.groups().indexOf("module") < OptionRegistry.groups().indexOf("modifiers"),
+                "module must precede modifiers in the public catalogue");
+        assertTrue(OptionRegistry.find("module.brace-placement").isPresent());
+        assertTrue(OptionRegistry.find("modifiers.order").isPresent());
         assertEquals(OptionRegistry.groups(), List.copyOf(OptionRegistry.groups()));
         List<String> keys = OptionRegistry.all().stream().map(Option::key).toList();
         assertEquals(List.copyOf(OptionRegistry.asMap().keySet()), keys);

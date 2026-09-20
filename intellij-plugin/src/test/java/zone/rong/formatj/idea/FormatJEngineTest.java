@@ -8,6 +8,8 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.SourceRange;
 import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.core.FormatJ;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,11 +41,12 @@ class FormatJEngineTest {
     @Test
     void anExplicitStyleFileWins(@TempDir Path root) throws IOException {
         Path other = root.resolve("other.toml");
-        Files.writeString(other, "[indent]\nsize = 8\n");
+        Files.writeString(other, "[indent]\nsize = 8\n\n[modifiers]\norder = \"canonical\"\n");
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
         FormatJEngine engine = new FormatJEngine(new FormatJEngine.Settings(other, null));
 
         assertEquals(8, engine.styleFor(root.resolve("Foo.java")).get(IndentRules.SIZE));
+        assertEquals(ModifierOrder.CANONICAL, engine.styleFor(root.resolve("Foo.java")).get(ModifierRules.ORDER));
         assertTrue(engine.describeStyle(root).contains(other.toString()));
     }
 

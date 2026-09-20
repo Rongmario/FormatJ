@@ -18,6 +18,9 @@
         <version>${formatj.version}</version>
         <configuration>
           <preset>formatj</preset>
+          <rules>
+            <modifiers.order>canonical</modifiers.order>
+          </rules>
         </configuration>
       </plugin>
     </plugins>

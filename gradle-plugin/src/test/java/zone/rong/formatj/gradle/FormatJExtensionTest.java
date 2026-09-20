@@ -32,9 +32,12 @@ class FormatJExtensionTest {
         FormatJExtension extension = extensionOf(ProjectBuilder.builder().build());
 
         extension.rule("indent.size", 2);
+        extension.rule("modifiers.order", "canonical");
         extension.rules(Map.of("wrapping.max-line-length", 100));
 
-        assertEquals(Map.of("indent.size", "2", "wrapping.max-line-length", "100"), extension.getRules().get());
+        assertEquals(
+                Map.of("indent.size", "2", "modifiers.order", "canonical", "wrapping.max-line-length", "100"),
+                extension.getRules().get());
         assertThrows(IllegalArgumentException.class, () -> extension.rule("indent.siz", 2));
         assertThrows(IllegalArgumentException.class, () -> extension.rule("indent.size", "wide"));
     }

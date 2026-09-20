@@ -49,15 +49,28 @@ class CliRunnerTest {
         assertTrue(result.out().contains("[indent]"), result.out());
         assertTrue(result.out().contains("size = 4"), result.out());
         assertTrue(result.out().contains("[switch]"), result.out());
+        assertTrue(result.out().contains("[module]"), result.out());
+        assertTrue(result.out().contains("[modifiers]"), result.out());
+        assertTrue(result.out().contains("order = preserve"), result.out());
         assertTrue(result.out().contains("max-line-length = 120"), result.out());
     }
 
     @Test
     void dumpConfigHonoursThePresetAndOverrides() {
-        Run result = run("", "--dump-config", "--preset", "google", "--set", "indent.size=3");
+        Run result =
+                run(
+                        "",
+                        "--dump-config",
+                        "--preset",
+                        "google",
+                        "--set",
+                        "indent.size=3",
+                        "--set",
+                        "modifiers.order=canonical");
 
         assertTrue(result.out().contains("size = 3"), result.out());
         assertTrue(result.out().contains("max-line-length = 100"), result.out());
+        assertTrue(result.out().contains("order = canonical"), result.out());
     }
 
     @Test

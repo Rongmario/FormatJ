@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.WrappingRules;
@@ -54,10 +57,18 @@ class StyleFileTest {
 
                 [wrapping]
                 chained-calls = "break-when-too-long"
+
+                [module]
+                blank-lines-between-directive-groups = 1
+
+                [modifiers]
+                order = "canonical"
                 """);
         assertEquals(4, style.get(IndentRules.SIZE));
         assertEquals(100, style.get(WrappingRules.MAX_LINE_LENGTH));
         assertEquals(ChainPolicy.BREAK_WHEN_TOO_LONG, style.get(WrappingRules.CHAINED_CALLS));
+        assertEquals(1, style.get(ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS));
+        assertEquals(ModifierOrder.CANONICAL, style.get(ModifierRules.ORDER));
     }
 
     @Test

@@ -80,6 +80,7 @@ class MavenPluginFixtureTest {
         String formatted = Files.readString(sample, StandardCharsets.UTF_8);
         assertTrue(formatted.contains("int x = 1;"), formatted);
         assertTrue(formatted.contains("class Sample"), formatted);
+        assertTrue(formatted.contains("public static class Nested"), formatted);
 
         Run checkClean = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
         assertEquals(0, checkClean.exitCode, checkClean.out + checkClean.err);
