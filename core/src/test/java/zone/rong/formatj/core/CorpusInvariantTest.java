@@ -1,6 +1,7 @@
 package zone.rong.formatj.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.Diagnostic;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 /**
@@ -60,12 +62,36 @@ class CorpusInvariantTest {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/build/"))
-                    .filter(path -> !path.toString().contains("/."))
+                    .filter(path -> !hasHiddenSegment(repository, path))
                     .sorted()
                     .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
             return javaFiles;
         }
+    }
+
+    private static boolean hasHiddenSegment(Path repository, Path path) {
+        for (Path part : repository.relativize(path)) {
+            if (part.toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    void aHiddenCheckoutParentDoesNotExcludeVisibleSources() {
+        Path repository = Path.of(".codex", "worktrees", "FormatJ");
+
+        assertFalse(hasHiddenSegment(repository, repository.resolve("core/src/main/java/Visible.java")));
+    }
+
+    @Test
+    void hiddenDirectoriesInsideTheCheckoutAreExcluded() {
+        Path repository = Path.of("FormatJ");
+
+        assertTrue(hasHiddenSegment(repository, repository.resolve(".git/Hidden.java")));
+        assertTrue(hasHiddenSegment(repository, repository.resolve("core/.cache/Hidden.java")));
     }
 
     /**
@@ -167,7 +193,7 @@ class CorpusInvariantTest {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/build/"))
-                    .filter(path -> !path.toString().contains("/."))
+                    .filter(path -> !hasHiddenSegment(repository, path))
                     .sorted()
                     .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
