@@ -95,6 +95,14 @@ class ProsePreservationTest {
     }
 
     @Test
+    void reindentingACommentThatCarriesAUnicodeEscapeIsNotAChange() {
+        assertNull(
+                difference(
+                        "class T {\n  /*\n   * escapes \\u2028 here\n   */\n  void f() { }\n}\n",
+                        "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n"));
+    }
+
+    @Test
     void twoWordsRunTogetherFails() {
         String problem =
                 difference(
@@ -109,6 +117,16 @@ class ProsePreservationTest {
                 difference("class T {\n    // alpha\n    void f() { }\n}\n", "class T {\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("lost"), problem);
+    }
+
+    @Test
+    void rewordingACommentThatCarriesAUnicodeEscapeFails() {
+        String problem =
+                difference(
+                        "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n",
+                        "class T {\n    /*\n     * escapes \\u2029 here\n     */\n    void f() { }\n}\n");
+        assertNotNull(problem);
+        assertTrue(problem.contains("verbatim"), problem);
     }
 
     @Test

@@ -10,8 +10,10 @@ import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Checks that laying the file out did not change what its comments say.
@@ -76,7 +78,7 @@ public final class ProsePreservation {
         for (int i = 0; i < comments.size(); i++) {
             Token comment = comments.get(i);
             if (comment.hasUnicodeEscape()) {
-                atoms.add(Prose.Atom.verbatim(trimLineEnds(comment.text())));
+                atoms.add(Prose.Atom.verbatim(trimLineIndents(comment.text())));
                 continue;
             }
             if (Prose.isMarkdownComment(comment)) {
@@ -212,6 +214,18 @@ public final class ProsePreservation {
             out.append(lines[i], 0, end);
         }
         return out.toString();
+    }
+
+    /**
+     * Drops the leading and trailing whitespace of every line of a comment kept verbatim for its
+     * Unicode escapes.
+     *
+     * <p>Such a comment is compared as raw token text, indentation included, but indentation is the
+     * one part of it layout owns: the emitter re-indents every continuation line to the comment's new
+     * column. Stripping both sides on both sides of the comparison forgives the move and nothing else.
+     */
+    private static String trimLineIndents(String text) {
+        return Arrays.stream(text.split("\n", -1)).map(String::strip).collect(Collectors.joining("\n"));
     }
 
     // ----------------------------------------------------------- comparison
