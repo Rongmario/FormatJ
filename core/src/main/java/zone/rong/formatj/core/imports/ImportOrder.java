@@ -77,7 +77,7 @@ public final class ImportOrder {
      * partition the list without disturbing the order the author chose inside each part.
      */
     public static List<ImportEntry> sorted(List<ImportEntry> entries, Style style) {
-        List<String> groups = style.get(ImportRules.GROUPS);
+        List<List<String>> groups = style.get(ImportRules.GROUPS);
         SortOrder order = style.get(ImportRules.ORDER);
         StaticImportPlacement placement = style.get(ImportRules.STATIC_PLACEMENT);
         boolean modulesFirst = style.get(ImportRules.MODULE_IMPORTS_FIRST);
@@ -103,7 +103,7 @@ public final class ImportOrder {
         if (!style.get(ImportRules.BLANK_LINE_BETWEEN_GROUPS) || !sorts(style)) {
             return false;
         }
-        List<String> groups = style.get(ImportRules.GROUPS);
+        List<List<String>> groups = style.get(ImportRules.GROUPS);
         StaticImportPlacement placement = style.get(ImportRules.STATIC_PLACEMENT);
         boolean modulesFirst = style.get(ImportRules.MODULE_IMPORTS_FIRST);
         return moduleBucket(previous, modulesFirst) != moduleBucket(next, modulesFirst)
@@ -123,7 +123,7 @@ public final class ImportOrder {
      */
     private static int groupWithin(
             ImportEntry entry,
-            List<String> groups,
+            List<List<String>> groups,
             StaticImportPlacement placement,
             boolean modulesFirst) {
         if (modulesFirst && entry.isModule()) {
@@ -136,24 +136,27 @@ public final class ImportOrder {
     }
 
     /**
-     * Which group a name falls in: the longest declared prefix that matches it.
+     * Which group a name falls in. The longest prefix that matches it wins, wherever it is declared,
+     * so a group can hold several prefixes and a narrower prefix in a later group still beats a
+     * broader one earlier.
      *
      * <p>{@code *} is the catch-all and matches nothing on its own, so a name that no prefix claims
      * lands there. A file whose groups leave out the catch-all puts the strays last.
      */
-    static int group(ImportEntry entry, List<String> groups) {
+    static int group(ImportEntry entry, List<List<String>> groups) {
         int best = -1;
         int bestLength = -1;
         int catchAll = groups.size();
         for (int i = 0; i < groups.size(); i++) {
-            String prefix = groups.get(i);
-            if (prefix.equals("*")) {
-                catchAll = i;
-                continue;
-            }
-            if (matches(entry.name(), prefix) && prefix.length() > bestLength) {
-                best = i;
-                bestLength = prefix.length();
+            for (String prefix : groups.get(i)) {
+                if (prefix.equals("*")) {
+                    catchAll = i;
+                    continue;
+                }
+                if (matches(entry.name(), prefix) && prefix.length() > bestLength) {
+                    best = i;
+                    bestLength = prefix.length();
+                }
             }
         }
         return best < 0 ? catchAll : best;

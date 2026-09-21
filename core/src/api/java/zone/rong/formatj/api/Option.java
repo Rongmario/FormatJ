@@ -24,7 +24,7 @@ public final class Option<T> {
         INTEGER,
         STRING,
         ENUM,
-        STRING_LIST,
+        STRING_GROUPS,
         INHERITABLE_INTEGER,
         INHERITABLE_ENUM
 
@@ -84,10 +84,20 @@ public final class Option<T> {
         return new Option<>(key, Kind.INHERITABLE_ENUM, type, valueType, Inheritable.inherit(), description);
     }
 
+    /**
+     * An ordered list of groups, each group an ordered list of strings.
+     *
+     * <p>The TOML form takes either shape per entry, so {@code ["java", ["a", "b"]]} is one group of
+     * {@code java} followed by one group of {@code a} and {@code b}. A bare string is the common case
+     * and stays writable as one.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Option<List<String>> ofStringList(String key, List<String> defaultValue, String description) {
-        Class<List<String>> type = (Class) List.class;
-        return new Option<>(key, Kind.STRING_LIST, type, List.copyOf(defaultValue), description);
+    public static Option<List<List<String>>> ofStringGroups(
+            String key,
+            List<List<String>> defaultValue,
+            String description) {
+        Class<List<List<String>>> type = (Class) List.class;
+        return new Option<>(key, Kind.STRING_GROUPS, type, copyGroups(defaultValue), description);
     }
 
     /** The dotted key used in {@code formatj.toml}, e.g. {@code wrapping.max-line-length}. */
@@ -130,15 +140,12 @@ public final class Option<T> {
     /** Narrows an untyped value to this option's type, rejecting anything that does not fit. */
     public T cast(Object value) {
         Objects.requireNonNull(value, () -> "value for " + key);
-        if (kind == Kind.STRING_LIST) {
+        if (kind == Kind.STRING_GROUPS) {
             if (value instanceof List<?> list) {
-                List<String> copy = new ArrayList<>(list.size());
-                for (Object element : list) {
-                    copy.add(String.valueOf(element));
-                }
-                return type.cast(List.copyOf(copy));
+                return type.cast(copyGroups(list));
             }
-            throw new IllegalArgumentException(key + " expects a list of strings, got " + value.getClass().getName());
+            throw new IllegalArgumentException(
+                    key + " expects a list of string groups, got " + value.getClass().getName());
         }
         if (kind == Kind.INHERITABLE_INTEGER || kind == Kind.INHERITABLE_ENUM) {
             if (!(value instanceof Inheritable<?> inheritable)) {
@@ -169,7 +176,7 @@ public final class Option<T> {
             case INTEGER -> cast(parseInt(trimmed));
             case STRING -> cast(unquote(trimmed));
             case ENUM -> cast(parseEnum(trimmed));
-            case STRING_LIST -> cast(parseList(trimmed));
+            case STRING_GROUPS -> cast(parseGroups(trimmed));
             case INHERITABLE_INTEGER -> cast(parseInheritableInteger(trimmed));
             case INHERITABLE_ENUM -> cast(parseInheritableEnum(trimmed));
         };
@@ -187,12 +194,22 @@ public final class Option<T> {
         if (value instanceof Enum<?> constant) {
             return renderEnum(constant);
         }
-        if (value instanceof List<?> list) {
-            List<String> quoted = new ArrayList<>(list.size());
-            for (Object element : list) {
-                quoted.add(quote(String.valueOf(element)));
+        if (value instanceof List<?> groups) {
+            List<String> rendered = new ArrayList<>(groups.size());
+            for (Object group : groups) {
+                // A group of one renders bare, so a config that never groups reads as a plain list.
+                List<?> prefixes = group instanceof List<?> nested ? nested : List.of(group);
+                if (prefixes.size() == 1) {
+                    rendered.add(quote(String.valueOf(prefixes.getFirst())));
+                    continue;
+                }
+                List<String> quoted = new ArrayList<>(prefixes.size());
+                for (Object prefix : prefixes) {
+                    quoted.add(quote(String.valueOf(prefix)));
+                }
+                rendered.add("[" + String.join(", ", quoted) + "]");
             }
-            return "[" + String.join(", ", quoted) + "]";
+            return "[" + String.join(", ", rendered) + "]";
         }
         if (value instanceof String string) {
             return quote(string);
@@ -244,14 +261,42 @@ public final class Option<T> {
         return raw.equalsIgnoreCase("inherit");
     }
 
+    /** Splits the outer array, where an element is either a bare string or a nested array. */
+    private List<List<String>> parseGroups(String raw) {
+        List<List<String>> groups = new ArrayList<>();
+        for (String element : split(raw, true)) {
+            if (element.startsWith("[")) {
+                groups.add(parseList(element));
+            } else {
+                groups.add(List.of(unquote(element)));
+            }
+        }
+        return List.copyOf(groups);
+    }
+
     private List<String> parseList(String raw) {
+        List<String> values = new ArrayList<>();
+        for (String element : split(raw, false)) {
+            values.add(unquote(element));
+        }
+        return List.copyOf(values);
+    }
+
+    /**
+     * The comma-separated elements of one array, stripped of its brackets and of blank elements so
+     * that TOML's trailing comma costs nothing.
+     *
+     * @param nesting whether a nested array counts as a single element rather than as its own commas
+     */
+    private List<String> split(String raw, boolean nesting) {
         String body = raw.trim();
         if (body.startsWith("[") && body.endsWith("]")) {
             body = body.substring(1, body.length() - 1);
         }
-        List<String> values = new ArrayList<>();
+        List<String> elements = new ArrayList<>();
         StringBuilder element = new StringBuilder();
         boolean quoted = false;
+        int depth = 0;
         for (int i = 0; i < body.length(); i++) {
             char c = body.charAt(i);
             if (quoted && c == '\\' && i + 1 < body.length()) {
@@ -259,8 +304,11 @@ public final class Option<T> {
             } else if (c == '"') {
                 quoted = !quoted;
                 element.append(c);
-            } else if (c == ',' && !quoted) {
-                addElement(values, element);
+            } else if (nesting && !quoted && (c == '[' || c == ']')) {
+                depth += c == '[' ? 1 : -1;
+                element.append(c);
+            } else if (c == ',' && !quoted && depth == 0) {
+                addElement(elements, element);
                 element.setLength(0);
             } else {
                 element.append(c);
@@ -269,16 +317,33 @@ public final class Option<T> {
         if (quoted) {
             throw new IllegalArgumentException(key + " has an unterminated quote: '" + raw + "'");
         }
-        addElement(values, element);
-        return List.copyOf(values);
+        if (depth != 0) {
+            throw new IllegalArgumentException(key + " has an unbalanced bracket: '" + raw + "'");
+        }
+        addElement(elements, element);
+        return elements;
     }
 
-    private static void addElement(List<String> values, StringBuilder element) {
+    /** Deep copy of a groups value, promoting a bare string element to a group of one. */
+    private static List<List<String>> copyGroups(List<?> groups) {
+        List<List<String>> copy = new ArrayList<>(groups.size());
+        for (Object group : groups) {
+            List<?> prefixes = group instanceof List<?> nested ? nested : List.of(group);
+            List<String> strings = new ArrayList<>(prefixes.size());
+            for (Object prefix : prefixes) {
+                strings.add(String.valueOf(prefix));
+            }
+            copy.add(List.copyOf(strings));
+        }
+        return List.copyOf(copy);
+    }
+
+    private static void addElement(List<String> elements, StringBuilder element) {
         String piece = element.toString().trim();
         if (piece.isEmpty()) {
             return;
         }
-        values.add(unquote(piece));
+        elements.add(piece);
     }
 
     /** Wraps a value in double quotes, escaping backslashes and quotes so {@link #unquote} inverts it. */

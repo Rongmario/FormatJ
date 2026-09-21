@@ -273,15 +273,15 @@ class OptionCatalogueTest {
     }
 
     @Test
-    void stringListElementsWithPunctuationRoundTrip() {
-        Option<List<String>> option = firstOfKind(Option.Kind.STRING_LIST);
-        List<String> value = List.of("java.*", "a, b", "say \"hi\"", "C:\\path");
+    void stringGroupElementsWithPunctuationRoundTrip() {
+        Option<List<List<String>>> option = firstOfKind(Option.Kind.STRING_GROUPS);
+        List<List<String>> value = List.of(List.of("java.*"), List.of("a, b", "say \"hi\""), List.of("C:\\path"));
         assertEquals(value, option.parse(option.render(value)));
     }
 
     @Test
     void unterminatedQuotesInAListAreRejected() {
-        Option<List<String>> option = firstOfKind(Option.Kind.STRING_LIST);
+        Option<List<List<String>>> option = firstOfKind(Option.Kind.STRING_GROUPS);
         assertThrows(IllegalArgumentException.class, () -> option.parse("[\"a, b]"));
     }
 

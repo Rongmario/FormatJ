@@ -148,7 +148,48 @@ class ImportRewriteTest {
                         "import javax.annotation.Nullable;",
                         "",
                         "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(MIXED, style -> style.set(ImportRules.GROUPS, List.of("zone.rong", "*")))));
+                importsOf(
+                        format(
+                                MIXED,
+                                style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("*"))))));
+    }
+
+    @Test
+    void severalPrefixesCanShareOneGroup() {
+        assertEquals(
+                List.of(
+                        "import zone.rong.Thing;",
+                        "",
+                        "import java.util.List;",
+                        "import java.util.Map;",
+                        "import javax.annotation.Nullable;",
+                        "",
+                        "import static org.junit.Assertions.assertTrue;"),
+                importsOf(
+                        format(
+                                MIXED,
+                                style -> style.set(
+                                        ImportRules.GROUPS,
+                                        List.of(List.of("zone.rong"), List.of("java", "javax"))))));
+    }
+
+    @Test
+    void aLongerPrefixWinsOverAShorterOneInAnEarlierGroup() {
+        assertEquals(
+                List.of(
+                        "import java.util.List;",
+                        "import java.util.Map;",
+                        "",
+                        "import javax.annotation.Nullable;",
+                        "import zone.rong.Thing;",
+                        "",
+                        "import static org.junit.Assertions.assertTrue;"),
+                importsOf(
+                        format(
+                                MIXED,
+                                style -> style.set(
+                                        ImportRules.GROUPS,
+                                        List.of(List.of("java.util"), List.of("*", "zone.rong"))))));
     }
 
     @Test

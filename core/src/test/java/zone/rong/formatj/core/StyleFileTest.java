@@ -46,6 +46,38 @@ class StyleFileTest {
     }
 
     @Test
+    void anArrayMayRunOverSeveralLinesAndCarryComments() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                [imports]
+                order = "ascending"
+                groups = [
+                    # first-party
+                    "com.cleanroommc",
+                    "*",        # everything else
+                    "net.minecraft",
+                    "java",
+                ]
+                """);
+        assertEquals(
+                List.of(List.of("com.cleanroommc"), List.of("*"), List.of("net.minecraft"), List.of("java")),
+                style.get(ImportRules.GROUPS));
+    }
+
+    @Test
+    void anUnterminatedArrayNamesItsKey() {
+        TomlReader.TomlException thrown =
+                assertThrows(TomlReader.TomlException.class, () -> TomlReader.read(
+                        """
+                        [imports]
+                        groups = [
+                            "java",
+                        """));
+        assertTrue(thrown.getMessage().contains("groups"));
+    }
+
+    @Test
     void aPresetKeyChoosesTheStartingPointAndOtherKeysOverrideIt() {
         Style style =
                 StyleFiles.parse(
@@ -79,7 +111,9 @@ class StyleFileTest {
                 [imports]
                 groups = ["java", "zone.rong.formatj", "*"]
                 """);
-        assertEquals(List.of("java", "zone.rong.formatj", "*"), style.get(ImportRules.GROUPS));
+        assertEquals(
+                List.of(List.of("java"), List.of("zone.rong.formatj"), List.of("*")),
+                style.get(ImportRules.GROUPS));
     }
 
     @Test

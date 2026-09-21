@@ -110,7 +110,7 @@ TYPE public final class zone.rong.formatj.api.Option<T>
   METHOD public static zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.Option.ofBoolean(java.lang.String,boolean,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,int,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.Option.ofString(java.lang.String,java.lang.String,java.lang.String)
-  METHOD public static zone.rong.formatj.api.Option<java.util.List<java.lang.String>> zone.rong.formatj.api.Option.ofStringList(java.lang.String,java.util.List<java.lang.String>,java.lang.String)
+  METHOD public static zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.Option.ofStringGroups(java.lang.String,java.util.List<java.util.List<java.lang.String>>,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<java.lang.Integer>> zone.rong.formatj.api.Option.ofInheritableInt(java.lang.String,java.lang.String)
   METHOD public zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option.kind()
 TYPE public static final enum zone.rong.formatj.api.Option$Kind
@@ -119,7 +119,7 @@ TYPE public static final enum zone.rong.formatj.api.Option$Kind
   ENUM INTEGER
   ENUM STRING
   ENUM ENUM
-  ENUM STRING_LIST
+  ENUM STRING_GROUPS
   ENUM INHERITABLE_INTEGER
   ENUM INHERITABLE_ENUM
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.BOOLEAN
@@ -128,7 +128,7 @@ TYPE public static final enum zone.rong.formatj.api.Option$Kind
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.INHERITABLE_INTEGER
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.INTEGER
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.STRING
-  FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.STRING_LIST
+  FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.STRING_GROUPS
   METHOD public static zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.Option$Kind[] zone.rong.formatj.api.Option$Kind.values()
 TYPE public final class zone.rong.formatj.api.OptionRegistry
@@ -410,13 +410,13 @@ TYPE public final class zone.rong.formatj.api.rules.ImportRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ImportRules.BLANK_LINE_BETWEEN_GROUPS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ImportRules.MODULE_IMPORTS_FIRST
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ImportRules.REMOVE_UNUSED
-  FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.lang.String>> zone.rong.formatj.api.rules.ImportRules.GROUPS
+  FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.ImportRules.GROUPS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.SortOrder> zone.rong.formatj.api.rules.ImportRules.ORDER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.StaticImportPlacement> zone.rong.formatj.api.rules.ImportRules.STATIC_PLACEMENT
 TYPE public static final class zone.rong.formatj.api.rules.ImportRules$Builder
   CTOR public zone.rong.formatj.api.rules.ImportRules$Builder(zone.rong.formatj.api.StyleBuilder)
   METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.blankLineBetweenGroups(boolean)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.groups(java.util.List<java.lang.String>)
+  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.groups(java.util.List<java.util.List<java.lang.String>>)
   METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.moduleImportsFirst(boolean)
   METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.order(zone.rong.formatj.api.rules.SortOrder)
   METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.removeUnused(boolean)

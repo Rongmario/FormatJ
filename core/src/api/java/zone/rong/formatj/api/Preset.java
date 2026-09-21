@@ -79,7 +79,7 @@ public enum Preset {
                             .methodChains(AlignmentPolicy.NONE)
                             .trailingComments(AlignmentPolicy.NONE)
                             .ternaryBranches(AlignmentPolicy.NONE))
-                    .imports(imports -> imports.groups(List.of("*"))
+                    .imports(imports -> imports.groups(List.of(List.of("*")))
                             .order(SortOrder.ASCENDING)
                             .staticPlacement(StaticImportPlacement.FIRST)
                             .blankLineBetweenGroups(true))

@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * A reader for the subset of TOML a style file needs: tables, dotted keys, strings, integers,
- * booleans and single-line arrays.
+ * booleans and arrays, which may run over several lines.
  *
  * <p>Hand-written on purpose. A formatter that pulls in a config library inherits that library's
  * version conflicts, and version friction is one of the things this project exists to avoid.
@@ -24,11 +24,11 @@ public final class TomlReader {
      */
     public static Map<String, String> read(String document) {
         Map<String, String> values = new LinkedHashMap<>();
+        String[] lines = document.split("\r\n|\r|\n", -1);
         String table = "";
-        int lineNumber = 0;
-        for (String rawLine : document.split("\r\n|\r|\n", -1)) {
-            lineNumber++;
-            String line = stripComment(rawLine).trim();
+        for (int index = 0; index < lines.length; index++) {
+            int lineNumber = index + 1;
+            String line = stripComment(lines[index]).trim();
             if (line.isEmpty()) {
                 continue;
             }
@@ -54,6 +54,23 @@ public final class TomlReader {
             if (value.isEmpty()) {
                 throw new TomlException("Missing value for '" + key + "'", lineNumber);
             }
+
+            // An array may span lines. Join them so the value parsers still see one line; elements
+            // keep their commas, and a comment on a continuation line is already gone.
+            int depth = arrayDepth(value, 0);
+            if (depth > 0) {
+                StringBuilder joined = new StringBuilder(value);
+                while (depth > 0) {
+                    if (++index >= lines.length) {
+                        throw new TomlException("Unterminated array for '" + key + "'", lineNumber);
+                    }
+                    String continuation = stripComment(lines[index]).trim();
+                    joined.append(continuation);
+                    depth = arrayDepth(continuation, depth);
+                }
+                value = joined.toString();
+            }
+
             String qualified = table.isEmpty() ? key : table + "." + key;
             if (values.put(qualified, unquote(value)) != null) {
                 throw new TomlException("Duplicate key '" + qualified + "'", lineNumber);
@@ -74,6 +91,22 @@ public final class TomlReader {
             }
         }
         return line;
+    }
+
+    /** Bracket depth once this line has been scanned, ignoring brackets inside a quoted string. */
+    private static int arrayDepth(String line, int depth) {
+        boolean inString = false;
+        for (int i = 0; i < line.length(); i++) {
+            char current = line.charAt(i);
+            if (current == '"' && (i == 0 || line.charAt(i - 1) != '\\')) {
+                inString = !inString;
+            } else if (!inString && current == '[') {
+                depth++;
+            } else if (!inString && current == ']') {
+                depth--;
+            }
+        }
+        return depth;
     }
 
     /** Index of the assignment '=', ignoring one inside a quoted key or value. */

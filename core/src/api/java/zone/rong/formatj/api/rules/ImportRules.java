@@ -7,11 +7,12 @@ import java.util.List;
 /** Import ordering, grouping and wildcard policy. */
 public final class ImportRules {
 
-    public static final Option<List<String>> GROUPS =
-            Option.ofStringList(
+    public static final Option<List<List<String>>> GROUPS =
+            Option.ofStringGroups(
                     "imports.groups",
-                    List.of("java", "javax", "*"),
-                    "Package prefixes forming import groups, in order; * is the catch-all");
+                    List.of(List.of("java"), List.of("javax"), List.of("*")),
+                    "Import groups, in order; an entry is one prefix or a list of prefixes that share "
+                            + "a group, and * is the catch-all");
 
     public static final Option<SortOrder> ORDER =
             Option.ofEnum(
@@ -46,7 +47,7 @@ public final class ImportRules {
             this.style = style;
         }
 
-        public Builder groups(List<String> value) {
+        public Builder groups(List<List<String>> value) {
             style.set(GROUPS, value);
             return this;
         }

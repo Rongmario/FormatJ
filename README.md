@@ -428,9 +428,22 @@ first declarator of a declaration is aligned: a second name on the same line has
 
 `imports.order = preserve` skips this ruleset entirely and preserves original authoring of imports.
 
+An array may run over several lines, so a long `groups` stays readable and can carry comments:
+
+```toml
+[imports]
+order = "ascending"
+groups = [
+    "com.cleanroommc",
+    "*",
+    ["net.minecraft", "net.minecraftforge", "com.mojang"],
+    ["javax", "java"],
+]
+```
+
 | Key                                          | Values                                | Default                  | Effect                                                                                                                                           | Example                                                                                |
 |----------------------------------------------|---------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| `imports.groups`                             | list of prefixes                      | `["java", "javax", "*"]` | Package prefixes forming import groups, in order; `*` is the catch-all                                                                           | `["java", "*", "org"]` puts `org.*` imports last                                       |
+| `imports.groups`                             | list of prefixes or prefix lists      | `["java", "javax", "*"]` | Import groups, in order; an entry is one prefix or a list of prefixes that share a group, and `*` is the catch-all. The longest matching prefix wins wherever it is declared | `[["net.minecraft", "net.minecraftforge"], "*"]` puts the game in one group and everything else after it |
 | `imports.order`                              | `preserve`, `ascending`, `descending` | `preserve`               | Sort order applied within a group; `preserve` leaves the whole run alone, which also switches off grouping, static placement and module ordering | `ascending`: `import a.A;` before `import b.B;`                                        |
 | `imports.static-placement`                   | `first`, `last`, `inline`             | `last`                   | Where static imports sit relative to ordinary ones                                                                                               | `first`: the `import static` block precedes every ordinary import                      |
 | `imports.blank-line-between-groups`          | boolean                               | `true`                   | Separate import groups with a blank line                                                                                                         | `true`: `import java.util.List;`<br>``<br>`import org.x.Y;`                            |
