@@ -6,6 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.Preset;
 import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.Test;
@@ -49,6 +54,22 @@ class FormatJExtensionTest {
         assertEquals(Preset.FORMATJ, extension.getPreset().get());
         assertEquals(Boolean.FALSE, extension.getPreviewFeatures().get());
         assertEquals(Boolean.TRUE, extension.getEnforceOnCheck().get());
+    }
+
+    @Test
+    void includeAndExcludeNarrowTheSources() throws IOException {
+        Project project = ProjectBuilder.builder().build();
+        FormatJExtension extension = extensionOf(project);
+        for (String path : List.of("a/Kept.java", "a/skip/Skipped.java", "b/Other.java")) {
+            Path file = project.file("src/main/java/" + path).toPath();
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, "");
+        }
+        extension.include("a/**");
+        extension.exclude("**/skip/**");
+
+        FormatJTask check = (FormatJTask) project.getTasks().getByName(FormatJPlugin.CHECK_TASK_NAME);
+        assertEquals(Set.of(project.file("src/main/java/a/Kept.java")), check.getSource().getFiles());
     }
 
 }

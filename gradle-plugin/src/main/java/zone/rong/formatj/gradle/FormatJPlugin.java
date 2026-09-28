@@ -88,7 +88,12 @@ public class FormatJPlugin implements Plugin<Project> {
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
             if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
-                files = files.plus(sourceSet.getAllJava().filter(file -> file.getName().endsWith(".java")));
+                files =
+                        files.plus(
+                                sourceSet.getAllJava()
+                                        .matching(patterns -> patterns.include(extension.getIncludes().get()).exclude(
+                                                extension.getExcludes().get()))
+                                        .filter(file -> file.getName().endsWith(".java")));
             }
         }
         return files;

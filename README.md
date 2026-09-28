@@ -46,6 +46,8 @@ formatJ {
     styleFile = file("formatj.toml")    // Uses custom configuration
     rule("indent.size", 4)              // Override with rule `indent.size = 4`
     sourceSets("main", "test")          // Target specific source sets (main and test in this case, default: every source set)
+    include("com/example/**")           // Only files matching these patterns, relative to the source directories (default: every file)
+    exclude("**/generated/**")          // Skip files matching these patterns
 }
 ```
 

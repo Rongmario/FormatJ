@@ -10,6 +10,7 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.SetProperty;
 
 /**
  * The {@code formatJ { }} block.
@@ -43,6 +44,12 @@ public abstract class FormatJExtension {
     /** Names of the source sets to format. Defaults to every source set in the project. */
     public abstract ListProperty<String> getSourceSets();
 
+    /** Ant-style patterns of the files to format, relative to each source directory. Defaults to every file. */
+    public abstract SetProperty<String> getIncludes();
+
+    /** Ant-style patterns of the files to leave alone, relative to each source directory. */
+    public abstract SetProperty<String> getExcludes();
+
     /** Syntax level to parse. Defaults to the newest FormatJ knows. */
     public abstract Property<LanguageLevel> getLanguageLevel();
 
@@ -69,6 +76,16 @@ public abstract class FormatJExtension {
     /** Convenience for {@code sourceSets = listOf(...)}. */
     public void sourceSets(String... names) {
         getSourceSets().set(List.of(names));
+    }
+
+    /** Adds include patterns. */
+    public void include(String... patterns) {
+        getIncludes().addAll(patterns);
+    }
+
+    /** Adds exclude patterns. */
+    public void exclude(String... patterns) {
+        getExcludes().addAll(patterns);
     }
 
 }
