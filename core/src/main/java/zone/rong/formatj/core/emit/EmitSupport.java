@@ -260,7 +260,11 @@ abstract class EmitSupport {
                     : Doc.EMPTY;
             Doc alignMark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
             first = false;
-            parts.add(Doc.lineSuffix(Doc.concat(trailingSpacing(), columnMark, alignMark, comments.trailing(comment))));
+            // A line comment ends its line, which the printer reads from the break it forces.
+            Doc end = comment.kind() == TokenKind.LINE_COMMENT ? Doc.breakParent() : Doc.EMPTY;
+            parts.add(
+                    Doc.lineSuffix(
+                            Doc.concat(trailingSpacing(), columnMark, alignMark, comments.trailing(comment), end)));
         }
         return Doc.concat(parts);
     }

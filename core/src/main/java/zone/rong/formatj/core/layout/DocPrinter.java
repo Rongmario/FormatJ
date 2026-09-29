@@ -259,6 +259,7 @@ public final class DocPrinter {
         queue.push(new Command(0, Mode.FLAT, doc));
         Iterator<Command> following = rest.iterator();
         int left = remaining;
+        boolean lineEnded = false;
 
         while (left >= 0) {
             if (queue.isEmpty()) {
@@ -271,7 +272,13 @@ public final class DocPrinter {
             Command command = queue.pop();
             Mode mode = command.mode();
             switch (command.doc()) {
-                case Doc.Text text -> left -= text.value().length();
+                case Doc.Text text -> {
+                    // A line comment runs to the end of the line, so text after it would be swallowed.
+                    if (lineEnded && !text.value().isEmpty()) {
+                        return false;
+                    }
+                    left -= text.value().length();
+                }
                 case Doc.Concat concat -> pushReversed(queue, concat.parts(), 0, mode);
                 case Doc.Fill fill -> pushReversed(queue, fill.parts(), 0, mode);
                 case Doc.Group group ->
@@ -287,9 +294,7 @@ public final class DocPrinter {
                 case Doc.LineIndent indent -> queue.push(new Command(0, mode, indent.content()));
                 case Doc.IfBreak ifBreak ->
                         queue.push(new Command(0, mode, mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
-                case Doc.LineSuffix ignored -> {
-                    // Suffixes are printed at the next break, not on this line.
-                }
+                case Doc.LineSuffix suffix -> lineEnded |= DocBreaks.forcesBreak(suffix.content());
                 case Doc.BreakParent ignored -> {
                     // Break propagation happens before printing.
                 }

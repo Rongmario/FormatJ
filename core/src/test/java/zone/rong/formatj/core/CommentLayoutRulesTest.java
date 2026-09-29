@@ -10,6 +10,7 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.WrapPolicy;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
@@ -227,6 +228,49 @@ class CommentLayoutRulesTest {
         String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
 
         assertTrue(formatted.contains("        if (ready)\n// keep\n            return;"), formatted);
+    }
+
+    @Test
+    void aTrailingLineCommentKeepsAnArrayInitializerChopped() {
+        String source = """
+                class A {
+
+                    private static final int[] C =
+                            new int[] {
+                                0xFFAA00, // Orange
+                                0xFFFF55, // Yellow
+                                0x55FFFF, // Cyan
+                            };
+
+                }
+                """;
+        Consumer<StyleBuilder> configure = style -> style.wrapping(wrapping -> wrapping.arrayInitializers(
+                WrapPolicy.CHOP_DOWN_IF_LONG))
+                .preservation(preservation -> preservation.keepArrayInitializerLayout(false));
+
+        assertEquals(source, format(source, configure));
+        assertFixedPoint(source, configure);
+    }
+
+    @Test
+    void aTrailingLineCommentKeepsCallArgumentsChopped() {
+        String source = """
+                class A {
+
+                    void m() {
+                        f(
+                                1, // one
+                                2 // two
+                        );
+                    }
+
+                }
+                """;
+        Consumer<StyleBuilder> configure = style -> style.wrapping(wrapping -> wrapping.methodArguments(
+                WrapPolicy.CHOP_DOWN_IF_LONG));
+
+        assertEquals(source, format(source, configure));
+        assertFixedPoint(source, configure);
     }
 
     /** 1-based column of the first {@code //} on the line that contains {@code needle}. */

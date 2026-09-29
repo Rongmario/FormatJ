@@ -20,6 +20,11 @@ public final class DocBreaks {
         return rewrite(doc).doc();
     }
 
+    /** Whether {@code doc} holds a break that no enclosing group can print flat. */
+    public static boolean forcesBreak(Doc doc) {
+        return rewrite(doc).forcesBreak();
+    }
+
     private record Rewritten(Doc doc, boolean forcesBreak) { }
 
     private static Rewritten rewrite(Doc doc) {
