@@ -25,7 +25,7 @@ class CliRunnerTest {
 
             class A {
             
-                void run() { }
+                void run() {}
                 
             }
             """;
@@ -133,7 +133,7 @@ class CliRunnerTest {
 
         Run result =
                 run(
-                        "class A {\n    void run() { }\n}\n",
+                        "class A {\n    void run() {}\n}\n",
                         "--diff",
                         "--stdin-name",
                         nested.resolve("A.java").toString());
@@ -218,11 +218,9 @@ class CliRunnerTest {
                 package sample;
 
                 class A {
-                
                     void run() {
                         g();
                     }
-                    
                 }
                 """,
                 Files.readString(file));
@@ -238,7 +236,7 @@ class CliRunnerTest {
         Run result = run("", "--diff", root.toString());
 
         assertEquals(1, result.exitCode());
-        assertTrue(result.out().contains("+class A { }"), result.out());
+        assertTrue(result.out().contains("+class A {}"), result.out());
         assertEquals(before, Files.readString(file));
     }
 

@@ -318,7 +318,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         for (int i = 2; i < closing; i++) {
             GreenNode child = children.get(i);
             if (afterSemicolon) {
-                header.add(rule(SpacingRules.AFTER_SEMICOLON_IN_FOR) ? Doc.line() : Doc.softLine());
+                // An empty clause takes no space: for (;;) rather than for (; ;).
+                header.add(rule(SpacingRules.AFTER_SEMICOLON_IN_FOR) && !is(child, ";") ? Doc.line() : Doc.softLine());
                 afterSemicolon = false;
             }
             header.add(emit(child));

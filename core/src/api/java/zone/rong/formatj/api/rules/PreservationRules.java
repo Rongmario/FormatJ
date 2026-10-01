@@ -24,7 +24,7 @@ public final class PreservationRules {
     public static final Option<Boolean> KEEP_SIMPLE_BLOCKS_INLINE =
             Option.ofBoolean(
                     "preservation.keep-simple-blocks-inline",
-                    true,
+                    false,
                     "Keep a block the author wrote on one line on one line");
 
     public static final Option<Boolean> KEEP_ARRAY_INITIALIZER_LAYOUT =

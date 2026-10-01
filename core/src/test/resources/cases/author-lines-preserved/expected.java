@@ -3,14 +3,15 @@ class Preserved {
     void run() {
         call(
                 alpha,
-                beta
-        );
+                beta);
         int total = one
                 + two;
-        if (ready) { go(); }
+        if (ready) {
+            go();
+        }
     }
 
     void thrower()
-            throws OneException, TwoException { }
+            throws OneException, TwoException {}
 
 }

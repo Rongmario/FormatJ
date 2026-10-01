@@ -42,7 +42,7 @@ class FormatJPluginFunctionalTest {
 
                 class Sample {
                 
-                    void run() { }
+                    void run() {}
                     
                 }
                 """);
@@ -257,7 +257,7 @@ class FormatJPluginFunctionalTest {
 
                 class Sample {
 
-                    static public class Nested { }
+                    static public class Nested {}
 
                 }
                 """);

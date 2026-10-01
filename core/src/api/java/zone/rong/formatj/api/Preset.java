@@ -1,6 +1,7 @@
 package zone.rong.formatj.api;
 
 import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.ChainPolicy;
@@ -54,6 +55,8 @@ public enum Preset {
                             .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE)
                             .chainThreshold(2)
                             .closingDelimiter(ClosingDelimiter.ATTACHED)
+                            .assignmentBreak(AssignmentBreak.AFTER_OPERATOR)
+                            .hugSoleArgument(false)
                             .keepSimpleMethodsOnOneLine(false)
                             .keepSimpleClassesOnOneLine(false))
                     .braces(braces -> braces.classPlacement(BracePlacement.END_OF_LINE)

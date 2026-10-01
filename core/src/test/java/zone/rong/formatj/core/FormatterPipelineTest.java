@@ -61,11 +61,13 @@ class FormatterPipelineTest {
                 package a;
 
                 class A {
-                
                     void run() {
-                        if (x) { g(); } else { h(); }
+                        if (x) {
+                            g();
+                        } else {
+                            h();
+                        }
                     }
-                    
                 }
                 """,
                 result.text());

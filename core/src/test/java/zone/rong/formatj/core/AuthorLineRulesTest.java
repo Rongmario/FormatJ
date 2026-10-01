@@ -27,10 +27,10 @@ class AuthorLineRulesTest {
     void aBlockTheAuthorWroteOnOneLineStaysOnOneLine() {
         String source = "class A {\n\n    void f() {\n        if (x) { g(); }\n    }\n\n}\n";
 
-        assertTrue(format(source, style -> { }).contains("if (x) { g(); }"));
+        assertTrue(format(source, style -> { }).contains("if (x) {\n            g();\n        }"));
         assertTrue(
-                format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(false))).contains(
-                        "if (x) {\n            g();\n        }"));
+                format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(true))).contains(
+                        "if (x) { g(); }"));
     }
 
     @Test
@@ -62,10 +62,10 @@ class AuthorLineRulesTest {
         String inline = format(source, style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true)));
         assertTrue(inline.contains("static class B { int x; }"), inline);
 
-        // Too long for one line, so the blank lines the class body rule asks for come back.
+        // Too long for one line, so it lays out as an ordinary body.
         String narrow =
                 format(source, style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true).maxLineLength(20)));
-        assertTrue(narrow.contains("static class B {\n\n        int x;\n\n    }"), narrow);
+        assertTrue(narrow.contains("static class B {\n        int x;\n    }"), narrow);
     }
 
     @Test
@@ -117,7 +117,7 @@ class AuthorLineRulesTest {
         assertTrue(format(source, style -> { }).contains("g(a, b);"));
         assertTrue(
                 format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true))).contains(
-                        "g(\n                a,\n                b\n        );"));
+                        "g(\n                a,\n                b);"));
     }
 
     @Test
@@ -131,7 +131,7 @@ class AuthorLineRulesTest {
 
         String kept = format(source, style -> style.preservation(p -> p.neverJoinLines(true)));
         assertTrue(kept.contains("int x = one\n                + two;"), kept);
-        assertTrue(kept.contains("g(\n                a,\n                b\n        );"), kept);
+        assertTrue(kept.contains("g(\n                a,\n                b);"), kept);
     }
 
     @Test

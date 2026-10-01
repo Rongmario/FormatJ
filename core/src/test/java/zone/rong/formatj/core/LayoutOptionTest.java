@@ -14,6 +14,7 @@ import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.FileRules;
@@ -47,10 +48,10 @@ class LayoutOptionTest {
     void anEmptyControlBodyIsUnaffectedByTheMethodBodyRule() {
         String source = "class A {\n    void f() {\n        while (x) {\n        }\n    }\n}\n";
 
-        String compact =
-                format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.COMPACT)));
+        String spaced =
+                format(source, style -> style.braces(braces -> braces.emptyMethodBody(EmptyBodyStyle.SPACED)));
 
-        assertTrue(compact.contains("while (x) { }"), compact);
+        assertTrue(spaced.contains("while (x) {}"), spaced);
     }
 
     @Test
@@ -163,7 +164,7 @@ class LayoutOptionTest {
         String source = "record Point(int x, int y) {\n}\n";
 
         String collapsed = format(source, style -> style.records(records -> records.singleLineEmptyBody(true)));
-        String spaced = format(source, style -> { });
+        String spaced = format(source, style -> style.braces(braces -> braces.emptyClassBody(EmptyBodyStyle.SPACED)));
 
         assertTrue(collapsed.contains("record Point(int x, int y) {}"), collapsed);
         assertTrue(spaced.contains("record Point(int x, int y) { }"), spaced);
@@ -398,7 +399,7 @@ class LayoutOptionTest {
     }
 
     @Test
-    void aWrappedListEndsOnTheClosingParenthesisByDefault() {
+    void aWrappedListCanEndOnTheClosingParenthesis() {
         String source = """
                 class A {
 
@@ -409,7 +410,9 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)));
+        String formatted =
+                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)
+                        .closingDelimiter(ClosingDelimiter.OWN_LINE)));
 
         assertTrue(
                 formatted.contains(
@@ -451,7 +454,9 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)));
+        String formatted =
+                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)
+                        .closingDelimiter(ClosingDelimiter.OWN_LINE)));
 
         // A file that dangles a call's parenthesis and hugs a declaration's reads as two styles.
         assertTrue(
@@ -564,7 +569,7 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.closingDelimiter(ClosingDelimiter.OWN_LINE)));
 
         assertTrue(
                 formatted.contains(
@@ -590,7 +595,7 @@ class LayoutOptionTest {
                 }
                 """;
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.closingDelimiter(ClosingDelimiter.OWN_LINE)));
 
         // An argument that ends mid-line would strand the ones after it against a closing brace.
         assertTrue(
@@ -756,6 +761,53 @@ class LayoutOptionTest {
 
         assertTrue(ownLines.contains("@NotNull\n            String a"), ownLines);
         assertTrue(ownLines.contains("@Marked\n        int b = 1;"), ownLines);
+    }
+
+    @Test
+    void aLongAssignmentBreaksInsideItsValueByDefault() {
+        String source = "class A {\n    void f() {\n        Result result = compute(firstArgument, secondArgument);\n    }\n}\n";
+
+        String inside = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)));
+        String after =
+                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(60)
+                        .assignmentBreak(AssignmentBreak.AFTER_OPERATOR)));
+
+        assertTrue(inside.contains("Result result = compute(\n                firstArgument,"), inside);
+        assertTrue(after.contains("Result result =\n                compute(firstArgument, secondArgument);"), after);
+    }
+
+    @Test
+    void aLoneCallArgumentStaysOnTheLineOfItsParenthesis() {
+        String source = "class A {\n    void f() {\n        list.add(new Entry(firstArgument, secondArgument));\n    }\n}\n";
+
+        String hugged = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(44)));
+        String wrapped =
+                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(44).hugSoleArgument(false)));
+
+        assertTrue(hugged.contains("list.add(new Entry(\n                firstArgument,"), hugged);
+        assertTrue(wrapped.contains("list.add(\n                new Entry("), wrapped);
+    }
+
+    @Test
+    void aQualifiedNameIsNotAChain() {
+        String source = "class A {\n    void f() {\n        g(someArgument, Outer.Inner.SOME_CONSTANT_NAME);\n    }\n}\n";
+
+        String formatted = format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(40)));
+
+        assertTrue(formatted.contains("Outer.Inner.SOME_CONSTANT_NAME"), formatted);
+    }
+
+    @Test
+    void anEmptyForClauseTakesNoSpace() {
+        assertTrue(format("class A {\n    void f() {\n        for (; ;) {\n        }\n    }\n}\n", style -> { })
+                .contains("for (;;) {}"));
+    }
+
+    @Test
+    void aFieldAfterAMethodIsSetApart() {
+        String source = "class A {\n    void f() {}\n    int x;\n}\n";
+
+        assertTrue(format(source, style -> { }).contains("void f() {}\n\n    int x;"));
     }
 
     private static String format(String source, Consumer<StyleBuilder> configure) {

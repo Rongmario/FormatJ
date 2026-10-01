@@ -28,7 +28,7 @@ public final class WrappingRules {
                     "Wrapping of a chain of method calls");
 
     public static final Option<Integer> CHAIN_THRESHOLD =
-            Option.ofInt("wrapping.chain-threshold", 3, "Chain links required before the chain may be broken at all");
+            Option.ofInt("wrapping.chain-threshold", 2, "Chain links required before the chain may be broken at all");
 
     public static final Option<WrapPolicy> BINARY_OPERATORS =
             Option.ofEnum("wrapping.binary-operators", WrapPolicy.WRAP_IF_LONG, "Wrapping of a binary expression");
@@ -123,8 +123,20 @@ public final class WrappingRules {
     public static final Option<ClosingDelimiter> CLOSING_DELIMITER =
             Option.ofEnum(
                     "wrapping.closing-delimiter",
-                    ClosingDelimiter.OWN_LINE,
+                    ClosingDelimiter.ATTACHED,
                     "Whether a wrapped list's closing parenthesis takes a line of its own");
+
+    public static final Option<AssignmentBreak> ASSIGNMENT_BREAK =
+            Option.ofEnum(
+                    "wrapping.assignment-break",
+                    AssignmentBreak.INSIDE_VALUE,
+                    "Where a long assignment breaks first");
+
+    public static final Option<Boolean> HUG_SOLE_ARGUMENT =
+            Option.ofBoolean(
+                    "wrapping.hug-sole-argument",
+                    true,
+                    "Keep a lone call or creation argument on the line of the parenthesis and break inside it");
 
     public static final Option<WrapPolicy> ENUM_CONSTANTS =
             Option.ofEnum(
@@ -293,6 +305,16 @@ public final class WrappingRules {
 
         public Builder closingDelimiter(ClosingDelimiter value) {
             style.set(CLOSING_DELIMITER, value);
+            return this;
+        }
+
+        public Builder assignmentBreak(AssignmentBreak value) {
+            style.set(ASSIGNMENT_BREAK, value);
+            return this;
+        }
+
+        public Builder hugSoleArgument(boolean value) {
+            style.set(HUG_SOLE_ARGUMENT, value);
             return this;
         }
 

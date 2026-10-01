@@ -249,9 +249,9 @@ The same `key` works in:
 - `chop-down-if-long` puts every element on its own line as soon as one break is needed.
 - `chop-down-always` does so regardless of length.
 
-`ClosingDelimiter` values are `own-line` and `attached`. `own-line`, the default, gives the closing
-parenthesis of a wrapped list a line of its own at the indentation of the line that opened it;
-`attached` keeps it against the last element. The rule covers every parenthesised list — arguments,
+`ClosingDelimiter` values are `attached` and `own-line`. `attached`, the default, keeps the closing
+parenthesis of a wrapped list against the last element; `own-line` gives it a line of its own at the
+indentation of the line that opened the list. The rule covers every parenthesised list — arguments,
 parameters, record components, annotation elements, deconstruction patterns, and try resources —
 and only applies once a list has actually wrapped. An argument list that hugs a trailing lambda has
 not wrapped, so its `});` stays as it is. Array initializer braces are not parentheses and keep their
@@ -260,8 +260,7 @@ own layout.
 ```java
 this.callIsLong(
         arg1,
-        arg2
-);
+        arg2);
 ```
 
 An argument list whose last argument brings its own lines — a block lambda, an anonymous class, an
@@ -294,9 +293,9 @@ placement rule only chooses the side of a break and does not force one.
 | `wrapping.max-line-length`                       | integer                             | `120`                    | Maximum columns before a line is wrapped                          | `100`: lines are broken at 100 columns                                           |
 | `wrapping.method-parameters`                     | `WrapPolicy`                        | `chop-down-if-long`      | Wrapping of a method declaration's parameter list                 | `chop-down-if-long`: `void f(`<br>`········int a,`<br>`········int b) {`         |
 | `wrapping.method-arguments`                      | `WrapPolicy`                        | `chop-down-if-long`      | Wrapping of an argument list at a call site                       | `chop-down-if-long`: `f(`<br>`········a,`<br>`········b);`                       |
-| `wrapping.closing-delimiter`                     | `own-line`, `attached`              | `own-line`               | Whether a wrapped list's closing parenthesis takes its own line   | `own-line`: `f(`<br>`········a,`<br>`········b`<br>`);`                          |
+| `wrapping.closing-delimiter`                     | `own-line`, `attached`              | `attached`               | Whether a wrapped list's closing parenthesis takes its own line   | `own-line`: `f(`<br>`········a,`<br>`········b`<br>`);`                          |
 | `wrapping.chained-calls`                         | `ChainPolicy`                       | `break-all-if-multiline` | Wrapping of a chain of method calls                               | `break-all-if-multiline`: one break in the chain breaks every link               |
-| `wrapping.chain-threshold`                       | integer                             | `3`                      | Chain links required before the chain may be broken at all        | `3`: `a.b().c()` stays on one line however long it is                            |
+| `wrapping.chain-threshold`                       | integer                             | `2`                      | Chain links required before the chain may be broken at all        | `3`: `a.b().c()` stays on one line however long it is                            |
 | `wrapping.binary-operators`                      | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of a binary expression                                   | `wrap-if-long`: `a + b`<br>`········+ c`                                         |
 | `wrapping.operator-position`                     | `before-operator`, `after-operator` | `before-operator`        | Which line a binary operator lands on when wrapped                | `before-operator`: `a`<br>`········+ b` — `after-operator`: `a +`<br>`········b` |
 | `wrapping.method-reference`                      | `WrapPolicy`                        | `never`                  | Wrapping of a method reference at `::`                            | `chop-down-always`: `Type`<br>`········::method`                                 |
@@ -309,6 +308,8 @@ placement rule only chooses the side of a break and does not force one.
 | `wrapping.intersection-separator-position`       | `before-operator`, `after-operator` | `before-operator`        | Which line `&` lands on when intersection types wrap              | `after-operator`: `A &`<br>`········B`                                           |
 | `wrapping.ternary`                               | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of a conditional expression                              | `wrap-if-long`: `c`<br>`········? a`<br>`········: b`                            |
 | `wrapping.assignment`                            | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of the right hand side of an assignment                  | `wrap-if-long`: `int x =`<br>`········compute();`                                |
+| `wrapping.assignment-break` | `after-operator`, `inside-value` | `inside-value` | Where a long assignment breaks first | `inside-value`: `x = call(`<br>`········a,`<br>`········b);` — `after-operator`: `x =`<br>`········call(a, b);` |
+| `wrapping.hug-sole-argument` | boolean | `true` | Keep a lone call or creation argument on the line of the parenthesis and break inside it | `true`: `add(new Entry(`<br>`········key,`<br>`········value));` |
 | `wrapping.array-initializers`                    | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of an array initializer                                  | `wrap-if-long`: `{ 1, 2,`<br>`····3 }`                                           |
 | `wrapping.extends-implements`                    | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of extends and implements clauses                        | `class A`<br>`········implements B, C {`                                         |
 | `wrapping.throws-clause`                         | `WrapPolicy`                        | `wrap-if-long`           | Wrapping of a throws clause                                       | `void f()`<br>`········throws A, B {`                                            |
@@ -341,9 +342,9 @@ placement rule only chooses the side of a break and does not force one.
 | `braces.else-on-new-line`    | boolean          | `false`       | Put else on the line after the closing brace       | `false`: `} else {` — `true`: `}`<br>`else {`                                                    |
 | `braces.catch-on-new-line`   | boolean          | `false`       | Put catch on the line after the closing brace      | `true`: `}`<br>`catch (E e) {`                                                                   |
 | `braces.finally-on-new-line` | boolean          | `false`       | Put finally on the line after the closing brace    | `true`: `}`<br>`finally {`                                                                       |
-| `braces.empty-class-body`    | `EmptyBodyStyle` | `spaced`      | Rendering of an empty type body                    | `compact`: `class A {}` — `spaced`: `class A { }` — `expanded`: `class A {`<br>`}`               |
-| `braces.empty-method-body`   | `EmptyBodyStyle` | `spaced`      | Rendering of an empty method body                  | `spaced`: `void f() { }`                                                                         |
-| `braces.empty-control-body`  | `EmptyBodyStyle` | `spaced`      | Rendering of an empty control statement body       | `compact`: `while (f()) {}`                                                                      |
+| `braces.empty-class-body`    | `EmptyBodyStyle` | `compact`     | Rendering of an empty type body                    | `compact`: `class A {}` — `spaced`: `class A { }` — `expanded`: `class A {`<br>`}`               |
+| `braces.empty-method-body`   | `EmptyBodyStyle` | `compact`     | Rendering of an empty method body                  | `spaced`: `void f() { }`                                                                         |
+| `braces.empty-control-body`  | `EmptyBodyStyle` | `compact`     | Rendering of an empty control statement body       | `compact`: `while (f()) {}`                                                                      |
 
 ### `spacing`
 
@@ -392,12 +393,12 @@ placement rule only chooses the side of a break and does not force one.
 | `blank-lines.before-class`                      | `1`     | Blank lines before a nested type declaration               | `1`: one blank line before `static class Inner {`       |
 | `blank-lines.before-method`                     | `1`     | Blank lines before a method or constructor                 | `1`: one blank line between two methods                 |
 | `blank-lines.before-field`                      | `0`     | Blank lines before a field declaration                     | `0`: consecutive fields stay packed                     |
-| `blank-lines.after-class-opening-brace`         | `1`     | Blank lines just inside a type body                        | `1`: `class A {`<br>``<br>`····int x;`                  |
-| `blank-lines.before-class-closing-brace`        | `1`     | Blank lines just before a type body closes                 | `1`: `····}`<br>``<br>`}`                               |
+| `blank-lines.after-class-opening-brace`         | `0`     | Blank lines just inside a type body                        | `1`: `class A {`<br>``<br>`····int x;`                  |
+| `blank-lines.before-class-closing-brace`        | `0`     | Blank lines just before a type body closes                 | `1`: `····}`<br>``<br>`}`                               |
 | `blank-lines.around-initializer-block`          | `1`     | Blank lines around an instance or static initializer       | `1`: `static { }` is separated from its neighbours      |
 | `blank-lines.before-record-compact-constructor` | `1`     | Blank lines before a compact canonical constructor         | `1`: one blank line before `R {` inside `record R(...)` |
 | `blank-lines.after-enum-constants`              | `0`     | Blank lines between the constants and the body of an enum  | `1`: blank line after `A, B;`                           |
-| `blank-lines.before-first-enum-constant`        | `1`     | Blank lines between an enum's brace and its first constant | `1`: `enum E {`<br>``<br>`····A,`                       |
+| `blank-lines.before-first-enum-constant`        | `0`     | Blank lines between an enum's brace and its first constant | `1`: `enum E {`<br>``<br>`····A,`                       |
 | `blank-lines.between-switch-cases`              | `0`     | Blank lines between the cases of a switch                  | `1`: a blank line separates each `case`                 |
 
 ### `alignment`
@@ -423,7 +424,7 @@ ends a run and starts another.
 | `alignment.method-chains`           | `none`                 | Align the dots of a wrapped method chain          | `people.stream()`<br>`······.filter(f)`            |
 | `alignment.annotation-values`       | `none`                 | Align the values of an annotation's elements      | `@A(name···= "x",`<br>`···timeout = 1)`            |
 | `alignment.switch-arrows`           | `none`                 | Align the arrows of a switch's case labels        | `case A··-> 1;`<br>`case BB -> 2;`                 |
-| `alignment.ternary-branches`        | `align-when-multiline` | Align the branches of a wrapped conditional       | `x = cond`<br>`····?·a`<br>`····:·b;` under `cond` |
+| `alignment.ternary-branches`        | `none`                 | Align the branches of a wrapped conditional       | `x = cond`<br>`····?·a`<br>`····:·b;` under `cond` |
 | `alignment.trailing-comments`       | `none`                 | Align comments trailing consecutive lines         | trailing `//` comments share a start column        |
 
 An initializer is an assignment for the purposes of `alignment.consecutive-assignments`, so a run of
@@ -716,7 +717,7 @@ These are the rules that keep what the author wrote.
 | `preservation.keep-author-blank-lines`                | boolean | `true`  | Keep blank lines the author placed inside bodies         | `true`: a blank line splitting two statement groups survives |
 | `preservation.max-preserved-blank-lines`              | integer | `1`     | Most consecutive author blank lines kept                 | `1`: two author blank lines collapse to one                  |
 | `preservation.keep-line-break-after-open-paren`       | boolean | `false` | Keep a break the author put after an opening parenthesis | `true`: `f(`<br>`········a, b)` stays broken                 |
-| `preservation.keep-simple-blocks-inline`              | boolean | `true`  | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                   |
+| `preservation.keep-simple-blocks-inline`              | boolean | `false` | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                   |
 | `preservation.keep-array-initializer-layout`          | boolean | `true`  | Keep the row layout of a hand-arranged array initializer | `true`: a matrix written as one row per line stays that way  |
 | `preservation.respect-existing-chain-breaks`          | boolean | `true`  | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken                |
 | `preservation.never-join-lines`                       | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |

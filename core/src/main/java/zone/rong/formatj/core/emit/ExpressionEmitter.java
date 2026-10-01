@@ -2,6 +2,7 @@ package zone.rong.formatj.core.emit;
 
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AlignmentRules;
+import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
@@ -501,6 +502,10 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (policy == WrapPolicy.NEVER || !prefersItsOwnLine(valueNode)) {
             return Doc.concat(spaceIf(spaced), value);
         }
+        if (policy != WrapPolicy.CHOP_DOWN_ALWAYS
+                && rule(WrappingRules.ASSIGNMENT_BREAK) == AssignmentBreak.INSIDE_VALUE) {
+            return Doc.fluid(continuation(), spaced, value);
+        }
         Doc broken = Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), value));
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(broken) : Doc.group(broken);
     }
@@ -590,10 +595,12 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         WrapPolicy policy = rule(WrappingRules.INSTANCEOF);
         if (policy == WrapPolicy.PRESERVE) {
-            policy =
-                    keepsOnOneLine(node, PatternRules.KEEP_SIMPLE_PATTERN_INLINE)
-                    ? WrapPolicy.NEVER
-                    : WrapPolicy.WRAP_IF_LONG;
+            // Only a break around the operator unties the pattern. One inside the tested expression
+            // says nothing about it, and may be the formatter's own.
+            boolean tied = rule(PatternRules.KEEP_SIMPLE_PATTERN_INLINE)
+                    && !authorBrokeBefore(children.get(1))
+                    && !authorBrokeBefore(children.get(2));
+            policy = tied ? WrapPolicy.NEVER : WrapPolicy.WRAP_IF_LONG;
         }
         return emitOperatorSeparated(
                 node,
@@ -671,10 +678,19 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     protected Doc emitArguments(GreenNode node) {
         List<GreenNode> children = node.children();
-        if (children.size() == 3 && hugsItsArgument(children.get(1))) {
+        if (children.size() == 3
+                && (hugsItsArgument(children.get(1)) || children.get(1).kind() == SyntaxKind.LAMBDA_EXPRESSION)) {
             // A lone lambda or anonymous class brings its own line structure: wrapping the argument
             // list around it would indent the body twice and buy nothing.
             return Doc.concat(emit(children.getFirst()), emit(children.get(1)), emit(children.getLast()));
+        }
+        if (children.size() == 3 && rule(WrappingRules.HUG_SOLE_ARGUMENT) && breaksInside(children.get(1))) {
+            // A lone call stays on the parenthesis' line while its own first line fits, and wraps its
+            // own arguments. Wrapping around it would spend a line and an indent on one name.
+            return Doc.concat(
+                    emit(children.getFirst()),
+                    Doc.fluid(continuation(), false, emit(children.get(1))),
+                    emit(children.getLast()));
         }
         // The same argument, with others in front of it, is the same argument: the lines its body
         // brings are not the list overflowing, so the list is judged by the line it actually prints.
@@ -701,9 +717,19 @@ abstract class ExpressionEmitter extends EmitSupport {
         return null;
     }
 
+    /** Whether an argument is a plain call or creation with arguments of its own to wrap. */
+    private static boolean breaksInside(GreenNode argument) {
+        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && chainLength(argument) < 2
+                || argument.kind() == SyntaxKind.OBJECT_CREATION;
+        GreenNode last = argument.children().getLast();
+        return call && last.kind() == SyntaxKind.ARGUMENTS && last.children().size() > 2;
+    }
+
     private static boolean hugsItsArgument(GreenNode argument) {
         return switch (argument.kind()) {
-            case LAMBDA_EXPRESSION, ARRAY_INITIALIZER, SWITCH_EXPRESSION -> true;
+            // An expression lambda has no lines of its own to bring; it wraps like any other argument.
+            case LAMBDA_EXPRESSION -> argument.children().getLast().kind() == SyntaxKind.BLOCK;
+            case ARRAY_INITIALIZER, SWITCH_EXPRESSION -> true;
             case OBJECT_CREATION ->
                     argument.children()
                             .stream()
@@ -797,7 +823,10 @@ abstract class ExpressionEmitter extends EmitSupport {
                     baseDoc,
                     alignDots ? Doc.align(tails) : Doc.indent(rule(IndentRules.CHAINED_CALL), tails));
         }
-        if (policy == ChainPolicy.NEVER_BREAK || links.size() < threshold && !forceBreak) {
+        // Only calls count towards the threshold: a qualified name such as Outer.Inner.CONSTANT is one
+        // thing however many dots it has.
+        long calls = links.stream().filter(link -> link.kind() == SyntaxKind.METHOD_INVOCATION).count();
+        if (policy == ChainPolicy.NEVER_BREAK || calls < threshold && !forceBreak) {
             return Doc.concat(baseDoc, attached, Doc.concat(linkDocs));
         }
 

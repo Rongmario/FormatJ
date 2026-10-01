@@ -456,6 +456,16 @@ public final class DocEmitter extends StatementEmitter {
         if (previous.kind() == SyntaxKind.INITIALIZER_BLOCK || next.kind() == SyntaxKind.INITIALIZER_BLOCK) {
             return rule(BlankLineRules.AROUND_INITIALIZER_BLOCK);
         }
+        int afterMethod =
+                switch (previous.kind()) {
+                    case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION ->
+                            rule(BlankLineRules.BEFORE_METHOD);
+                    default -> 0;
+                };
+        return Math.max(afterMethod, betweenMembers(next));
+    }
+
+    private int betweenMembers(GreenNode next) {
         return switch (next.kind()) {
             case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION ->
                     rule(BlankLineRules.BEFORE_METHOD);

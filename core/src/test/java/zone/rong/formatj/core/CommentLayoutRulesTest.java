@@ -235,12 +235,11 @@ class CommentLayoutRulesTest {
         String source = """
                 class A {
 
-                    private static final int[] C =
-                            new int[] {
-                                0xFFAA00, // Orange
-                                0xFFFF55, // Yellow
-                                0x55FFFF, // Cyan
-                            };
+                    private static final int[] C = new int[] {
+                        0xFFAA00, // Orange
+                        0xFFFF55, // Yellow
+                        0x55FFFF, // Cyan
+                    };
 
                 }
                 """;

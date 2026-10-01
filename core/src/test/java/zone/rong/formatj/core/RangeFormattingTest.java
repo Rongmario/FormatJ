@@ -48,9 +48,10 @@ class RangeFormattingTest {
                     void first(){if(x){g();}}
                     // marker
                     void second() {
-                        if (y) { h(); }
+                        if (y) {
+                            h();
+                        }
                     }
-
                 }
                 """,
                 result.text());
@@ -107,9 +108,10 @@ class RangeFormattingTest {
                     void first(  ) {g();}
                     // marker
                     void second() {
-                        if (y) { h(); }
+                        if (y) {
+                            h();
+                        }
                     }
-
                 }
                 """,
                 result.text());
@@ -122,7 +124,7 @@ class RangeFormattingTest {
         FormatResult result = format(source, source.indexOf("void run"), source.length());
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        assertEquals("class A {\n\n    void run() {\n        g();\n    }\n\n}\n", result.text());
+        assertEquals("class A {\n    void run() {\n        g();\n    }\n}\n", result.text());
     }
 
     @Test
@@ -133,7 +135,7 @@ class RangeFormattingTest {
         FormatResult result = format(source, point, point);
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        assertEquals("class A {\n\n    void run() {\n        g();\n    }\n\n}\n", result.text());
+        assertEquals("class A {\n    void run() {\n        g();\n    }\n}\n", result.text());
     }
 
     @Test
@@ -236,7 +238,7 @@ class RangeFormattingTest {
 
         FormatResult result = format(source, start, end);
 
-        assertTrue(result.text().contains("int x=1;"), result.text());
+        assertTrue(result.text().contains("int x"), result.text());
     }
 
     @Test

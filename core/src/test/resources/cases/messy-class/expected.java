@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 public class Messy {
-
     private final List<String> items;
     private static final int LIMIT = 10;
 
@@ -14,12 +13,13 @@ public class Messy {
 
     public int total() {
         int sum = 0;
-        for (String item : items) { sum += item.length(); }
+        for (String item : items) {
+            sum += item.length();
+        }
         return sum;
     }
 
     public boolean isBig() {
         return total() > LIMIT && !items.isEmpty();
     }
-
 }

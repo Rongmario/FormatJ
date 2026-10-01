@@ -96,6 +96,13 @@ public sealed interface Doc {
      */
     record LineIndent(int columns, Doc content) implements Doc { }
 
+    /**
+     * A break in front of {@code content} that is taken only when the content's first line would not
+     * fit after it. Taken, the content is indented by {@code columns}; left, the content stays on the
+     * line and breaks inside itself.
+     */
+    record Fluid(int columns, Break separator, Doc content) implements Doc { }
+
     /** Fills as many parts onto each line as fit, breaking between them as needed. */
     record Fill(List<Doc> parts) implements Doc { }
 
@@ -190,6 +197,11 @@ public sealed interface Doc {
 
     static Doc fill(List<Doc> parts) {
         return new Fill(List.copyOf(parts));
+    }
+
+    /** A break taken only when what follows cannot start on this line; see {@link Fluid}. */
+    static Doc fluid(int columns, boolean spaced, Doc content) {
+        return new Fluid(columns, new Break(spaced ? BreakKind.LINE : BreakKind.SOFT), content);
     }
 
     static Doc ifBreak(Doc broken, Doc flat) {

@@ -42,7 +42,7 @@ public final class AlignmentRules {
     public static final Option<AlignmentPolicy> TERNARY_BRANCHES =
             Option.ofEnum(
                     "alignment.ternary-branches",
-                    AlignmentPolicy.ALIGN_WHEN_MULTILINE,
+                    AlignmentPolicy.NONE,
                     "Align the branches of a wrapped conditional");
 
     public static final Option<AlignmentPolicy> TRAILING_COMMENTS =

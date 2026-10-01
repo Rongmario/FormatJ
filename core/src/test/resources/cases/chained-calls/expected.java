@@ -1,7 +1,6 @@
 package sample;
 
 class Chains {
-
     void run() {
         var names = people.stream()
                 .filter(person -> person.age() > 18)
@@ -13,5 +12,4 @@ class Chains {
                 .trim()
                 .toLowerCase();
     }
-
 }

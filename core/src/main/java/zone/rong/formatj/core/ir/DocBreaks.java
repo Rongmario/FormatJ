@@ -82,6 +82,12 @@ public final class DocBreaks {
                 Rewritten content = rewrite(indent.content());
                 yield new Rewritten(Doc.lineIndent(indent.columns(), content.doc()), content.forcesBreak());
             }
+            case Doc.Fluid fluid -> {
+                Rewritten content = rewrite(fluid.content());
+                yield new Rewritten(
+                        new Doc.Fluid(fluid.columns(), fluid.separator(), content.doc()),
+                        content.forcesBreak());
+            }
             case Doc.IfBreak ifBreak -> {
                 Rewritten broken = rewrite(ifBreak.broken());
                 Rewritten flat = rewrite(ifBreak.flat());

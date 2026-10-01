@@ -17,7 +17,7 @@ class Documented {
     }
 
     /** Left alone. */
-    void single() { }
+    void single() {}
 
     /**
      * Holds a sample.
@@ -26,6 +26,6 @@ class Documented {
      *     int x =   1;
      * </pre>
      */
-    void sample() { }
+    void sample() {}
 
 }

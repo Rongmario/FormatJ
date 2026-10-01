@@ -139,7 +139,9 @@ class AlignmentRulesTest {
         String source = "class A {\n\n    String f(boolean flag) {\n        return flag ? \"a very long string here\""
                 + " : \"another long string here\";\n    }\n\n}\n";
 
-        String aligned = format(source, style -> style.wrapping(w -> w.maxLineLength(60)));
+        String aligned =
+                format(source, style -> style.alignment(a -> a.ternaryBranches(AlignmentPolicy.ALIGN_WHEN_MULTILINE))
+                        .wrapping(w -> w.maxLineLength(60)));
         String plain =
                 format(source, style -> style.alignment(a -> a.ternaryBranches(AlignmentPolicy.NONE))
                         .wrapping(w -> w.maxLineLength(60)));

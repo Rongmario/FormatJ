@@ -1,7 +1,6 @@
 package sample;
 
 class Calls {
-
     void run() {
         register(
                 firstArgument,
@@ -9,8 +8,7 @@ class Calls {
                 thirdArgument,
                 fourthArgument,
                 fifthArgument,
-                sixthArgument
-        );
+                sixthArgument);
         register(shortOne, twoOfThem);
         var total = firstValue + secondValue + thirdValue + fourthValue
                 + fifthValue + sixthValue + seventhValue;
@@ -22,5 +20,4 @@ class Calls {
             run();
         }
     }
-
 }

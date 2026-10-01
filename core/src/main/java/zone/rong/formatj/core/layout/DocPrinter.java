@@ -160,6 +160,17 @@ public final class DocPrinter {
                             || mode == Mode.FLAT && !always;
                     commands.push(new Command(indent, flat ? Mode.FLAT : Mode.BREAK, group.content()));
                 }
+                case Doc.Fluid fluid -> {
+                    boolean spaced = fluid.separator().kind() == Doc.BreakKind.LINE;
+                    if (mode == Mode.FLAT
+                            || startFits(fluid.content(), maxWidth - column - (spaced ? 1 : 0), commands)) {
+                        commands.push(new Command(indent, mode, fluid.content()));
+                        commands.push(new Command(indent, Mode.FLAT, fluid.separator()));
+                    } else {
+                        commands.push(new Command(indent + fluid.columns(), Mode.BREAK, fluid.content()));
+                        commands.push(new Command(indent + fluid.columns(), Mode.BREAK, fluid.separator()));
+                    }
+                }
                 case Doc.Fill fill -> printFill(commands, fill.parts(), indent, mode, maxWidth - column);
                 case Doc.IfBreak ifBreak ->
                         commands.push(
@@ -215,10 +226,17 @@ public final class DocPrinter {
         if (parts.isEmpty()) {
             return;
         }
+        if (mode == Mode.FLAT) {
+            pushReversed(commands, parts, indent, mode);
+            return;
+        }
         Doc content = parts.getFirst();
         // A fill decides one line at a time. A hard break in what follows ends this line; it does not
         // make the words before it too wide, even when an enclosing first-line group is flat.
-        boolean contentFits = fits(content, remaining, commands, true);
+        // Content that spans lines does not fit either: what follows it starts a line of its own, whether
+        // the lines came from the margin or from breaks the content was always going to take.
+        boolean multiline = DocBreaks.forcesBreak(content);
+        boolean contentFits = !multiline && fits(content, remaining, commands, true);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -232,7 +250,9 @@ public final class DocPrinter {
         }
         List<Doc> rest = parts.subList(2, parts.size());
         Doc pair = Doc.concat(List.of(content, separator, parts.get(2)));
-        boolean pairFits = fits(pair, remaining, commands, true);
+        // The next part joins this line only if all of it fits. One that spans lines starts its own,
+        // as it would have before it was first broken.
+        boolean pairFits = !multiline && fits(pair, remaining, commands, false);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
@@ -266,11 +286,20 @@ public final class DocPrinter {
      *     question of whether the line up to that break fits, which is the one it is judged on.
      */
     private boolean fits(Doc doc, int remaining, Deque<Command> rest, boolean stopAtHardBreak) {
+        return fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak);
+    }
+
+    /** Whether {@code doc} fits up to the first place it could break. */
+    private boolean startFits(Doc doc, int remaining, Deque<Command> rest) {
+        return fits(doc, Mode.BREAK, remaining, rest, true);
+    }
+
+    private boolean fits(Doc doc, Mode start, int remaining, Deque<Command> rest, boolean stopAtHardBreak) {
         if (remaining < 0) {
             return false;
         }
         Deque<Command> queue = new ArrayDeque<>();
-        queue.push(new Command(0, Mode.FLAT, doc));
+        queue.push(new Command(0, start, doc));
         Iterator<Command> following = rest.iterator();
         int left = remaining;
         boolean lineEnded = false;
@@ -299,6 +328,14 @@ public final class DocPrinter {
                 }
                 case Doc.Concat concat -> pushReversed(queue, concat.parts(), 0, mode);
                 case Doc.Fill fill -> pushReversed(queue, fill.parts(), 0, mode);
+                case Doc.Fluid fluid -> {
+                    if (mode == Mode.BREAK) {
+                        // The line may end here, so everything measured so far did fit.
+                        return true;
+                    }
+                    queue.push(new Command(0, mode, fluid.content()));
+                    queue.push(new Command(0, mode, fluid.separator()));
+                }
                 case Doc.Group group ->
                         queue.push(
                                 new Command(

@@ -345,7 +345,7 @@ class ImportRewriteTest {
 
                 class T {
 
-                    void run() { }
+                    void run() {}
 
                 }
                 """;

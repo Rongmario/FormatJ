@@ -25,10 +25,10 @@ public final class BlankLineRules {
             Option.ofInt("blank-lines.before-field", 0, "Blank lines before a field declaration");
 
     public static final Option<Integer> AFTER_CLASS_OPENING_BRACE =
-            Option.ofInt("blank-lines.after-class-opening-brace", 1, "Blank lines just inside a type body");
+            Option.ofInt("blank-lines.after-class-opening-brace", 0, "Blank lines just inside a type body");
 
     public static final Option<Integer> BEFORE_CLASS_CLOSING_BRACE =
-            Option.ofInt("blank-lines.before-class-closing-brace", 1, "Blank lines just before a type body closes");
+            Option.ofInt("blank-lines.before-class-closing-brace", 0, "Blank lines just before a type body closes");
 
     public static final Option<Integer> AROUND_INITIALIZER_BLOCK =
             Option.ofInt(
@@ -51,7 +51,7 @@ public final class BlankLineRules {
     public static final Option<Integer> BEFORE_FIRST_ENUM_CONSTANT =
             Option.ofInt(
                     "blank-lines.before-first-enum-constant",
-                    1,
+                    0,
                     "Blank lines between an enum's brace and its first constant");
 
     public static final Option<Integer> BETWEEN_SWITCH_CASES =
