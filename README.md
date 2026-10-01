@@ -26,8 +26,12 @@ cat Foo.java | formatj --stdin --stdin-name Foo.java
 ```
 
 - `--style FILE`, `--preset formatj|google` and `--set key=value` (repeatable) override discovery.
-- `--include` / `--exclude` take globs.
+- `--include` / `--exclude` take globs, matched against paths relative to the working directory.
+- Hidden directories, `build/`, `target/` and `out/` are skipped when walking a directory. A file named explicitly is always formatted.
+- `--lines START:END` (1-based, inclusive, repeatable) formats only those lines. It needs `--stdin` or exactly one file.
 - Piped `stdin` writes the formatted source to stdout unless a mode flag is given.
+- Exit codes: 0 success, 1 files would change (`--check`, `--diff`), 2 error. Matching no Java files is an error.
+- `--stdin-name` also picks which `formatj.toml` applies, so give it the real path.
 
 ### Gradle Plugin
 
@@ -93,6 +97,8 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 - `mvn formatj:format` rewrites in place. Bound to `process-sources` when the execution above is present.
 - `mvn formatj:check` fails if anything would change. Bound to `verify`.
 - Skip with `-Dformatj.skip`. Point at a style file with `-Dformatj.styleFile=...`.
+- With no `<styleFile>` or `<preset>`, the nearest `formatj.toml` above the project directory is used.
+- `<includes>` / `<excludes>` are globs relative to each source root. Source roots under `target/` are skipped.
 - Without `<executions>`, the goals only run when invoked by name.
 
 ### IntelliJ Plugin (Experimental)
@@ -179,7 +185,9 @@ Fairly complex project aimed at fixing an existing issue and also testing out fr
 
 ## Configuration
 
-`formatj.toml` is discovered by walking up from each file.
+`formatj.toml` is discovered by walking up from each file, by the CLI, Gradle, Maven and IntelliJ alike.
+The nearest file wins and parent files are not merged.
+In Gradle and Maven it is used when neither a style file nor a preset is configured.
 A `preset` key chooses the starting point and every other key overrides one rule:
 
 ```toml
@@ -190,7 +198,13 @@ size = 4
 
 [wrapping]
 max-line-length = 120
+
+[files]
+include = ["src/**"]
+exclude = ["**/generated/**"]
 ```
+
+`[files]` globs are relative to the directory of the `formatj.toml`, and apply in every entry point on top of the CLI flags and plugin includes/excludes.
 
 ## Rules
 

@@ -2,6 +2,7 @@ package zone.rong.formatj.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -269,6 +270,30 @@ class CliRunnerTest {
         assertEquals(0, result.exitCode());
         List<String> expectedLines = expected.stream().map(file -> "formatted " + file).toList();
         assertEquals(expectedLines, result.out().lines().toList());
+    }
+
+    @Test
+    void linesFormatsOnlyTheGivenRange() {
+        String source = "class T {\n\n    void a() { int keep = 1; }\n\n    void b() { int x = 1; }\n\n}\n";
+
+        Run result = run(source, "--stdin", "--lines", "5:5");
+
+        assertEquals(0, result.exitCode(), result.err());
+        assertTrue(result.out().contains("void a() { int keep = 1; }"), result.out());
+        assertTrue(result.out().contains("void b() {\n"), result.out());
+    }
+
+    @Test
+    void linesNeedsOneFile(@TempDir Path root) throws IOException {
+        Files.writeString(root.resolve("A.java"), SOURCE);
+        Files.writeString(root.resolve("B.java"), SOURCE);
+
+        assertEquals(2, run("", "--lines", "1:2", root.toString()).exitCode());
+    }
+
+    @Test
+    void linesRejectsABadRange() {
+        assertThrows(CliOptions.CliException.class, () -> CliOptions.parse(new String[] {"--stdin", "--lines", "2:1"}));
     }
 
     @Test

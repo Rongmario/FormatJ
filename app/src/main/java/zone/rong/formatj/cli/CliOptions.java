@@ -30,7 +30,8 @@ public record CliOptions(
         boolean readStdin,
         String stdinName,
         int parallelism,
-        boolean verbose) {
+        boolean verbose,
+        List<int[]> lines) {
 
     /** What the CLI was asked to do. */
     public enum Mode {
@@ -80,6 +81,7 @@ public record CliOptions(
         String stdinName = "<stdin>";
         int parallelism = Runtime.getRuntime().availableProcessors();
         boolean verbose = false;
+        List<int[]> lines = new ArrayList<>();
 
         for (int i = 0; i < arguments.length; i++) {
             String argument = arguments[i];
@@ -129,6 +131,7 @@ public record CliOptions(
                 }
                 case "-j", "--jobs" -> parallelism = Math.max(1, intValue(arguments, ++i, "--jobs"));
                 case "--verbose", "-v" -> verbose = true;
+                case "--lines" -> lines.add(lineRange(value(arguments, ++i, "--lines")));
                 default -> {
                     if (argument.startsWith("-") && argument.length() > 1) {
                         throw new CliException("Unknown option '" + argument + "'. Try --help.");
@@ -153,10 +156,14 @@ public record CliOptions(
                     false,
                     stdinName,
                     parallelism,
-                    verbose);
+                    verbose,
+                    List.of());
         }
         if (paths.isEmpty() && !readStdin) {
             throw new CliException("Nothing to format. Pass one or more paths, or --stdin. Try --help.");
+        }
+        if (!lines.isEmpty() && !readStdin && paths.size() != 1) {
+            throw new CliException("--lines needs --stdin or exactly one file.");
         }
         if (readStdin && !modeGiven) {
             // Formatting a stream and printing the result is the only sensible default for a pipe.
@@ -176,7 +183,8 @@ public record CliOptions(
                 readStdin,
                 stdinName,
                 parallelism,
-                verbose);
+                verbose,
+                List.copyOf(lines));
     }
 
     private static CliOptions helpOptions(Mode mode) {
@@ -194,7 +202,8 @@ public record CliOptions(
                 false,
                 "<stdin>",
                 1,
-                false);
+                false,
+                List.of());
     }
 
     private static String value(String[] arguments, int index, String option) {
@@ -202,6 +211,20 @@ public record CliOptions(
             throw new CliException(option + " expects a value");
         }
         return arguments[index];
+    }
+
+    private static int[] lineRange(String raw) {
+        String[] parts = raw.split(":", -1);
+        try {
+            int start = Integer.parseInt(parts[0]);
+            int end = Integer.parseInt(parts[1]);
+            if (parts.length == 2 && start >= 1 && end >= start) {
+                return new int[] {start, end};
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
+            // falls through to the error below
+        }
+        throw new CliException("--lines expects START:END with 1 <= START <= END, got '" + raw + "'");
     }
 
     private static int intValue(String[] arguments, int index, String option) {
@@ -221,6 +244,7 @@ public record CliOptions(
                 USAGE
                   formatj [options] <path>...
                   formatj --stdin [--stdin-name Foo.java] [options]
+                  formatj --lines START:END [options] <file>
 
                 MODES
                   -c, --check           report files that would change, exit 1 if any would (default)
@@ -242,6 +266,8 @@ public record CliOptions(
                       --include GLOB    only format paths matching this glob, repeatable
                       --exclude GLOB    skip paths matching this glob, repeatable
                       --stdin           read source from standard input, write to standard output
+                      --lines START:END format only these lines (1-based, inclusive), repeatable;
+                                        needs --stdin or exactly one file
                       --stdin-name NAME name used for diagnostics when reading standard input
 
                 OTHER

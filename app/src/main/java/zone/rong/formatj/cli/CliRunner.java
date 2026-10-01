@@ -4,6 +4,7 @@ import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.SourceRange;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
@@ -82,7 +83,7 @@ final class CliRunner {
             err.println("formatj: cannot read standard input: " + e.getMessage());
             return ERROR;
         }
-        FormatResult result = formatter(style).format(FormatRequest.of(source).withName(options.stdinName()));
+        FormatResult result = formatter(style).format(request(source, options.stdinName()));
         reportDiagnostics(options.stdinName(), result);
         if (result.hasErrors()) {
             return ERROR;
@@ -115,6 +116,10 @@ final class CliRunner {
         }
         if (files.isEmpty()) {
             err.println("formatj: no Java sources matched");
+            return ERROR;
+        }
+        if (!options.lines().isEmpty() && files.size() != 1) {
+            err.println("formatj: --lines needs exactly one file");
             return ERROR;
         }
 
@@ -171,7 +176,7 @@ final class CliRunner {
             return new FileOutput(out.toString(), err.toString());
         }
 
-        FormatResult result = formatter(style).format(FormatRequest.of(source).withName(file.toString()));
+        FormatResult result = formatter(style).format(request(source, file.toString()));
         appendDiagnostics(err, file.toString(), result);
         if (result.hasErrors()) {
             failed.incrementAndGet();
@@ -199,6 +204,26 @@ final class CliRunner {
             default -> out.append(file).append('\n');
         }
         return new FileOutput(out.toString(), err.toString());
+    }
+
+    private FormatRequest request(String source, String name) {
+        FormatRequest request = FormatRequest.of(source).withName(name);
+        if (options.lines().isEmpty()) {
+            return request;
+        }
+        List<Integer> starts = new ArrayList<>(List.of(0));
+        for (int i = 0; i < source.length(); i++) {
+            if (source.charAt(i) == '\n') {
+                starts.add(i + 1);
+            }
+        }
+        List<SourceRange> ranges = new ArrayList<>();
+        for (int[] range : options.lines()) {
+            int from = Math.min(range[0] - 1, starts.size() - 1);
+            int to = range[1] < starts.size() ? starts.get(range[1]) : source.length();
+            ranges.add(new SourceRange(starts.get(from), Math.max(to, starts.get(from))));
+        }
+        return request.withRanges(ranges);
     }
 
     private void reportDiagnostics(String name, FormatResult result) {
