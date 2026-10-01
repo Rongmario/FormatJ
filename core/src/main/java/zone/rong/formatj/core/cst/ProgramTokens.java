@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public final class ProgramTokens {
 
-    private ProgramTokens() { }
+    private ProgramTokens() {}
 
     /** The program-carrying leaves of a tree, in source order. */
     public static List<GreenNode.Leaf> leaves(GreenNode node) {

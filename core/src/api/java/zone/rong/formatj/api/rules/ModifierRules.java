@@ -23,10 +23,12 @@ import zone.rong.formatj.api.StyleBuilder;
  */
 public final class ModifierRules {
 
-    public static final Option<ModifierOrder> ORDER =
-            Option.ofEnum("modifiers.order", ModifierOrder.PRESERVE, "Ordering of declaration modifiers");
+    public static final Option<ModifierOrder> ORDER = Option.ofEnum(
+            "modifiers.order",
+            ModifierOrder.PRESERVE,
+            "Ordering of declaration modifiers");
 
-    private ModifierRules() { }
+    private ModifierRules() {}
 
     /** Fluent view of the {@code modifiers.*} rules. */
     public static final class Builder {

@@ -19,11 +19,30 @@ import java.util.Set;
  */
 abstract class ExpressionParser extends ParserBase {
 
-    protected static final Set<String> PRIMITIVE_TYPES =
-            Set.of("boolean", "byte", "char", "short", "int", "long", "float", "double", "void");
+    protected static final Set<String> PRIMITIVE_TYPES = Set.of(
+            "boolean",
+            "byte",
+            "char",
+            "short",
+            "int",
+            "long",
+            "float",
+            "double",
+            "void");
 
-    private static final Set<String> ASSIGNMENT_OPERATORS =
-            Set.of("=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", ">>>=");
+    private static final Set<String> ASSIGNMENT_OPERATORS = Set.of(
+            "=",
+            "+=",
+            "-=",
+            "*=",
+            "/=",
+            "%=",
+            "&=",
+            "|=",
+            "^=",
+            "<<=",
+            ">>=",
+            ">>>=");
 
     protected static final Set<String> LITERAL_KEYWORDS = Set.of("true", "false", "null");
 

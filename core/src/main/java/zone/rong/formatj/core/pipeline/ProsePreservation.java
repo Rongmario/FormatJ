@@ -50,7 +50,7 @@ public final class ProsePreservation {
 
     private static final String STRUCTURE = "\u0000documentation-structure:";
 
-    private ProsePreservation() { }
+    private ProsePreservation() {}
 
     /**
      * Verifies that the formatted output says what the tree it came from said.

@@ -30,18 +30,17 @@ class CliRunnerTest {
             }
             """;
 
-    private record Run(int exitCode, String out, String err) { }
+    private record Run(int exitCode, String out, String err) {}
 
     private static Run run(String stdin, String... arguments) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8));
-        int exitCode =
-                new CliRunner(
-                        CliOptions.parse(arguments),
-                        new PrintStream(out, true, StandardCharsets.UTF_8),
-                        new PrintStream(err, true, StandardCharsets.UTF_8),
-                        in).run();
+        int exitCode = new CliRunner(
+                CliOptions.parse(arguments),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8),
+                in).run();
         return new Run(exitCode, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 
@@ -61,16 +60,15 @@ class CliRunnerTest {
 
     @Test
     void dumpConfigHonoursThePresetAndOverrides() {
-        Run result =
-                run(
-                        "",
-                        "--dump-config",
-                        "--preset",
-                        "google",
-                        "--set",
-                        "indent.size=3",
-                        "--set",
-                        "modifiers.order=canonical");
+        Run result = run(
+                "",
+                "--dump-config",
+                "--preset",
+                "google",
+                "--set",
+                "indent.size=3",
+                "--set",
+                "modifiers.order=canonical");
 
         assertTrue(result.out().contains("size = 3"), result.out());
         assertTrue(result.out().contains("max-line-length = 100"), result.out());
@@ -100,12 +98,11 @@ class CliRunnerTest {
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream(new byte[] {'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF});
 
-        int exitCode =
-                new CliRunner(
-                        CliOptions.parse(new String[] {"--stdin"}),
-                        new PrintStream(out, true, StandardCharsets.UTF_8),
-                        new PrintStream(err, true, StandardCharsets.UTF_8),
-                        in).run();
+        int exitCode = new CliRunner(
+                CliOptions.parse(new String[] {"--stdin"}),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8),
+                in).run();
 
         assertEquals(2, exitCode);
         assertEquals(0, out.size());
@@ -131,12 +128,11 @@ class CliRunnerTest {
         Path nested = Files.createDirectories(root.resolve("module/src/main/java"));
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 2\n");
 
-        Run result =
-                run(
-                        "class A {\n    void run() {}\n}\n",
-                        "--diff",
-                        "--stdin-name",
-                        nested.resolve("A.java").toString());
+        Run result = run(
+                "class A {\n    void run() {}\n}\n",
+                "--diff",
+                "--stdin-name",
+                nested.resolve("A.java").toString());
 
         assertEquals(1, result.exitCode());
         assertTrue(result.out().contains("+  void run()"), result.out());

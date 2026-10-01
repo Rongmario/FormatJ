@@ -72,16 +72,15 @@ abstract class EmitSupport {
      * something, and padding only exists once a line has been broken.
      */
     protected Doc alignmentMark(AlignmentSite site) {
-        Option<AlignmentPolicy> option =
-                switch (site) {
-                    case FIELD_NAME -> AlignmentRules.CONSECUTIVE_FIELDS;
-                    case VARIABLE_NAME -> AlignmentRules.CONSECUTIVE_VARIABLES;
-                    case ASSIGNMENT -> AlignmentRules.CONSECUTIVE_ASSIGNMENTS;
-                    case ANNOTATION_VALUE -> AlignmentRules.ANNOTATION_VALUES;
-                    case SWITCH_ARROW -> AlignmentRules.SWITCH_ARROWS;
-                    case TRAILING_COMMENT -> AlignmentRules.TRAILING_COMMENTS;
-                    case TRAILING_COMMENT_COLUMN -> null;
-                };
+        Option<AlignmentPolicy> option = switch (site) {
+            case FIELD_NAME -> AlignmentRules.CONSECUTIVE_FIELDS;
+            case VARIABLE_NAME -> AlignmentRules.CONSECUTIVE_VARIABLES;
+            case ASSIGNMENT -> AlignmentRules.CONSECUTIVE_ASSIGNMENTS;
+            case ANNOTATION_VALUE -> AlignmentRules.ANNOTATION_VALUES;
+            case SWITCH_ARROW -> AlignmentRules.SWITCH_ARROWS;
+            case TRAILING_COMMENT -> AlignmentRules.TRAILING_COMMENTS;
+            case TRAILING_COMMENT_COLUMN -> null;
+        };
         if (option == null) {
             return Doc.EMPTY;
         }
@@ -255,8 +254,7 @@ abstract class EmitSupport {
             // Only the first comment of a line has a column of its own to share with its neighbours,
             // or to pad out to comments.trailing-comment-column. Marks sit at the start of the comment
             // so that column is the column the comment actually starts at.
-            Doc columnMark =
-                    first && rule(CommentRules.TRAILING_COMMENT_COLUMN) > 0
+            Doc columnMark = first && rule(CommentRules.TRAILING_COMMENT_COLUMN) > 0
                     ? Doc.mark(AlignmentSite.TRAILING_COMMENT_COLUMN)
                     : Doc.EMPTY;
             Doc alignMark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
@@ -264,9 +262,12 @@ abstract class EmitSupport {
             // A trailing comment ends its line, which the printer reads from the break it forces. A
             // block comment the author followed with code on the same line leads that code instead.
             Doc end = Doc.breakParent();
-            parts.add(
-                    Doc.lineSuffix(
-                            Doc.concat(trailingSpacing(), columnMark, alignMark, comments.trailing(comment), end)));
+            parts.add(Doc.lineSuffix(Doc.concat(
+                    trailingSpacing(),
+                    columnMark,
+                    alignMark,
+                    comments.trailing(comment),
+                    end)));
         }
         return Doc.concat(parts);
     }
@@ -324,7 +325,7 @@ abstract class EmitSupport {
     }
 
     /** A node paired with the leading trivia lifted out of its first token. */
-    protected record HoistedLeading(Doc leading, GreenNode node) { }
+    protected record HoistedLeading(Doc leading, GreenNode node) {}
 
     /** Copies the path to the first token and removes that token's leading trivia. */
     private static GreenNode withoutLeadingTrivia(GreenNode node) {
@@ -385,10 +386,9 @@ abstract class EmitSupport {
                     parts.add(Doc.freshLine());
                 }
                 parts.add(placedOwnLine(run, leading, i));
-                int cap =
-                        Math.min(
-                                rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
-                                rule(BlankLineRules.MAX_CONSECUTIVE));
+                int cap = Math.min(
+                        rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
+                        rule(BlankLineRules.MAX_CONSECUTIVE));
                 parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
             }
             i = last;

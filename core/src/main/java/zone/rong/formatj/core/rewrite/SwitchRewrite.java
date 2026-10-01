@@ -118,10 +118,18 @@ public final class SwitchRewrite implements Rewrite {
             return body;
         }
         String reason = "braces added around an arrow case body";
-        context.record(
-                TokenEdit.insert(SwitchRules.ARROW_CASE_BRACES, reason, start, TokenEdit.Bias.OUTERMOST_FIRST, "{"));
-        context.record(
-                TokenEdit.insert(SwitchRules.ARROW_CASE_BRACES, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
+        context.record(TokenEdit.insert(
+                SwitchRules.ARROW_CASE_BRACES,
+                reason,
+                start,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"));
+        context.record(TokenEdit.insert(
+                SwitchRules.ARROW_CASE_BRACES,
+                reason,
+                end,
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "}"));
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), body, Synthetic.separator("}")));
     }
 
@@ -193,14 +201,13 @@ public final class SwitchRewrite implements Rewrite {
         }
 
         String reason = "a lone yield written as an expression body";
-        context.record(
-                new TokenEdit(
-                        SwitchRules.YIELD_STYLE,
-                        reason,
-                        openPosition,
-                        List.of("{", "yield"),
-                        List.of(),
-                        TokenEdit.Bias.INNERMOST_FIRST));
+        context.record(new TokenEdit(
+                SwitchRules.YIELD_STYLE,
+                reason,
+                openPosition,
+                List.of("{", "yield"),
+                List.of(),
+                TokenEdit.Bias.INNERMOST_FIRST));
         context.record(TokenEdit.delete(SwitchRules.YIELD_STYLE, reason, closePosition, "}"));
         return GreenNode.branch(SyntaxKind.EXPRESSION_STATEMENT, List.of(expression, semicolon));
     }
@@ -217,23 +224,18 @@ public final class SwitchRewrite implements Rewrite {
         }
 
         String reason = "an expression body written as a block with a yield";
-        context.record(
-                new TokenEdit(
-                        SwitchRules.YIELD_STYLE,
-                        reason,
-                        start,
-                        List.of(),
-                        List.of("{", "yield"),
-                        TokenEdit.Bias.OUTERMOST_FIRST));
+        context.record(new TokenEdit(
+                SwitchRules.YIELD_STYLE,
+                reason,
+                start,
+                List.of(),
+                List.of("{", "yield"),
+                TokenEdit.Bias.OUTERMOST_FIRST));
         context.record(TokenEdit.insert(SwitchRules.YIELD_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
 
-        GreenNode yield =
-                GreenNode.branch(
-                        SyntaxKind.YIELD_STATEMENT,
-                        List.of(
-                                Synthetic.contextualKeyword("yield"),
-                                body.children().getFirst(),
-                                body.children().getLast()));
+        GreenNode yield = GreenNode.branch(
+                SyntaxKind.YIELD_STATEMENT,
+                List.of(Synthetic.contextualKeyword("yield"), body.children().getFirst(), body.children().getLast()));
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), yield, Synthetic.separator("}")));
     }
 

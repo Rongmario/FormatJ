@@ -29,15 +29,14 @@ public final class FormatJImportOptimizer implements ImportOptimizer {
         String original = document.getText();
         FormatJEngine.Outcome outcome = FormatJSettings.getInstance(project)
                 .engine()
-                .format(
-                        new FormatJEngine.Request(
-                                original,
-                                file.getName(),
-                                FormatJFiles.path(file),
-                                List.of(),
-                                FormatJFiles.languageLevel(file),
-                                FormatJFiles.previewFeatures(file),
-                                true));
+                .format(new FormatJEngine.Request(
+                        original,
+                        file.getName(),
+                        FormatJFiles.path(file),
+                        List.of(),
+                        FormatJFiles.languageLevel(file),
+                        FormatJFiles.previewFeatures(file),
+                        true));
         if (outcome.hasErrors() || outcome.unchanged()) {
             return EmptyAction.INSTANCE;
         }
@@ -58,7 +57,7 @@ public final class FormatJImportOptimizer implements ImportOptimizer {
         INSTANCE;
 
         @Override
-        public void run() { }
+        public void run() {}
 
     }
 

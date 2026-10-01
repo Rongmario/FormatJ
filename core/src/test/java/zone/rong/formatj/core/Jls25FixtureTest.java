@@ -58,13 +58,14 @@ class Jls25FixtureTest {
         try (Stream<Path> entries = Files.list(FIXTURES)) {
             List<Path> fixtures = entries.sorted().toList();
             assertTrue(!fixtures.isEmpty(), "no fixtures found under " + FIXTURES);
-            return fixtures.stream().map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
-                if (Files.isDirectory(path)) {
-                    testDirectoryFixture(compiler, path);
-                } else {
-                    testSingleFileFixture(compiler, path);
-                }
-            }));
+            return fixtures.stream()
+                    .map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
+                        if (Files.isDirectory(path)) {
+                            testDirectoryFixture(compiler, path);
+                        } else {
+                            testSingleFileFixture(compiler, path);
+                        }
+                    }));
         }
     }
 

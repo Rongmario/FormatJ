@@ -26,13 +26,12 @@ class ImportRewriteTest {
 
     /** The import declarations of a formatted file, in order, blank lines shown as an empty string. */
     private static List<String> importsOf(String formatted) {
-        List<String> lines =
-                new ArrayList<>(
-                        formatted.lines()
-                                .dropWhile(line -> !line.startsWith("import"))
-                                .takeWhile(line -> line.isBlank() || line.startsWith("import"))
-                                .map(String::strip)
-                                .toList());
+        List<String> lines = new ArrayList<>(
+                formatted.lines()
+                        .dropWhile(line -> !line.startsWith("import"))
+                        .takeWhile(line -> line.isBlank() || line.startsWith("import"))
+                        .map(String::strip)
+                        .toList());
         while (!lines.isEmpty() && lines.getLast().isBlank()) {
             lines.removeLast();
         }
@@ -106,12 +105,9 @@ class ImportRewriteTest {
     void staticImportsCanLeadInstead() {
         assertEquals(
                 "import static org.junit.Assertions.assertTrue;",
-                importsOf(
-                        format(
-                                MIXED,
-                                style -> style.set(
-                                        ImportRules.STATIC_PLACEMENT,
-                                        StaticImportPlacement.FIRST))).getFirst());
+                importsOf(format(
+                        MIXED,
+                        style -> style.set(ImportRules.STATIC_PLACEMENT, StaticImportPlacement.FIRST))).getFirst());
     }
 
     @Test
@@ -148,10 +144,9 @@ class ImportRewriteTest {
                         "import javax.annotation.Nullable;",
                         "",
                         "import static org.junit.Assertions.assertTrue;"),
-                importsOf(
-                        format(
-                                MIXED,
-                                style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("*"))))));
+                importsOf(format(
+                        MIXED,
+                        style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("*"))))));
     }
 
     @Test
@@ -165,12 +160,11 @@ class ImportRewriteTest {
                         "import javax.annotation.Nullable;",
                         "",
                         "import static org.junit.Assertions.assertTrue;"),
-                importsOf(
-                        format(
-                                MIXED,
-                                style -> style.set(
-                                        ImportRules.GROUPS,
-                                        List.of(List.of("zone.rong"), List.of("java", "javax"))))));
+                importsOf(format(
+                        MIXED,
+                        style -> style.set(
+                                ImportRules.GROUPS,
+                                List.of(List.of("zone.rong"), List.of("java", "javax"))))));
     }
 
     @Test
@@ -184,12 +178,11 @@ class ImportRewriteTest {
                         "import zone.rong.Thing;",
                         "",
                         "import static org.junit.Assertions.assertTrue;"),
-                importsOf(
-                        format(
-                                MIXED,
-                                style -> style.set(
-                                        ImportRules.GROUPS,
-                                        List.of(List.of("java.util"), List.of("*", "zone.rong"))))));
+                importsOf(format(
+                        MIXED,
+                        style -> style.set(
+                                ImportRules.GROUPS,
+                                List.of(List.of("java.util"), List.of("*", "zone.rong"))))));
     }
 
     @Test

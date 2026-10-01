@@ -58,11 +58,10 @@ class MavenPluginFixtureTest {
         installArtifact(localRepo, "zone.rong.formatj", "formatj-maven-plugin", version, pluginJar, pluginPom(version));
 
         Path mavenHome = mavenHome();
-        Run mavenVersion =
-                runProcess(
-                        List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
-                        fixture,
-                        Duration.ofMinutes(1));
+        Run mavenVersion = runProcess(
+                List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
+                fixture,
+                Duration.ofMinutes(1));
         assertEquals(0, mavenVersion.exitCode, mavenVersion.out + mavenVersion.err);
         assertTrue(
                 mavenVersion.out.contains("Apache Maven " + MAVEN_VERSION),
@@ -112,11 +111,10 @@ class MavenPluginFixtureTest {
         if (!Files.isRegularFile(archive) || Files.size(archive) == 0) {
             download(URI.create(MAVEN_URL), archive);
         }
-        Run unpack =
-                runProcess(
-                        List.of("tar", "-xzf", archive.toString(), "-C", cache.toString()),
-                        cache,
-                        Duration.ofMinutes(2));
+        Run unpack = runProcess(
+                List.of("tar", "-xzf", archive.toString(), "-C", cache.toString()),
+                cache,
+                Duration.ofMinutes(2));
         if (unpack.exitCode != 0) {
             Files.deleteIfExists(archive);
             throw new IOException("failed to unpack Maven from " + archive + "\n" + unpack.out + unpack.err);
@@ -262,6 +260,6 @@ class MavenPluginFixtureTest {
         }
     }
 
-    private record Run(int exitCode, String out, String err) { }
+    private record Run(int exitCode, String out, String err) {}
 
 }

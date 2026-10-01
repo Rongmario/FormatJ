@@ -67,7 +67,7 @@ public final class ColumnAligner {
     }
 
     /** One run's worth of padding at one mark. */
-    private record Insertion(int offset, int spaces) { }
+    private record Insertion(int offset, int spaces) {}
 
     private List<Insertion> insertionsFor(String text, List<DocPrinter.Mark> marks, AlignmentSite site) {
         List<Position> positions = positions(text, marks, site);
@@ -128,7 +128,7 @@ public final class ColumnAligner {
      * @param column the visual column the mark sits at, with tabs expanded
      * @param indent the line's leading whitespace, which two lines must share to align with each other
      */
-    private record Position(int offset, int line, int column, String indent) { }
+    private record Position(int offset, int line, int column, String indent) {}
 
     /**
      * Where each mark for one site sits, at most one per line.
@@ -158,8 +158,11 @@ public final class ColumnAligner {
                 continue;
             }
             lastLine = line;
-            positions.add(
-                    new Position(mark.offset(), line, column(text, lineStart, mark.offset()), indent(text, lineStart)));
+            positions.add(new Position(
+                    mark.offset(),
+                    line,
+                    column(text, lineStart, mark.offset()),
+                    indent(text, lineStart)));
         }
         return positions;
     }

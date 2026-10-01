@@ -20,20 +20,19 @@ import java.util.Set;
  */
 public final class JavaParser extends StatementParser {
 
-    private static final Set<String> MODIFIER_KEYWORDS =
-            Set.of(
-                    "public",
-                    "protected",
-                    "private",
-                    "static",
-                    "final",
-                    "abstract",
-                    "native",
-                    "synchronized",
-                    "transient",
-                    "volatile",
-                    "strictfp",
-                    "default");
+    private static final Set<String> MODIFIER_KEYWORDS = Set.of(
+            "public",
+            "protected",
+            "private",
+            "static",
+            "final",
+            "abstract",
+            "native",
+            "synchronized",
+            "transient",
+            "volatile",
+            "strictfp",
+            "default");
 
     private JavaParser(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
         super(tokens, languageLevel, previewFeatures);

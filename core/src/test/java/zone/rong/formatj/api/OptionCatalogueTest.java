@@ -69,10 +69,9 @@ class OptionCatalogueTest {
     @Test
     void enumValuesFromAnotherGlossaryDoNotSatisfyARow() {
         String readme = readmeText();
-        String corrupted =
-                readme.replace(
-                        "| `wrapping.method-parameters`                     | `WrapPolicy`",
-                        "| `wrapping.method-parameters`                     | `BracePolicy`");
+        String corrupted = readme.replace(
+                "| `wrapping.method-parameters`                     | `WrapPolicy`",
+                "| `wrapping.method-parameters`                     | `BracePolicy`");
         assertFalse(corrupted.equals(readme), "fixture row was not replaced");
 
         List<String> problems = readmeProblems(corrupted);
@@ -168,7 +167,7 @@ class OptionCatalogueTest {
         }
     }
 
-    private record ReadmeRow(String key, String values, String defaultValue) { }
+    private record ReadmeRow(String key, String values, String defaultValue) {}
 
     private static List<ReadmeRow> readmeRows(String readme) {
         List<ReadmeRow> rows = new ArrayList<>();
@@ -317,8 +316,9 @@ class OptionCatalogueTest {
 
     @Test
     void unknownKeysAreRejectedWithAUsefulMessage() {
-        IllegalArgumentException failure =
-                assertThrows(IllegalArgumentException.class, () -> OptionRegistry.require("indent.siz"));
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> OptionRegistry.require("indent.siz"));
         assertTrue(failure.getMessage().contains("--dump-config"));
     }
 

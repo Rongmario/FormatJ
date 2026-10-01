@@ -38,30 +38,29 @@ public final class OptionRegistry {
     private static final Map<String, Option<?>> BY_KEY = new LinkedHashMap<>();
 
     /** A rule group: the dotted prefix its keys use, and the class that declares them. */
-    private record Group(String prefix, Class<?> type) { }
+    private record Group(String prefix, Class<?> type) {}
 
-    private static final List<Group> GROUPS =
-            List.of(
-                    new Group("file", FileRules.class),
-                    new Group("indent", IndentRules.class),
-                    new Group("wrapping", WrappingRules.class),
-                    new Group("braces", BraceRules.class),
-                    new Group("spacing", SpacingRules.class),
-                    new Group("blank-lines", BlankLineRules.class),
-                    new Group("alignment", AlignmentRules.class),
-                    new Group("annotations", AnnotationRules.class),
-                    new Group("imports", ImportRules.class),
-                    new Group("comments", CommentRules.class),
-                    new Group("javadoc", JavadocRules.class),
-                    new Group("module", ModuleRules.class),
-                    new Group("modifiers", ModifierRules.class),
-                    new Group("switch", SwitchRules.class),
-                    new Group("records", RecordRules.class),
-                    new Group("patterns", PatternRules.class),
-                    new Group("sealed", SealedRules.class),
-                    new Group("lambdas", LambdaRules.class),
-                    new Group("text-blocks", TextBlockRules.class),
-                    new Group("preservation", PreservationRules.class));
+    private static final List<Group> GROUPS = List.of(
+            new Group("file", FileRules.class),
+            new Group("indent", IndentRules.class),
+            new Group("wrapping", WrappingRules.class),
+            new Group("braces", BraceRules.class),
+            new Group("spacing", SpacingRules.class),
+            new Group("blank-lines", BlankLineRules.class),
+            new Group("alignment", AlignmentRules.class),
+            new Group("annotations", AnnotationRules.class),
+            new Group("imports", ImportRules.class),
+            new Group("comments", CommentRules.class),
+            new Group("javadoc", JavadocRules.class),
+            new Group("module", ModuleRules.class),
+            new Group("modifiers", ModifierRules.class),
+            new Group("switch", SwitchRules.class),
+            new Group("records", RecordRules.class),
+            new Group("patterns", PatternRules.class),
+            new Group("sealed", SealedRules.class),
+            new Group("lambdas", LambdaRules.class),
+            new Group("text-blocks", TextBlockRules.class),
+            new Group("preservation", PreservationRules.class));
 
     static {
         for (Group group : GROUPS) {
@@ -74,7 +73,7 @@ public final class OptionRegistry {
         }
     }
 
-    private OptionRegistry() { }
+    private OptionRegistry() {}
 
     static void register(Option<?> option) {
         Option<?> previous = BY_KEY.putIfAbsent(option.key(), option);
@@ -145,13 +144,14 @@ public final class OptionRegistry {
         Map<String, Option<?>> result = new LinkedHashMap<>(remaining.size());
         for (Group group : GROUPS) {
             String prefix = group.prefix() + ".";
-            remaining.values().removeIf(option -> {
-                if (!option.key().startsWith(prefix)) {
-                    return false;
-                }
-                result.put(option.key(), option);
-                return true;
-            });
+            remaining.values()
+                    .removeIf(option -> {
+                        if (!option.key().startsWith(prefix)) {
+                            return false;
+                        }
+                        result.put(option.key(), option);
+                        return true;
+                    });
         }
         result.putAll(remaining);
         return result;

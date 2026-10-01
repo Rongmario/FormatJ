@@ -71,13 +71,13 @@ public final class DocPrinter {
 
     }
 
-    private record Command(int indent, Mode mode, Doc doc) { }
+    private record Command(int indent, Mode mode, Doc doc) {}
 
     /** Where one {@link Doc.Mark} ended up in the printed text. */
-    public record Mark(int offset, AlignmentSite site) { }
+    public record Mark(int offset, AlignmentSite site) {}
 
     /** Printed text, and where the marks in it landed. */
-    public record Printed(String text, List<Mark> marks) { }
+    public record Printed(String text, List<Mark> marks) {}
 
     /** The printed text, for callers with no alignment to apply. */
     public String print(Doc document) {
@@ -132,11 +132,10 @@ public final class DocPrinter {
                 case Doc.Concat concat -> pushReversed(commands, concat.parts(), indent, mode);
                 case Doc.Indent nested -> commands.push(new Command(indent + nested.columns(), mode, nested.content()));
                 case Doc.IndentIfBreak nested ->
-                        commands.push(
-                                new Command(
-                                        mode == Mode.BREAK ? indent + nested.columns() : indent,
-                                        mode,
-                                        nested.content()));
+                        commands.push(new Command(
+                                mode == Mode.BREAK ? indent + nested.columns() : indent,
+                                mode,
+                                nested.content()));
                 case Doc.Align align -> commands.push(new Command(column, mode, align.content()));
                 case Doc.LineIndent lineIndent -> {
                     if (lineIsAllWhitespace(out)) {
@@ -173,8 +172,10 @@ public final class DocPrinter {
                 }
                 case Doc.Fill fill -> printFill(commands, fill.parts(), indent, mode, maxWidth - column);
                 case Doc.IfBreak ifBreak ->
-                        commands.push(
-                                new Command(indent, mode, mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
+                        commands.push(new Command(
+                                indent,
+                                mode,
+                                mode == Mode.BREAK ? ifBreak.broken() : ifBreak.flat()));
                 case Doc.LineSuffix suffix -> lineSuffixes.add(suffix.content());
                 case Doc.Mark mark -> marks.add(new Mark(out.length(), mark.site()));
                 case Doc.BreakParent ignored -> {
@@ -337,11 +338,10 @@ public final class DocPrinter {
                     queue.push(new Command(0, mode, fluid.separator()));
                 }
                 case Doc.Group group ->
-                        queue.push(
-                                new Command(
-                                        0,
-                                        group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK : mode,
-                                        group.content()));
+                        queue.push(new Command(
+                                0,
+                                group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK : mode,
+                                group.content()));
                 case Doc.Indent indent -> queue.push(new Command(0, mode, indent.content()));
                 // Indentation has no width on the line being measured: it is spent after a break.
                 case Doc.IndentIfBreak indent -> queue.push(new Command(0, mode, indent.content()));
@@ -357,7 +357,8 @@ public final class DocPrinter {
                     // A mark has no width, so it can never be what pushes a line past the margin.
                 }
                 case Doc.Break lineBreak -> {
-                    if (mode == Mode.BREAK || lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT) {
+                    if (mode == Mode.BREAK
+                            || lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT) {
                         // The line ends here, so everything measured so far did fit.
                         return mode == Mode.BREAK || stopAtHardBreak;
                     }

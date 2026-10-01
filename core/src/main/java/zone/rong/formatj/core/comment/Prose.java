@@ -61,7 +61,7 @@ public final class Prose {
 
     }
 
-    private Prose() { }
+    private Prose() {}
 
     // ------------------------------------------------------------- content
 

@@ -160,7 +160,7 @@ final class CliRunner {
     }
 
     /** One file's output, buffered rather than printed directly so {@code -j} can print it in order. */
-    private record FileOutput(String out, String err) { }
+    private record FileOutput(String out, String err) {}
 
     private FileOutput processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
         StringBuilder out = new StringBuilder();

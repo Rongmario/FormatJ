@@ -105,8 +105,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
 
         Formatter formatter = formatter();
         // An explicit <encoding> wins; otherwise the style's own file.charset decides.
-        Charset charset =
-                encoding == null || encoding.isBlank()
+        Charset charset = encoding == null || encoding.isBlank()
                 ? FileRules.charset(formatter.style())
                 : Charset.forName(encoding);
         List<String> wouldChange = new ArrayList<>();
@@ -211,8 +210,9 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         // apply everywhere, unlike <includes>/<excludes> below which are relative to each source root.
         FileSelection tomlSelection = styleFileInUse().map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
         String buildDirectoryProperty = project.getBuild() == null ? null : project.getBuild().getDirectory();
-        Path buildDirectory =
-                buildDirectoryProperty == null ? null : Path.of(buildDirectoryProperty).toAbsolutePath().normalize();
+        Path buildDirectory = buildDirectoryProperty == null
+                ? null
+                : Path.of(buildDirectoryProperty).toAbsolutePath().normalize();
         List<Path> files = new ArrayList<>();
         for (String root : roots) {
             Path directory = Path.of(root);

@@ -25,13 +25,12 @@ import org.junit.jupiter.api.TestFactory;
 
 class ExternalCorpusInvariantTest {
 
-    private static final Set<String> EXPECTED_SAFE_FAILURES =
-            Set.of(
-                    "com/google/gson/internal/ConstructorConstructor.java",
-                    "com/google/gson/internal/bind/ArrayTypeAdapter.java",
-                    "com/google/gson/internal/bind/MapTypeAdapterFactory.java",
-                    "com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
-                    "com/google/gson/reflect/TypeToken.java");
+    private static final Set<String> EXPECTED_SAFE_FAILURES = Set.of(
+            "com/google/gson/internal/ConstructorConstructor.java",
+            "com/google/gson/internal/bind/ArrayTypeAdapter.java",
+            "com/google/gson/internal/bind/MapTypeAdapterFactory.java",
+            "com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
+            "com/google/gson/reflect/TypeToken.java");
 
     @Test
     void parserCompletelyCoversAtLeastNinetyPercentOfTheCorpus() throws IOException {
@@ -58,35 +57,33 @@ class ExternalCorpusInvariantTest {
         List<Path> sources = sources(root);
 
         Formatter formatter = FormatJ.defaultFormatter();
-        return sources.stream().map(path -> DynamicTest.dynamicTest(root.relativize(path).toString(), () -> {
-            String relative = root.relativize(path).toString().replace('\\', '/');
-            String source = Files.readString(path, StandardCharsets.UTF_8);
-            assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)), "lexer must round-trip");
+        return sources.stream()
+                .map(path -> DynamicTest.dynamicTest(root.relativize(path).toString(), () -> {
+                    String relative = root.relativize(path).toString().replace('\\', '/');
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)), "lexer must round-trip");
 
-            ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
-            assertEquals(source, parsed.root().text(), "tree must round-trip");
+                    ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
+                    assertEquals(source, parsed.root().text(), "tree must round-trip");
 
-            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-            if (parsed.hasErrors()) {
-                assertTrue(once.hasErrors(), () -> once.diagnostics().toString());
-                assertEquals(source, once.text(), "a hard parse failure must leave the file unchanged");
-                return;
-            }
-            if (once.hasErrors()) {
-                assertTrue(EXPECTED_SAFE_FAILURES.contains(relative), () -> "new formatter failure in " + relative
-                        + ": " + once.diagnostics());
-                assertEquals(source, once.text(), "a failed recovery must leave the file unchanged");
-                return;
-            }
-            assertFalse(EXPECTED_SAFE_FAILURES.contains(relative), () -> relative
-                    + " now formats successfully; remove it from EXPECTED_SAFE_FAILURES");
-            ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
-            assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green())
-                    == null, "formatting changed the program");
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    if (parsed.hasErrors()) {
+                        assertTrue(once.hasErrors(), () -> once.diagnostics().toString());
+                        assertEquals(source, once.text(), "a hard parse failure must leave the file unchanged");
+                        return;
+                    }
+                    if (once.hasErrors()) {
+                        assertTrue(EXPECTED_SAFE_FAILURES.contains(relative), () -> "new formatter failure in " + relative + ": " + once.diagnostics());
+                        assertEquals(source, once.text(), "a failed recovery must leave the file unchanged");
+                        return;
+                    }
+                    assertFalse(EXPECTED_SAFE_FAILURES.contains(relative), () -> relative + " now formats successfully; remove it from EXPECTED_SAFE_FAILURES");
+                    ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
+                    assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, "formatting changed the program");
 
-            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-        }));
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
     }
 
     private static Path root() {

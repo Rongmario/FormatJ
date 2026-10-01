@@ -253,8 +253,7 @@ public final class CommentFormatter {
         String padding = " ".repeat(Math.max(0, column - tag.head().length()));
 
         if (!rule(JavadocRules.WRAP)) {
-            String opening =
-                    rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) && !rest.isEmpty()
+            String opening = rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) && !rest.isEmpty()
                     ? prefix + tag.head() + padding + " " + rest
                     : first;
             addMarkdownLine(output, opening);
@@ -488,8 +487,9 @@ public final class CommentFormatter {
         return List.copyOf(lines);
     }
 
-    private static final Pattern BLOCK_ELEMENT =
-            Pattern.compile("<(pre|ul|ol|dl|table|blockquote|div|h[1-6]|hr|p)\\b.*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern BLOCK_ELEMENT = Pattern.compile(
+            "<(pre|ul|ol|dl|table|blockquote|div|h[1-6]|hr|p)\\b.*",
+            Pattern.CASE_INSENSITIVE);
 
     private static boolean opensBlock(List<String> lines, int from) {
         for (int i = from; i < lines.size(); i++) {
@@ -509,8 +509,9 @@ public final class CommentFormatter {
      * ({@code <p />}) are left alone: splitting them would cut one word into two and fail the
      * prose check.
      */
-    private static final Pattern PARAGRAPH_MARKER =
-            Pattern.compile("(^|\\s)(</p>|<p/>|<p>)(\\s|$)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PARAGRAPH_MARKER = Pattern.compile(
+            "(^|\\s)(</p>|<p/>|<p>)(\\s|$)",
+            Pattern.CASE_INSENSITIVE);
 
     private static boolean isParagraphMarkerToken(String token) {
         return token.equalsIgnoreCase("<p>") || token.equalsIgnoreCase("</p>") || token.equalsIgnoreCase("<p/>");
@@ -691,8 +692,8 @@ public final class CommentFormatter {
             return "";
         }
         return strippedTrailing.startsWith(" ") || strippedTrailing.startsWith("\t")
-               ? strippedTrailing
-               : " " + stripped;
+                ? strippedTrailing
+                : " " + stripped;
     }
 
     /**
@@ -848,8 +849,8 @@ public final class CommentFormatter {
     public Doc verbatim(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
             return Prose.isMarkdownComment(comment)
-                   ? Doc.textPreservingTrailingWhitespace(comment.text())
-                   : Doc.text(stripTrailing(comment.text()));
+                    ? Doc.textPreservingTrailingWhitespace(comment.text())
+                    : Doc.text(stripTrailing(comment.text()));
         }
         String[] lines = comment.text().split("\r\n|\r|\n", -1);
         if (lines.length == 1) {

@@ -14,38 +14,59 @@ import java.util.Set;
 /** Puts declaration modifiers in their declaration-specific canonical order. */
 public final class ModifierRewrite implements Rewrite {
 
-    private static final List<String> CLASS_ORDER =
-            List.of(
-                    "public",
-                    "protected",
-                    "private",
-                    "abstract",
-                    "static",
-                    "sealed",
-                    "non-sealed",
-                    "final",
-                    "strictfp");
-    private static final List<String> INTERFACE_ORDER =
-            List.of("public", "protected", "private", "abstract", "static", "sealed", "non-sealed", "strictfp");
+    private static final List<String> CLASS_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "abstract",
+            "static",
+            "sealed",
+            "non-sealed",
+            "final",
+            "strictfp");
+    private static final List<String> INTERFACE_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "abstract",
+            "static",
+            "sealed",
+            "non-sealed",
+            "strictfp");
     private static final List<String> ENUM_ORDER = List.of("public", "protected", "private", "static", "strictfp");
-    private static final List<String> RECORD_ORDER =
-            List.of("public", "protected", "private", "static", "final", "strictfp");
-    private static final List<String> ANNOTATION_TYPE_ORDER =
-            List.of("public", "protected", "private", "abstract", "static", "strictfp");
-    private static final List<String> FIELD_ORDER =
-            List.of("public", "protected", "private", "static", "final", "transient", "volatile");
-    private static final List<String> METHOD_ORDER =
-            List.of(
-                    "public",
-                    "protected",
-                    "private",
-                    "abstract",
-                    "default",
-                    "static",
-                    "final",
-                    "synchronized",
-                    "native",
-                    "strictfp");
+    private static final List<String> RECORD_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "static",
+            "final",
+            "strictfp");
+    private static final List<String> ANNOTATION_TYPE_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "abstract",
+            "static",
+            "strictfp");
+    private static final List<String> FIELD_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "static",
+            "final",
+            "transient",
+            "volatile");
+    private static final List<String> METHOD_ORDER = List.of(
+            "public",
+            "protected",
+            "private",
+            "abstract",
+            "default",
+            "static",
+            "final",
+            "synchronized",
+            "native",
+            "strictfp");
     private static final List<String> CONSTRUCTOR_ORDER = List.of("public", "protected", "private");
 
     @Override
@@ -108,14 +129,13 @@ public final class ModifierRewrite implements Rewrite {
         if (position < 0) {
             return node;
         }
-        context.record(
-                new TokenEdit(
-                        ModifierRules.ORDER,
-                        "declaration modifiers reordered",
-                        position,
-                        ProgramTokens.lexemes(modifiers),
-                        ProgramTokens.lexemes(rewrittenModifiers),
-                        TokenEdit.Bias.INNERMOST_FIRST));
+        context.record(new TokenEdit(
+                ModifierRules.ORDER,
+                "declaration modifiers reordered",
+                position,
+                ProgramTokens.lexemes(modifiers),
+                ProgramTokens.lexemes(rewrittenModifiers),
+                TokenEdit.Bias.INNERMOST_FIRST));
 
         List<GreenNode> declaration = new ArrayList<>(node.children());
         declaration.set(0, rewrittenModifiers);

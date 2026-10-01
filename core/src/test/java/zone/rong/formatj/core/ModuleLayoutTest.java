@@ -59,8 +59,9 @@ class ModuleLayoutTest {
                     provides sample.api.Service with sample.internal.First, sample.internal.Second;
                 }
                 """;
-        String formatted =
-                format(source, style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
+        String formatted = format(
+                source,
+                style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
                         .blankLinesBeforeClosingBrace(0)));
 
         assertTrue(formatted.startsWith("open module sample {\n"), formatted);
@@ -89,8 +90,9 @@ class ModuleLayoutTest {
                     provides sample.Service with sample.ServiceImpl;
                 }
                 """;
-        String formatted =
-                format(source, style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
+        String formatted = format(
+                source,
+                style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
                         .blankLinesBeforeClosingBrace(0)
                         .blankLinesBetweenDirectiveGroups(1)));
 
@@ -124,8 +126,9 @@ class ModuleLayoutTest {
                     provides sample.Service with sample.impl.Alpha, sample.impl.Beta, sample.impl.Gamma;
                 }
                 """;
-        String targets =
-                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
+        String targets = format(
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
                         .modules(module -> module.blankLinesAfterOpeningBrace(0)
                                 .blankLinesBeforeClosingBrace(0)
                                 .exportsOpensTargetListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS)
@@ -144,8 +147,9 @@ class ModuleLayoutTest {
                         "provides sample.Service with sample.impl.Alpha, sample.impl.Beta, sample.impl.Gamma;"),
                 targets);
 
-        String implementations =
-                format(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
+        String implementations = format(
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
                         .modules(module -> module.blankLinesAfterOpeningBrace(0)
                                 .blankLinesBeforeClosingBrace(0)
                                 .exportsOpensTargetListWrapping(WrapPolicy.NEVER)
@@ -169,8 +173,9 @@ class ModuleLayoutTest {
                     provides sample.Service with sample.impl.Alpha, /* fallback */ sample.impl.Beta;
                 }
                 """;
-        String formatted =
-                format(source, style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
+        String formatted = format(
+                source,
+                style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
                         .blankLinesBeforeClosingBrace(0)
                         .exportsOpensTargetListWrapping(WrapPolicy.PRESERVE)
                         .providesImplementationListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS)));
@@ -190,8 +195,9 @@ class ModuleLayoutTest {
                         consumer.beta;
                 }
                 """;
-        String formatted =
-                format(source, style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
+        String formatted = format(
+                source,
+                style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
                         .blankLinesBeforeClosingBrace(0)
                         .exportsOpensTargetListWrapping(WrapPolicy.PRESERVE)));
 

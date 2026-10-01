@@ -90,6 +90,6 @@ class PackagedCliSmokeTest {
         }
     }
 
-    private record Run(int exitCode, String out, String err) { }
+    private record Run(int exitCode, String out, String err) {}
 
 }

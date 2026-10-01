@@ -51,20 +51,19 @@ public final class Javadoc {
     }
 
     /** The conventional order for block tags. Unknown tags stay after the known tags. */
-    private static final List<String> CANONICAL =
-            List.of(
-                    "@author",
-                    "@version",
-                    "@param",
-                    "@return",
-                    "@throws",
-                    "@exception",
-                    "@see",
-                    "@since",
-                    "@serial",
-                    "@serialfield",
-                    "@serialdata",
-                    "@deprecated");
+    private static final List<String> CANONICAL = List.of(
+            "@author",
+            "@version",
+            "@param",
+            "@return",
+            "@throws",
+            "@exception",
+            "@see",
+            "@since",
+            "@serial",
+            "@serialfield",
+            "@serialdata",
+            "@deprecated");
 
     private static final Pattern ATX_HEADING = Pattern.compile("#{1,6}(?:\\s|$).*");
     private static final Pattern SETEXT_HEADING = Pattern.compile("(?:=+|-+)\\s*");
@@ -391,9 +390,9 @@ public final class Javadoc {
 
     // ---------------------------------------------------- Markdown literals
 
-    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) { }
+    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) {}
 
-    private record Fence(char marker, int length) { }
+    private record Fence(char marker, int length) {}
 
     private static MarkdownScan scanMarkdown(List<String> lines, int indent) {
         List<Boolean> literal = new ArrayList<>(lines.size());

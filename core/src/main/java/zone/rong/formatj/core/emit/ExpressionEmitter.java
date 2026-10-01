@@ -142,15 +142,15 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc closingEdge = ownLine ? edge : spaceIf(spaceInside);
         // An inline comment in front of the closing delimiter stays with the last element, even when the
         // delimiter takes a line of its own.
-        HoistedLeading closing =
-                inlineCommentsOnly(close) ? hoistLeadingTrivia(close) : new HoistedLeading(Doc.EMPTY, close);
+        HoistedLeading closing = inlineCommentsOnly(close)
+                ? hoistLeadingTrivia(close)
+                : new HoistedLeading(Doc.EMPTY, close);
         // This indentation belongs to the list breaking. A first-line group can stay flat around hard
         // breaks brought by its last child, and those lines must not receive an indent the list did not
         // take. For every ordinary group, IndentIfBreak prints identically to Indent.
-        Doc body =
-                Doc.concat(
-                        Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner, closing.leading())),
-                        closingEdge);
+        Doc body = Doc.concat(
+                Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner, closing.leading())),
+                closingEdge);
         Doc content = Doc.concat(emit(open), body, emit(closing.node()));
 
         // The author's break after the opening delimiter is the one this rule is named for; it is the
@@ -370,11 +370,10 @@ abstract class ExpressionEmitter extends EmitSupport {
             for (int i = 0; i < separators.size(); i++) {
                 GreenNode separator = separators.get(i);
                 parts.add(optionalBreak);
-                parts.add(
-                        Doc.concat(
-                                emit(separator),
-                                hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced),
-                                operands.get(i + 1)));
+                parts.add(Doc.concat(
+                        emit(separator),
+                        hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced),
+                        operands.get(i + 1)));
             }
         } else {
             for (int i = 0; i < separators.size(); i++) {
@@ -425,8 +424,8 @@ abstract class ExpressionEmitter extends EmitSupport {
             operands.add(left);
         }
         operators.add(Doc.concat(operator));
-        commented.add(hasTrailingLineComment(children.get(children.size() - 2))
-                || hasLeadingComments(children.getLast()));
+        commented.add(
+                hasTrailingLineComment(children.get(children.size() - 2)) || hasLeadingComments(children.getLast()));
         ownLine.add(hasLeadingComments(children.get(1)));
         operands.add(children.getLast());
     }
@@ -554,16 +553,15 @@ abstract class ExpressionEmitter extends EmitSupport {
                     spaceIf(spaced),
                     whenFalse);
         }
-        Doc branches =
-                Doc.concat(
-                        Doc.line(),
-                        question,
-                        spaceIf(spaced),
-                        whenTrue,
-                        Doc.line(),
-                        colon,
-                        spaceIf(spaced),
-                        whenFalse);
+        Doc branches = Doc.concat(
+                Doc.line(),
+                question,
+                spaceIf(spaced),
+                whenTrue,
+                Doc.line(),
+                colon,
+                spaceIf(spaced),
+                whenFalse);
         if (alignsOnColumn(AlignmentRules.TERNARY_BRANCHES)) {
             // Aligning the branches means hanging them under the condition rather than at a fixed
             // indent, so the alignment has to start where the condition starts, not where it ends.
@@ -634,14 +632,13 @@ abstract class ExpressionEmitter extends EmitSupport {
                 types.add(emit(child));
             }
         }
-        parts.add(
-                emitOperatorSeparated(
-                        node,
-                        types,
-                        separators,
-                        rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
-                        rule(WrappingRules.INTERSECTION_TYPES),
-                        rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
+        parts.add(emitOperatorSeparated(
+                node,
+                types,
+                separators,
+                rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
+                rule(WrappingRules.INTERSECTION_TYPES),
+                rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
         parts.add(emit(children.get(closing)));
         parts.add(spaceIf(rule(SpacingRules.AFTER_TYPE_CAST)));
         for (int i = closing + 1; i < children.size(); i++) {
@@ -835,8 +832,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(Doc.softLine());
             parts.add(link);
         }
-        Doc hanging =
-                alignDots
+        Doc hanging = alignDots
                 ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
                 : Doc.indentIfBreak(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
         Doc content = Doc.concat(baseDoc, hanging);
@@ -932,12 +928,11 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {
             return Doc.concat(parameters, spaceIf(spaced), arrow, spaceIf(spaced), body);
         }
-        return Doc.group(
-                Doc.concat(
-                        parameters,
-                        spaceIf(spaced),
-                        arrow,
-                        Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), body))));
+        return Doc.group(Doc.concat(
+                parameters,
+                spaceIf(spaced),
+                arrow,
+                Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), body))));
     }
 
     protected Doc emitLambdaParameters(GreenNode node) {
@@ -1004,12 +999,11 @@ abstract class ExpressionEmitter extends EmitSupport {
     protected Doc emitWithExpression(GreenNode node) {
         List<GreenNode> children = node.children();
         GreenNode block = children.get(2);
-        boolean mayInline =
-                switch (rule(RecordRules.WITH_STYLE)) {
-                    case ALWAYS_BLOCK -> false;
-                    case INLINE_WHEN_SHORT -> true;
-                    case PRESERVE -> AuthorLines.onOneLine(block);
-                };
+        boolean mayInline = switch (rule(RecordRules.WITH_STYLE)) {
+            case ALWAYS_BLOCK -> false;
+            case INLINE_WHEN_SHORT -> true;
+            case PRESERVE -> AuthorLines.onOneLine(block);
+        };
         return Doc.concat(
                 emit(children.get(0)),
                 space(),

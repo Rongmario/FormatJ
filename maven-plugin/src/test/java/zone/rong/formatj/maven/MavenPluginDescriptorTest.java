@@ -40,20 +40,14 @@ class MavenPluginDescriptorTest {
     private static final Path SOURCES = Path.of("src/main/java/zone/rong/formatj/maven");
 
     private static final Pattern MOJO = Pattern.compile("@Mojo\\(([^)]*)\\)", Pattern.DOTALL);
-    private static final Pattern PARAMETER =
-            Pattern.compile(
-                    "@Parameter(?:\\(([^)]*)\\))?\\s+protected\\s+[\\w.<>, ]+?\\s+(\\w+)\\s*[;=]",
-                    Pattern.DOTALL);
+    private static final Pattern PARAMETER = Pattern.compile(
+            "@Parameter(?:\\(([^)]*)\\))?\\s+protected\\s+[\\w.<>, ]+?\\s+(\\w+)\\s*[;=]",
+            Pattern.DOTALL);
     private static final Pattern ATTRIBUTE = Pattern.compile("(\\w+)\\s*=\\s*(\"[^\"]*\"|[\\w.]+)");
 
-    private record MojoSource(
-            String goal,
-            String phase,
-            String resolution,
-            String threadSafe,
-            String implementation) { }
+    private record MojoSource(String goal, String phase, String resolution, String threadSafe, String implementation) {}
 
-    private record ParameterSource(String name, String property, String defaultValue) { }
+    private record ParameterSource(String name, String property, String defaultValue) {}
 
     private static Document descriptor() throws Exception {
         Path path = Path.of(System.getProperty("formatj.descriptor"));
@@ -115,13 +109,12 @@ class MavenPluginDescriptorTest {
             Matcher matcher = MOJO.matcher(source);
             assertTrue(matcher.find(), () -> fileName + " has no @Mojo annotation");
             Map<String, String> values = attributes(matcher.group(1));
-            mojos.add(
-                    new MojoSource(
-                            values.get("name"),
-                            constantToId(values.get("defaultPhase")),
-                            constantToId(values.getOrDefault("requiresDependencyResolution", "ResolutionScope.NONE")),
-                            values.getOrDefault("threadSafe", "false"),
-                            "zone.rong.formatj.maven." + fileName.replace(".java", "")));
+            mojos.add(new MojoSource(
+                    values.get("name"),
+                    constantToId(values.get("defaultPhase")),
+                    constantToId(values.getOrDefault("requiresDependencyResolution", "ResolutionScope.NONE")),
+                    values.getOrDefault("threadSafe", "false"),
+                    "zone.rong.formatj.maven." + fileName.replace(".java", "")));
         }
         return mojos;
     }
@@ -132,11 +125,10 @@ class MavenPluginDescriptorTest {
         Matcher matcher = PARAMETER.matcher(source);
         while (matcher.find()) {
             Map<String, String> values = attributes(matcher.group(1) == null ? "" : matcher.group(1));
-            parameters.add(
-                    new ParameterSource(
-                            matcher.group(2),
-                            values.getOrDefault("property", ""),
-                            values.getOrDefault("defaultValue", "")));
+            parameters.add(new ParameterSource(
+                    matcher.group(2),
+                    values.getOrDefault("property", ""),
+                    values.getOrDefault("defaultValue", "")));
         }
         assertTrue(parameters.size() > 5, () -> "found only " + parameters.size() + " parameters in the mojo source");
         return parameters;

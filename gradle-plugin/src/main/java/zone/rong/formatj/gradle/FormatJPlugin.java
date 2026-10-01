@@ -39,40 +39,47 @@ public class FormatJPlugin implements Plugin<Project> {
         // Neither styleFile nor preset was set explicitly: fall back to the nearest formatj.toml
         // above the project directory, the same discovery the CLI does. A Provider keeps this an
         // input the task can declare, so the build cache invalidates when that file changes.
-        Provider<RegularFile> discoveredStyleFile = project.getLayout().file(
-                project.provider(() -> extension.getPreset().isPresent()
-                                       ? null
-                                       : StyleFiles.discover(project.getProjectDir().toPath())
-                                               .map(Path::toFile)
-                                               .orElse(null)));
+        Provider<RegularFile> discoveredStyleFile = project.getLayout()
+                .file(project.provider(() -> extension.getPreset().isPresent()
+                        ? null
+                        : StyleFiles.discover(project.getProjectDir().toPath())
+                                .map(Path::toFile)
+                                .orElse(null)));
         Provider<RegularFile> resolvedStyleFile = extension.getStyleFile().orElse(discoveredStyleFile);
         Provider<FileCollection> sources = project.provider(() -> javaSources(project, extension, resolvedStyleFile));
 
-        TaskProvider<FormatJTask> apply = project.getTasks().register(APPLY_TASK_NAME, FormatJTask.class, task -> {
-            task.setGroup(TASK_GROUP);
-            task.setDescription("Formats Java sources in place with FormatJ.");
-            configure(task, extension, sources, resolvedStyleFile);
-            task.getCheckOnly().set(false);
-            task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/apply.marker"));
-            // The only durable output of apply is the source tree it mutates. Reusing a
-            // marker from the build cache, or considering that marker up to date, can leave
-            // a restored unformatted source untouched.
-            task.getOutputs().doNotCacheIf("the task formats its source inputs in place", ignored -> true);
-            task.getOutputs().upToDateWhen(ignored -> false);
-        });
+        TaskProvider<FormatJTask> apply = project.getTasks()
+                .register(APPLY_TASK_NAME, FormatJTask.class, task -> {
+                    task.setGroup(TASK_GROUP);
+                    task.setDescription("Formats Java sources in place with FormatJ.");
+                    configure(task, extension, sources, resolvedStyleFile);
+                    task.getCheckOnly().set(false);
+                    task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/apply.marker"));
+                    // The only durable output of apply is the source tree it mutates. Reusing a
+                    // marker from the build cache, or considering that marker up to date, can leave
+                    // a restored unformatted source untouched.
+                    task.getOutputs().doNotCacheIf("the task formats its source inputs in place", ignored -> true);
+                    task.getOutputs().upToDateWhen(ignored -> false);
+                });
 
-        TaskProvider<FormatJTask> check = project.getTasks().register(CHECK_TASK_NAME, FormatJTask.class, task -> {
-            task.setGroup(TASK_GROUP);
-            task.setDescription("Fails if any Java source is not formatted to the configured style.");
-            configure(task, extension, sources, resolvedStyleFile);
-            task.getCheckOnly().set(true);
-            task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/check.marker"));
-        });
+        TaskProvider<FormatJTask> check = project.getTasks()
+                .register(CHECK_TASK_NAME, FormatJTask.class, task -> {
+                    task.setGroup(TASK_GROUP);
+                    task.setDescription("Fails if any Java source is not formatted to the configured style.");
+                    configure(task, extension, sources, resolvedStyleFile);
+                    task.getCheckOnly().set(true);
+                    task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/check.marker"));
+                });
 
-        project.getPlugins().withType(LifecycleBasePlugin.class, ignored -> project.getTasks()
-                .named(LifecycleBasePlugin.CHECK_TASK_NAME)
-                .configure(task -> task.dependsOn(
-                        project.provider(() -> extension.getEnforceOnCheck().get() ? List.of(check) : List.of()))));
+        project.getPlugins()
+                .withType(
+                        LifecycleBasePlugin.class,
+                        ignored -> project.getTasks()
+                                .named(LifecycleBasePlugin.CHECK_TASK_NAME)
+                                .configure(task -> task.dependsOn(project.provider(() -> extension.getEnforceOnCheck()
+                                        .get()
+                                        ? List.of(check)
+                                        : List.of()))));
 
         // Applying then checking in one invocation must run in that order, not in parallel.
         check.configure(task -> task.mustRunAfter(apply));
@@ -112,13 +119,12 @@ public class FormatJPlugin implements Plugin<Project> {
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
             if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
-                files =
-                        files.plus(
-                                sourceSet.getAllJava()
-                                        .matching(patterns -> patterns.include(extension.getIncludes().get()).exclude(
-                                                extension.getExcludes().get()))
-                                        .filter(file -> file.getName().endsWith(".java")
-                                                && tomlSelection.matches(file.toPath())));
+                files = files.plus(
+                        sourceSet.getAllJava()
+                                .matching(patterns -> patterns.include(extension.getIncludes().get())
+                                        .exclude(extension.getExcludes().get()))
+                                .filter(file -> file.getName().endsWith(".java")
+                                        && tomlSelection.matches(file.toPath())));
             }
         }
         return files;

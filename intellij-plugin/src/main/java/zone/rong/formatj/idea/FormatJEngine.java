@@ -52,7 +52,7 @@ public final class FormatJEngine {
             List<SourceRange> ranges,
             LanguageLevel languageLevel,
             boolean previewFeatures,
-            boolean rewrites) { }
+            boolean rewrites) {}
 
     public record Outcome(String text, boolean unchanged, List<Diagnostic> diagnostics) {
 
@@ -62,24 +62,26 @@ public final class FormatJEngine {
 
     }
 
-    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) { }
+    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) {}
 
     private final Settings settings;
 
-    private record LoadedStyle(FileTime lastModified, Style style) { }
+    private record LoadedStyle(FileTime lastModified, Style style) {}
 
     private static final int MAX_FORMATTERS = 8;
 
     // Bounded: every edit of formatj.toml yields a new Style and so a new key.
-    private final Map<CacheKey, Formatter> formatters =
-            Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true) {
+    private final Map<CacheKey, Formatter> formatters = Collections.synchronizedMap(new LinkedHashMap<>(
+            16,
+            0.75f,
+            true) {
 
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<CacheKey, Formatter> eldest) {
-                    return size() > MAX_FORMATTERS;
-                }
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<CacheKey, Formatter> eldest) {
+            return size() > MAX_FORMATTERS;
+        }
 
-            });
+    });
     private final ConcurrentHashMap<Path, LoadedStyle> styleFiles = new ConcurrentHashMap<>();
 
     public FormatJEngine(Settings settings) {
@@ -143,18 +145,16 @@ public final class FormatJEngine {
     public Outcome format(Request request) {
         Objects.requireNonNull(request, "request");
         Style style = styleFor(request.path());
-        Formatter formatter =
-                formatters.computeIfAbsent(
-                        new CacheKey(style, request.languageLevel(), request.previewFeatures(), request.rewrites()),
-                        key -> FormatJ.newFormatter()
-                                .style(key.style())
-                                .languageLevel(key.languageLevel())
-                                .previewFeatures(key.previewFeatures())
-                                .rewrites(key.rewrites())
-                                .build());
-        FormatResult result =
-                formatter.format(
-                        FormatRequest.of(request.source()).withName(request.name()).withRanges(request.ranges()));
+        Formatter formatter = formatters.computeIfAbsent(
+                new CacheKey(style, request.languageLevel(), request.previewFeatures(), request.rewrites()),
+                key -> FormatJ.newFormatter()
+                        .style(key.style())
+                        .languageLevel(key.languageLevel())
+                        .previewFeatures(key.previewFeatures())
+                        .rewrites(key.rewrites())
+                        .build());
+        FormatResult result = formatter.format(
+                FormatRequest.of(request.source()).withName(request.name()).withRanges(request.ranges()));
         if (result.hasErrors()) {
             return new Outcome(request.source(), true, result.diagnostics());
         }

@@ -46,7 +46,7 @@ import java.util.Set;
  */
 public final class RewriteVerification {
 
-    private RewriteVerification() { }
+    private RewriteVerification() {}
 
     /**
      * Verifies the tree the rewrite stage produced, before it is laid out.
@@ -139,7 +139,7 @@ public final class RewriteVerification {
     }
 
     /** An edit and where it sat in the ledger, which is the tiebreak for edits at one position. */
-    private record Sequenced(TokenEdit edit, int sequence) { }
+    private record Sequenced(TokenEdit edit, int sequence) {}
 
     /**
      * Position first; then, for edits landing on the same token, the bias each edit declared.
@@ -152,8 +152,8 @@ public final class RewriteVerification {
             .comparingInt((Sequenced entry) -> entry.edit().position())
             .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
             .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
-                                       ? -entry.sequence()
-                                       : entry.sequence());
+                    ? -entry.sequence()
+                    : entry.sequence());
 
     // -------------------------------------------------------------- edit laws
 
@@ -353,8 +353,8 @@ public final class RewriteVerification {
         }
         String difference = sameBag(before, after);
         return difference == null
-               ? null
-               : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
+                ? null
+                : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
     }
 
     /** A modifier rule may permute one declaration's modifiers and nothing else. */
@@ -388,25 +388,24 @@ public final class RewriteVerification {
 
         String difference = sameTokenBag(beforeModifiers, afterModifiers);
         return difference == null
-               ? null
-               : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
+                ? null
+                : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
     }
 
-    private static final Set<String> MODIFIERS =
-            Set.of(
-                    "public",
-                    "protected",
-                    "private",
-                    "abstract",
-                    "default",
-                    "static",
-                    "final",
-                    "transient",
-                    "volatile",
-                    "synchronized",
-                    "native",
-                    "strictfp",
-                    "sealed");
+    private static final Set<String> MODIFIERS = Set.of(
+            "public",
+            "protected",
+            "private",
+            "abstract",
+            "default",
+            "static",
+            "final",
+            "transient",
+            "volatile",
+            "synchronized",
+            "native",
+            "strictfp",
+            "sealed");
 
     private static boolean isDeclaredModifierSpan(GreenNode tree, TokenEdit edit) {
         Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(tree);
@@ -715,8 +714,8 @@ public final class RewriteVerification {
             }
         }
         return opened == closed
-               ? null
-               : "braces were not balanced: " + opened + " opened against " + closed + " closed";
+                ? null
+                : "braces were not balanced: " + opened + " opened against " + closed + " closed";
     }
 
     // ------------------------------------------------------------- comments

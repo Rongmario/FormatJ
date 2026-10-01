@@ -12,7 +12,7 @@ import java.nio.file.Path;
  */
 final class FormatJFiles {
 
-    private FormatJFiles() { }
+    private FormatJFiles() {}
 
     static boolean isJava(PsiFile file) {
         return JavaFileType.INSTANCE.equals(file.getFileType());

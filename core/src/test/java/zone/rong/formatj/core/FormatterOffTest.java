@@ -32,7 +32,7 @@ class FormatterOffTest {
 
     @Test
     void aMarkedRegionKeepsEveryColumnItHad() {
-        String formatted = format(MEMBERS, style -> { });
+        String formatted = format(MEMBERS, style -> {});
 
         assertTrue(formatted.contains("    { 1, 0 },\n        { 0, 1 },"), formatted);
         assertTrue(formatted.contains("int    spaced   =   1;"), formatted);
@@ -62,8 +62,9 @@ class FormatterOffTest {
                 }
                 """;
 
-        String formatted =
-                format(source, style -> style.comments(comments -> comments
+        String formatted = format(
+                source,
+                style -> style.comments(comments -> comments
                         .offMarker("@formatter:off")
                         .onMarker("@formatter:on")));
 
@@ -83,7 +84,7 @@ class FormatterOffTest {
     void aRegionWithoutAnOnMarkerRunsToTheEndOfItsBody() {
         String source = "class A {\n\n    // formatj:off\n    int    a   =   1;\n    int    b   =   2;\n\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("int    a   =   1;"), formatted);
         assertTrue(formatted.contains("int    b   =   2;"), formatted);
@@ -104,7 +105,7 @@ class FormatterOffTest {
                 }
                 """;
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("int a   =   1;"), formatted);
         assertTrue(formatted.contains("int c = 3;"), formatted);
@@ -114,7 +115,7 @@ class FormatterOffTest {
     void aMarkerAtTheTopOfAFileCoversTheWholeFile() {
         String source = "// formatj:off\nclass   A {\n    int   x =  1;\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertEquals(source, formatted);
     }

@@ -20,7 +20,7 @@ import java.util.List;
  */
 public final class ImportOrder {
 
-    private ImportOrder() { }
+    private ImportOrder() {}
 
     /** Whether any {@code imports.*} rule asks for the declarations to be put in an order. */
     public static boolean sorts(Style style) {
@@ -86,12 +86,11 @@ public final class ImportOrder {
                 .comparingInt((ImportEntry entry) -> moduleBucket(entry, modulesFirst))
                 .thenComparingInt(entry -> staticBucket(entry, placement))
                 .thenComparingInt(entry -> groupWithin(entry, groups, placement, modulesFirst));
-        Comparator<ImportEntry> comparator =
-                switch (order) {
-                    case PRESERVE -> byBucket;
-                    case ASCENDING -> byBucket.thenComparing(ImportEntry::name);
-                    case DESCENDING -> byBucket.thenComparing(Comparator.comparing(ImportEntry::name).reversed());
-                };
+        Comparator<ImportEntry> comparator = switch (order) {
+            case PRESERVE -> byBucket;
+            case ASCENDING -> byBucket.thenComparing(ImportEntry::name);
+            case DESCENDING -> byBucket.thenComparing(Comparator.comparing(ImportEntry::name).reversed());
+        };
 
         List<ImportEntry> sorted = new ArrayList<>(entries);
         sorted.sort(comparator);

@@ -71,15 +71,14 @@ public final class FormatJFormattingService extends AsyncDocumentFormattingServi
             List<SourceRange> ranges = ranges(source, request.getFormattingRanges());
             try {
                 FormatJEngine.Outcome outcome = settings.engine()
-                        .format(
-                                new FormatJEngine.Request(
-                                        source,
-                                        file.getName(),
-                                        path,
-                                        ranges,
-                                        FormatJFiles.languageLevel(file),
-                                        FormatJFiles.previewFeatures(file),
-                                        !request.canChangeWhitespaceOnly()));
+                        .format(new FormatJEngine.Request(
+                                source,
+                                file.getName(),
+                                path,
+                                ranges,
+                                FormatJFiles.languageLevel(file),
+                                FormatJFiles.previewFeatures(file),
+                                !request.canChangeWhitespaceOnly()));
                 if (outcome.hasErrors()) {
                     Diagnostic diagnostic = outcome.diagnostics()
                             .stream()

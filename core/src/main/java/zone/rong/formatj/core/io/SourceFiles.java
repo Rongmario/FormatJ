@@ -21,7 +21,7 @@ import java.nio.file.attribute.PosixFileAttributeView;
  */
 public final class SourceFiles {
 
-    private SourceFiles() { }
+    private SourceFiles() {}
 
     /** Reads a whole file, decoding strictly: a byte the charset cannot read fails the read. */
     public static String readString(Path file, Charset charset) throws IOException {

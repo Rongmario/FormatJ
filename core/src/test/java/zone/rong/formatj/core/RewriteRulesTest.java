@@ -376,11 +376,10 @@ class RewriteRulesTest {
 
     @Test
     void bracesAreAddedRoundAStatementArrowBody() {
-        String formatted =
-                format(
-                        statementSwitch("            case 1 -> f();"),
-                        SwitchRules.ARROW_CASE_BRACES,
-                        BracePolicy.ALWAYS);
+        String formatted = format(
+                statementSwitch("            case 1 -> f();"),
+                SwitchRules.ARROW_CASE_BRACES,
+                BracePolicy.ALWAYS);
         assertTrue(formatted.contains("case 1 -> {"), formatted);
     }
 

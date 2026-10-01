@@ -30,7 +30,7 @@ public final class StyleFiles {
     private static final String FILES_INCLUDE_KEY = "files.include";
     private static final String FILES_EXCLUDE_KEY = "files.exclude";
 
-    private StyleFiles() { }
+    private StyleFiles() {}
 
     /** Reads a style file. */
     public static Style load(Path file) {
@@ -106,8 +106,8 @@ public final class StyleFiles {
 
     private static String unquote(String value) {
         return value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")
-               ? value.substring(1, value.length() - 1)
-               : value;
+                ? value.substring(1, value.length() - 1)
+                : value;
     }
 
     /** Writes a style out as a commented TOML document. */

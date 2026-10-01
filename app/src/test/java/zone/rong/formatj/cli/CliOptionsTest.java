@@ -23,28 +23,27 @@ class CliOptionsTest {
 
     @Test
     void modesAndStyleFlagsParse() {
-        CliOptions options =
-                CliOptions.parse(
-                        new String[] {
-                            "--write",
-                            "--preset",
-                            "google",
-                            "--set",
-                            "indent.size=2",
-                            "--set",
-                            "wrapping.max-line-length=100",
-                            "--language-level",
-                            "21",
-                            "--preview",
-                            "-j",
-                            "3",
-                            "--include",
-                            "**/*.java",
-                            "--exclude",
-                            "**/generated/**",
-                            "src",
-                            "test"
-                        });
+        CliOptions options = CliOptions.parse(
+                new String[] {
+                    "--write",
+                    "--preset",
+                    "google",
+                    "--set",
+                    "indent.size=2",
+                    "--set",
+                    "wrapping.max-line-length=100",
+                    "--language-level",
+                    "21",
+                    "--preview",
+                    "-j",
+                    "3",
+                    "--include",
+                    "**/*.java",
+                    "--exclude",
+                    "**/generated/**",
+                    "src",
+                    "test"
+                });
 
         assertEquals(CliOptions.Mode.WRITE, options.mode());
         assertEquals(Preset.GOOGLE, options.preset().orElseThrow());

@@ -104,15 +104,16 @@ class ApiCompatibilityTest {
         Path root = apiSources();
         try (var files = Files.walk(root)) {
             List<Class<?>> types = new ArrayList<>();
-            files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
-                String relative = root.relativize(path).toString().replace('/', '.').replace('\\', '.');
-                String name = relative.substring(0, relative.length() - 5);
-                try {
-                    types.add(Class.forName(name));
-                } catch (ClassNotFoundException e) {
-                    throw new IllegalStateException(name, e);
-                }
-            });
+            files.filter(path -> path.toString().endsWith(".java"))
+                    .forEach(path -> {
+                        String relative = root.relativize(path).toString().replace('/', '.').replace('\\', '.');
+                        String name = relative.substring(0, relative.length() - 5);
+                        try {
+                            types.add(Class.forName(name));
+                        } catch (ClassNotFoundException e) {
+                            throw new IllegalStateException(name, e);
+                        }
+                    });
             if (types.size() <= 10) {
                 throw new IllegalStateException("API source walk should find public types, found " + types.size());
             }

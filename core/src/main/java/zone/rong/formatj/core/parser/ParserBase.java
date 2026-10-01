@@ -298,11 +298,10 @@ abstract class ParserBase {
                 // No progress would loop forever; take one token verbatim and carry on.
                 advance();
             }
-            report(
-                    Diagnostic.warning(
-                            failure.getMessage() + "; " + what + " left unformatted",
-                            failure.token().line(),
-                            failure.token().column()));
+            report(Diagnostic.warning(
+                    failure.getMessage() + "; " + what + " left unformatted",
+                    failure.token().line(),
+                    failure.token().column()));
             return unparsedFrom(start);
         }
     }

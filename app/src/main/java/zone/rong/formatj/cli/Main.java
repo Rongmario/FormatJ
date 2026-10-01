@@ -5,7 +5,7 @@ import zone.rong.formatj.core.config.TomlReader;
 /** Command line entry point. */
 public final class Main {
 
-    private Main() { }
+    private Main() {}
 
     public static void main(String[] arguments) {
         System.exit(run(arguments));

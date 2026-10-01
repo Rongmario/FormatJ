@@ -40,175 +40,157 @@ class ProsePreservationTest {
 
     @Test
     void rewrappingTheSameWordsIsNotAChange() {
-        assertNull(
-                difference(
-                        "class T {\n    // alpha beta gamma delta\n    void f() { }\n}\n",
-                        "class T {\n    // alpha beta\n    // gamma delta\n    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n    // alpha beta gamma delta\n    void f() { }\n}\n",
+                "class T {\n    // alpha beta\n    // gamma delta\n    void f() { }\n}\n"));
     }
 
     @Test
     void movingWordsBetweenACommentsMarkersIsNotAChange() {
-        assertNull(
-                difference(
-                        "class T {\n    /**\n     * alpha\n     * beta\n     */\n    void f() { }\n}\n",
-                        "class T {\n    /** alpha beta */\n    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n    /**\n     * alpha\n     * beta\n     */\n    void f() { }\n}\n",
+                "class T {\n    /** alpha beta */\n    void f() { }\n}\n"));
     }
 
     @Test
     void aParagraphMarkerMayBeWritten() {
-        assertNull(
-                difference(
-                        "class T {\n    /**\n     * alpha\n     *\n     * beta\n     */\n    void f() { }\n}\n",
-                        "class T {\n    /**\n     * alpha\n     * <p>\n     * beta\n     */\n    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n    /**\n     * alpha\n     *\n     * beta\n     */\n    void f() { }\n}\n",
+                "class T {\n    /**\n     * alpha\n     * <p>\n     * beta\n     */\n    void f() { }\n}\n"));
     }
 
     @Test
     void trailingSpaceInsideASampleIsTheFileRulesToRemove() {
-        assertNull(
-                difference(
-                        "class T {\n    /**\n     * <pre>\n     * int x = 1;   \n     * </pre>\n     */\n"
-                                + "    void f() { }\n}\n",
-                        "class T {\n    /**\n     * <pre>\n     * int x = 1;\n     * </pre>\n     */\n"
-                                + "    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n    /**\n     * <pre>\n     * int x = 1;   \n     * </pre>\n     */\n"
+                        + "    void f() { }\n}\n",
+                "class T {\n    /**\n     * <pre>\n     * int x = 1;\n     * </pre>\n     */\n"
+                        + "    void f() { }\n}\n"));
     }
 
     // ------------------------------------------------------ what is refused
 
     @Test
     void aWordThatWentMissingFails() {
-        String problem =
-                difference(
-                        "class T {\n    // alpha beta gamma\n    void f() { }\n}\n",
-                        "class T {\n    // alpha gamma\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    // alpha beta gamma\n    void f() { }\n}\n",
+                "class T {\n    // alpha gamma\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("beta"), problem);
     }
 
     @Test
     void aWordThatChangedFails() {
-        String problem =
-                difference(
-                        "class T {\n    // alpha beta\n    void f() { }\n}\n",
-                        "class T {\n    // alpha betas\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    // alpha beta\n    void f() { }\n}\n",
+                "class T {\n    // alpha betas\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("'beta' became 'betas'"), problem);
     }
 
     @Test
     void reindentingACommentThatCarriesAUnicodeEscapeIsNotAChange() {
-        assertNull(
-                difference(
-                        "class T {\n  /*\n   * escapes \\u2028 here\n   */\n  void f() { }\n}\n",
-                        "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n  /*\n   * escapes \\u2028 here\n   */\n  void f() { }\n}\n",
+                "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n"));
     }
 
     @Test
     void twoWordsRunTogetherFails() {
-        String problem =
-                difference(
-                        "class T {\n    // alpha beta\n    void f() { }\n}\n",
-                        "class T {\n    // alphabeta\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    // alpha beta\n    void f() { }\n}\n",
+                "class T {\n    // alphabeta\n    void f() { }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void aWholeCommentThatDisappearedFails() {
-        String problem =
-                difference("class T {\n    // alpha\n    void f() { }\n}\n", "class T {\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    // alpha\n    void f() { }\n}\n",
+                "class T {\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("lost"), problem);
     }
 
     @Test
     void rewordingACommentThatCarriesAUnicodeEscapeFails() {
-        String problem =
-                difference(
-                        "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n",
-                        "class T {\n    /*\n     * escapes \\u2029 here\n     */\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /*\n     * escapes \\u2028 here\n     */\n    void f() { }\n}\n",
+                "class T {\n    /*\n     * escapes \\u2029 here\n     */\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("verbatim"), problem);
     }
 
     @Test
     void reformattingACodeSampleFails() {
-        String problem =
-                difference(
-                        "class T {\n    /**\n     * {@code a  b}\n     */\n    void f() { }\n}\n",
-                        "class T {\n    /**\n     * {@code a b}\n     */\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /**\n     * {@code a  b}\n     */\n    void f() { }\n}\n",
+                "class T {\n    /**\n     * {@code a b}\n     */\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("verbatim"), problem);
     }
 
     @Test
     void reflowingAPreBlockFails() {
-        String problem =
-                difference(
-                        "class T {\n    /**\n     * <pre>\n     * one\n     * two\n     * </pre>\n     */\n"
-                                + "    void f() { }\n}\n",
-                        "class T {\n    /**\n     * <pre>\n     * one two\n     * </pre>\n     */\n"
-                                + "    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /**\n     * <pre>\n     * one\n     * two\n     * </pre>\n     */\n"
+                        + "    void f() { }\n}\n",
+                "class T {\n    /**\n     * <pre>\n     * one two\n     * </pre>\n     */\n" + "    void f() { }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void markdownListItemsCannotBeFlattenedTogether() {
-        String problem =
-                difference(
-                        "class T {\n    /// - alpha\n    /// - beta\n    void f() { }\n}\n",
-                        "class T {\n    /// - alpha - beta\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /// - alpha\n    /// - beta\n    void f() { }\n}\n",
+                "class T {\n    /// - alpha - beta\n    void f() { }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void markdownIndentationIsContent() {
-        String problem =
-                difference(
-                        "class T {\n    /// - outer\n    ///   - inner\n    void f() { }\n}\n",
-                        "class T {\n    /// - outer\n    /// - inner\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /// - outer\n    ///   - inner\n    void f() { }\n}\n",
+                "class T {\n    /// - outer\n    /// - inner\n    void f() { }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void markdownHardBreakSpacesAreContent() {
-        String problem =
-                difference(
-                        "class T {\n    /// alpha  \n    /// beta\n    void f() { }\n}\n",
-                        "class T {\n    /// alpha\n    /// beta\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /// alpha  \n    /// beta\n    void f() { }\n}\n",
+                "class T {\n    /// alpha\n    /// beta\n    void f() { }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void markdownOuterIndentationMayChange() {
-        assertNull(
-                difference(
-                        "class T {\n  /// alpha\n  void f() { }\n}\n",
-                        "class T {\n        /// alpha\n        void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n  /// alpha\n  void f() { }\n}\n",
+                "class T {\n        /// alpha\n        void f() { }\n}\n"));
     }
 
     @Test
     void markdownOrdinaryParagraphMayBeRewrapped() {
-        assertNull(
-                difference(
-                        "class T {\n    /// alpha beta gamma delta\n    void f() { }\n}\n",
-                        "class T {\n    /// alpha beta\n    /// gamma delta\n    void f() { }\n}\n"));
+        assertNull(difference(
+                "class T {\n    /// alpha beta gamma delta\n    void f() { }\n}\n",
+                "class T {\n    /// alpha beta\n    /// gamma delta\n    void f() { }\n}\n"));
     }
 
     @Test
     void physicalBlankLineKeepsMarkdownRunsSeparate() {
-        String problem =
-                difference(
-                        "class T {\n    /// first\n\n    /// second\n    void f() { }\n}\n",
-                        "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /// first\n\n    /// second\n    void f() { }\n}\n",
+                "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("boundary"), problem);
     }
 
     @Test
     void interveningCommentKeepsMarkdownRunsSeparate() {
-        String problem =
-                difference(
-                        "class T {\n    /// first\n    //\n    /// second\n    void f() { }\n}\n",
-                        "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
+        String problem = difference(
+                "class T {\n    /// first\n    //\n    /// second\n    void f() { }\n}\n",
+                "class T {\n    /// first\n    /// second\n    void f() { }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("boundary"), problem);
     }
@@ -225,33 +207,30 @@ class ProsePreservationTest {
 
     @Test
     void reorderingDoesNotExcuseLosingAWord() {
-        String problem =
-                differenceReordering(
-                        "class T {\n    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n}\n",
-                        "class T {\n    /**\n     * @param a\n     * @return r\n     */\n    int f(int a) { return a; }\n}\n");
+        String problem = differenceReordering(
+                "class T {\n    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n}\n",
+                "class T {\n    /**\n     * @param a\n     * @return r\n     */\n    int f(int a) { return a; }\n}\n");
         assertNotNull(problem);
         assertTrue(problem.contains("lost"), problem);
     }
 
     @Test
     void reorderingDoesNotPermitWordsToMoveBetweenTags() {
-        String problem =
-                differenceReordering(
-                        "class T {\n    /**\n     * @return alpha\n     * @param a beta\n     */\n"
-                                + "    int f(int a) { return a; }\n}\n",
-                        "class T {\n    /**\n     * @param a alpha\n     * @return beta\n     */\n"
-                                + "    int f(int a) { return a; }\n}\n");
+        String problem = differenceReordering(
+                "class T {\n    /**\n     * @return alpha\n     * @param a beta\n     */\n"
+                        + "    int f(int a) { return a; }\n}\n",
+                "class T {\n    /**\n     * @param a alpha\n     * @return beta\n     */\n"
+                        + "    int f(int a) { return a; }\n}\n");
         assertNotNull(problem);
     }
 
     @Test
     void reorderingDoesNotPermitWordsToMoveBetweenComments() {
-        String problem =
-                differenceReordering(
-                        "class T {\n    /** @return alpha */\n    int f() { return 1; }\n"
-                                + "    /** @return beta */\n    int g() { return 2; }\n}\n",
-                        "class T {\n    /** @return beta */\n    int f() { return 1; }\n"
-                                + "    /** @return alpha */\n    int g() { return 2; }\n}\n");
+        String problem = differenceReordering(
+                "class T {\n    /** @return alpha */\n    int f() { return 1; }\n"
+                        + "    /** @return beta */\n    int g() { return 2; }\n}\n",
+                "class T {\n    /** @return beta */\n    int f() { return 1; }\n"
+                        + "    /** @return alpha */\n    int g() { return 2; }\n}\n");
         assertNotNull(problem);
     }
 

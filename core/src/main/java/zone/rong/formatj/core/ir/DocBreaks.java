@@ -13,7 +13,7 @@ import java.util.List;
  */
 public final class DocBreaks {
 
-    private DocBreaks() { }
+    private DocBreaks() {}
 
     /** Returns an equivalent document with every group that must break marked as breaking. */
     public static Doc propagate(Doc doc) {
@@ -25,15 +25,17 @@ public final class DocBreaks {
         return rewrite(doc).forcesBreak();
     }
 
-    private record Rewritten(Doc doc, boolean forcesBreak) { }
+    private record Rewritten(Doc doc, boolean forcesBreak) {}
 
     private static Rewritten rewrite(Doc doc) {
         return switch (doc) {
             case Doc.Text text -> new Rewritten(text, false);
             case Doc.BreakParent parent -> new Rewritten(parent, true);
             case Doc.Mark mark -> new Rewritten(mark, false);
-            case Doc.Break lineBreak -> new Rewritten(lineBreak, lineBreak.kind() != Doc.BreakKind.LINE
-                    && lineBreak.kind() != Doc.BreakKind.SOFT);
+            case Doc.Break lineBreak ->
+                    new Rewritten(
+                            lineBreak,
+                            lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT);
             case Doc.Concat concat -> {
                 List<Doc> parts = new ArrayList<>(concat.parts().size());
                 boolean forced = false;
@@ -60,8 +62,7 @@ public final class DocBreaks {
                 // A first-line group is the one thing a break inside does not settle: it still travels
                 // outwards, because the line it makes is real, but this group is left to the printer's
                 // fit check, which measures only as far as that break.
-                Doc.GroupKind kind =
-                        group.kind() == Doc.GroupKind.FIRST_LINE
+                Doc.GroupKind kind = group.kind() == Doc.GroupKind.FIRST_LINE
                         ? Doc.GroupKind.FIRST_LINE
                         : inside ? Doc.GroupKind.ALWAYS : Doc.GroupKind.IF_NEEDED;
                 yield new Rewritten(Doc.group(content.doc(), kind), inside);

@@ -123,8 +123,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
         int i = 0;
         while (i < body.size()) {
             GreenNode statement = body.get(i);
-            int minimum =
-                    i == 0
+            int minimum = i == 0
                     ? minimumAfterOpen(statement, blankLinesAfterOpen)
                     : minimumBetween(body.get(i - 1), statement);
             parts.add(optional(separatorBefore(statement, minimum), inline));
@@ -151,8 +150,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(emit(open), contents, Doc.hardLine(), closeBrace(close));
         }
         Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
-        Doc closing =
-                Doc.concat(optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline), emit(close));
+        Doc closing = Doc.concat(
+                optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline),
+                emit(close));
         Doc braced = Doc.concat(emit(open), contents, closing);
         return inline ? Doc.group(braced) : braced;
     }
@@ -327,8 +327,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 afterSemicolon = true;
             }
         }
-        Doc inner =
-                rule(WrappingRules.FOR_STATEMENT) == WrapPolicy.NEVER
+        Doc inner = rule(WrappingRules.FOR_STATEMENT) == WrapPolicy.NEVER
                 ? Doc.concat(header)
                 : authorGroup(node, Doc.indent(continuation(), Doc.concat(header)));
         return Doc.concat(
@@ -415,12 +414,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         Doc edge = inside ? Doc.line() : Doc.softLine();
         Doc closingEdge = rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE ? edge : spaceIf(inside);
-        Doc body =
-                Doc.concat(
-                        emit(open),
-                        Doc.indentIfBreak(continuation(), Doc.concat(edge, resources)),
-                        closingEdge,
-                        emit(close));
+        Doc body = Doc.concat(
+                emit(open),
+                Doc.indentIfBreak(continuation(), Doc.concat(edge, resources)),
+                closingEdge,
+                emit(close));
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(body) : authorGroup(node, body);
     }
 
@@ -498,8 +496,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 GreenNode previous = children.get(i - 1);
                 parts.add(
                         previous.kind() == SyntaxKind.ANNOTATION
-                        ? annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children)
-                        : space());
+                                ? annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children)
+                                : space());
             }
             parts.add(emit(child));
         }
@@ -507,8 +505,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
             GreenNode previous = children.get(firstType - 1);
             parts.add(
                     previous.kind() == SyntaxKind.ANNOTATION
-                    ? annotationSeparator(children.get(firstType), rule(AnnotationRules.PARAMETER_PLACEMENT), children)
-                    : space());
+                            ? annotationSeparator(
+                                    children.get(firstType),
+                                    rule(AnnotationRules.PARAMETER_PLACEMENT),
+                                    children)
+                            : space());
         }
 
         List<Doc> alternatives = new ArrayList<>();
@@ -521,14 +522,13 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 alternatives.add(emit(child));
             }
         }
-        parts.add(
-                emitOperatorSeparated(
-                        node,
-                        alternatives,
-                        separators,
-                        rule(SpacingRules.AROUND_MULTICATCH_SEPARATOR),
-                        rule(WrappingRules.MULTICATCH),
-                        rule(WrappingRules.MULTICATCH_SEPARATOR_POSITION)));
+        parts.add(emitOperatorSeparated(
+                node,
+                alternatives,
+                separators,
+                rule(SpacingRules.AROUND_MULTICATCH_SEPARATOR),
+                rule(WrappingRules.MULTICATCH),
+                rule(WrappingRules.MULTICATCH_SEPARATOR_POSITION)));
         parts.add(space());
         parts.add(emit(children.get(name)));
         return Doc.concat(parts);
@@ -687,8 +687,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
     protected Doc emitSwitchCase(GreenNode node) {
         List<GreenNode> children = node.children();
         boolean arrow = children.size() > 1 && is(children.get(1), "->");
-        Doc labels =
-                arrow
+        Doc labels = arrow
                 ? Doc.concat(emit(children.getFirst()), alignmentMark(AlignmentSite.SWITCH_ARROW))
                 : emit(children.getFirst());
         if (arrow) {
@@ -704,8 +703,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             GreenNode labelNode = children.getFirst();
             boolean onOneLine = isNullDefault(labelNode.children())
                     && keepsOnOneLine(labelNode, SwitchRules.NULL_DEFAULT_ON_ONE_LINE);
-            Doc tail =
-                    rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
+            Doc tail = rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
                     ? Doc.group(Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), bodyDoc)))
                     : Doc.concat(spaceIf(spaced), bodyDoc);
             return Doc.concat(labels, spaceIf(spaced), emit(children.get(1)), tail);
@@ -758,8 +756,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(keyword, space(), pair, guard);
         }
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
-        Doc labels =
-                rule(SwitchRules.MULTI_LABEL_WRAPPING) == WrapPolicy.WRAP_IF_LONG
+        Doc labels = rule(SwitchRules.MULTI_LABEL_WRAPPING) == WrapPolicy.WRAP_IF_LONG
                 ? Doc.fill(withSeparator(elements, separator))
                 : Doc.join(separator, elements);
         return authorGroup(node, Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
@@ -810,8 +807,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<GreenNode> children = node.children();
         Doc guard = Doc.concat(emit(children.get(0)), space(), emit(children.get(1)));
         return rule(SwitchRules.GUARD_ON_SAME_LINE)
-               ? guard
-               : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
+                ? guard
+                : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
     }
 
     protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {

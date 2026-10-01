@@ -54,10 +54,10 @@ public sealed interface Doc {
     }
 
     /** A sequence of documents. */
-    record Concat(List<Doc> parts) implements Doc { }
+    record Concat(List<Doc> parts) implements Doc {}
 
     /** A place a line break may be taken. */
-    record Break(BreakKind kind) implements Doc { }
+    record Break(BreakKind kind) implements Doc {}
 
     /**
      * A unit that is printed flat if it fits, or broken as a whole if it does not.
@@ -67,10 +67,10 @@ public sealed interface Doc {
      * group unable to be flat. A forced break still reaches the groups outside this one — the line
      * really is there — it just no longer decides this group.
      */
-    record Group(Doc content, GroupKind kind) implements Doc { }
+    record Group(Doc content, GroupKind kind) implements Doc {}
 
     /** Adds {@code columns} of indentation to line breaks inside {@code content}. */
-    record Indent(int columns, Doc content) implements Doc { }
+    record Indent(int columns, Doc content) implements Doc {}
 
     /**
      * Adds {@code columns} of indentation only when the enclosing group breaks.
@@ -81,10 +81,10 @@ public sealed interface Doc {
      * content that still breaks — a chain flat around a block lambda — and the lines that lambda
      * brings belong to the statement's indentation rather than to the wrapping that never happened.
      */
-    record IndentIfBreak(int columns, Doc content) implements Doc { }
+    record IndentIfBreak(int columns, Doc content) implements Doc {}
 
     /** Indents {@code content} to the current column rather than by a fixed amount. */
-    record Align(Doc content) implements Doc { }
+    record Align(Doc content) implements Doc {}
 
     /**
      * Sets the indent of {@code content} to {@code columns} absolutely, rather than adding to the
@@ -94,26 +94,26 @@ public sealed interface Doc {
      * so the line actually starts at that column. That is how a comment can sit in column one, or keep
      * the indent the author wrote, while the code around it follows the ordinary indent rules.
      */
-    record LineIndent(int columns, Doc content) implements Doc { }
+    record LineIndent(int columns, Doc content) implements Doc {}
 
     /**
      * A break in front of {@code content} that is taken only when the content's first line would not
      * fit after it. Taken, the content is indented by {@code columns}; left, the content stays on the
      * line and breaks inside itself.
      */
-    record Fluid(int columns, Break separator, Doc content) implements Doc { }
+    record Fluid(int columns, Break separator, Doc content) implements Doc {}
 
     /** Fills as many parts onto each line as fit, breaking between them as needed. */
-    record Fill(List<Doc> parts) implements Doc { }
+    record Fill(List<Doc> parts) implements Doc {}
 
     /** Prints {@code broken} when the enclosing group breaks, {@code flat} when it does not. */
-    record IfBreak(Doc broken, Doc flat) implements Doc { }
+    record IfBreak(Doc broken, Doc flat) implements Doc {}
 
     /** Defers {@code content} to the end of the current line; how trailing comments are placed. */
-    record LineSuffix(Doc content) implements Doc { }
+    record LineSuffix(Doc content) implements Doc {}
 
     /** Forces every enclosing group to break without printing anything itself. */
-    record BreakParent() implements Doc { }
+    record BreakParent() implements Doc {}
 
     /**
      * Prints nothing, and records where it landed so a column alignment rule can pad there.
@@ -122,7 +122,7 @@ public sealed interface Doc {
      * the same text whether the marks are there or not. That is the whole point — alignment is
      * applied to the printed text afterwards and can never change which breaks were taken.
      */
-    record Mark(AlignmentSite site) implements Doc { }
+    record Mark(AlignmentSite site) implements Doc {}
 
     Doc EMPTY = new Text("", false);
 

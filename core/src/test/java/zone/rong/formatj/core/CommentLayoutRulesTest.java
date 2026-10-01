@@ -35,7 +35,7 @@ class CommentLayoutRulesTest {
     void aZeroTrailingCommentColumnLeavesTheCommentAgainstTheCode() {
         String source = "class A {\n\n    private int x; // one\n\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("private int x; // one"), formatted);
         assertTrue(commentColumn(formatted, "private int x;") < 40, formatted);
@@ -55,8 +55,9 @@ class CommentLayoutRulesTest {
     void alignmentCanStillPushARunPastTheColumn() {
         String source = "class A {\n\n    private int x; // one\n    private String aVeryLongFieldNameIndeed; // two\n\n}\n";
 
-        String formatted =
-                format(source, style -> style.comments(comments -> comments.trailingCommentColumn(40))
+        String formatted = format(
+                source,
+                style -> style.comments(comments -> comments.trailingCommentColumn(40))
                         .alignment(alignment -> alignment.trailingComments(AlignmentPolicy.ALIGN_ON_COLUMN)));
 
         int first = commentColumn(formatted, "private int x;");
@@ -69,11 +70,9 @@ class CommentLayoutRulesTest {
     void trailingCommentMinSpacesAreStillHonouredWhenPaddingToAColumn() {
         String source = "class A {\n\n    private int x; // one\n\n}\n";
 
-        String formatted =
-                format(
-                        source,
-                        style -> style.comments(comments -> comments.trailingCommentColumn(40).trailingCommentMinSpaces(
-                                2)));
+        String formatted = format(
+                source,
+                style -> style.comments(comments -> comments.trailingCommentColumn(40).trailingCommentMinSpaces(2)));
 
         assertEquals(40, commentColumn(formatted, "private int x;"));
         int lineStart = formatted.lastIndexOf('\n', formatted.indexOf("//")) + 1;
@@ -94,7 +93,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("        // note\n        int x = 1;"), formatted);
         assertFalse(formatted.contains("\n// note\n"), formatted);
@@ -206,7 +205,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("        // two\n        int x = 1;"), formatted);
     }
@@ -277,7 +276,7 @@ class CommentLayoutRulesTest {
     void codePulledOntoACommentedLineStartsTheNextLine() {
         String source = "class A {\n    void m() //x\n    { // pad\n    }\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("void m() //x\n    { // pad\n"), formatted);
     }
@@ -286,7 +285,7 @@ class CommentLayoutRulesTest {
     void anOperatorFollowedByACommentStaysAtTheEndOfItsLine() {
         String source = "class A {\n    boolean m() {\n        return a && // first\n                b;\n    }\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("return a && // first\n                b;"), formatted);
     }
@@ -295,7 +294,7 @@ class CommentLayoutRulesTest {
     void anInlineBlockCommentStaysWhereTheAuthorPutIt() {
         String source = "class A {\n    void m() {\n        f(a, /*b*/ true, c /*d*/);\n    }\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("f(a, /*b*/ true, c /*d*/);"), formatted);
     }
@@ -304,7 +303,7 @@ class CommentLayoutRulesTest {
     void aJavadocLineWithoutAStarKeepsItsIndentation() {
         String source = "class A {\n  /**\n * Sample:\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n */\n  void m() {}\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n"), formatted);
     }
@@ -313,7 +312,7 @@ class CommentLayoutRulesTest {
     void aCommentAboveAnElementLeavesTheElementOnOneLine() {
         String source = "class A {\n    int[][] p = {\n        // note\n        {7, 4},\n        {7, 5}};\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("        // note\n        {7, 4},\n"), formatted);
     }
@@ -322,7 +321,7 @@ class CommentLayoutRulesTest {
     void aCommentAboveAnOperatorStaysAboveIt() {
         String source = "class A {\n    String s = \"a\"\n            // note\n            + \"b\";\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("String s = \"a\"\n            // note\n            + \"b\";"), formatted);
     }
@@ -331,7 +330,7 @@ class CommentLayoutRulesTest {
     void commentedDeclaratorsTakeALineEach() {
         String source = "class A {\n    int a = 1, // one\n    b = 2;\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("int a = 1, // one\n            b = 2;"), formatted);
     }
@@ -340,7 +339,7 @@ class CommentLayoutRulesTest {
     void aCommentOnItsOwnLineAboveAReturnValueStaysThere() {
         String source = "class A {\n    int m() {\n        return\n            // note\n            a;\n    }\n}\n";
 
-        String formatted = format(source, style -> { });
+        String formatted = format(source, style -> {});
 
         assertTrue(formatted.contains("return\n                // note\n                a;"), formatted);
     }

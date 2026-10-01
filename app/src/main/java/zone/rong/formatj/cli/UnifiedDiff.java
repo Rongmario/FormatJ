@@ -13,7 +13,7 @@ public final class UnifiedDiff {
 
     private static final int CONTEXT = 3;
 
-    private UnifiedDiff() { }
+    private UnifiedDiff() {}
 
     /** A unified diff of two texts, or an empty string when they are identical. */
     public static String between(String name, String before, String after) {
@@ -114,8 +114,7 @@ public final class UnifiedDiff {
         int[][] lengths = new int[left.size() + 1][right.size() + 1];
         for (int i = left.size() - 1; i >= 0; i--) {
             for (int j = right.size() - 1; j >= 0; j--) {
-                lengths[i][j] =
-                        left.get(i).equals(right.get(j))
+                lengths[i][j] = left.get(i).equals(right.get(j))
                         ? lengths[i + 1][j + 1] + 1
                         : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
             }

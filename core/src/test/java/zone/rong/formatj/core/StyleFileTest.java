@@ -29,9 +29,8 @@ class StyleFileTest {
 
     @Test
     void readsTablesDottedKeysAndArrays() {
-        Map<String, String> values =
-                TomlReader.read(
-                        """
+        Map<String, String> values = TomlReader.read(
+                """
                 # a comment
                 preset = "google"
 
@@ -50,9 +49,8 @@ class StyleFileTest {
 
     @Test
     void anArrayMayRunOverSeveralLinesAndCarryComments() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                 [imports]
                 order = "ascending"
                 groups = [
@@ -70,8 +68,9 @@ class StyleFileTest {
 
     @Test
     void anUnterminatedArrayNamesItsKey() {
-        TomlReader.TomlException thrown =
-                assertThrows(TomlReader.TomlException.class, () -> TomlReader.read(
+        TomlReader.TomlException thrown = assertThrows(
+                TomlReader.TomlException.class,
+                () -> TomlReader.read(
                         """
                         [imports]
                         groups = [
@@ -82,9 +81,8 @@ class StyleFileTest {
 
     @Test
     void aPresetKeyChoosesTheStartingPointAndOtherKeysOverrideIt() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                 preset = "google"
 
                 [indent]
@@ -108,9 +106,8 @@ class StyleFileTest {
 
     @Test
     void listValuesLoadAsLists() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                 [imports]
                 groups = ["java", "zone.rong.formatj", "*"]
                 """);
@@ -121,8 +118,9 @@ class StyleFileTest {
 
     @Test
     void malformedFilesFailWithTheLineNumber() {
-        TomlReader.TomlException failure =
-                assertThrows(TomlReader.TomlException.class, () -> TomlReader.read("[indent\nsize = 4\n"));
+        TomlReader.TomlException failure = assertThrows(
+                TomlReader.TomlException.class,
+                () -> TomlReader.read("[indent\nsize = 4\n"));
         assertEquals(1, failure.line());
         assertTrue(failure.getMessage().contains("line 1"));
     }
@@ -139,9 +137,8 @@ class StyleFileTest {
 
     @Test
     void literalStringsKeepAHashAndDropOnlyTheirQuotes() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                         [comments]
                         off-marker = '#stop'
                         """);
@@ -150,9 +147,8 @@ class StyleFileTest {
 
     @Test
     void anEscapedBackslashBeforeAClosingQuoteDoesNotEatTheQuote() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                         [comments]
                         off-marker = "a\\\\" # trailing comment
                         """);
@@ -169,10 +165,9 @@ class StyleFileTest {
 
     @Test
     void duplicateTableHeadersAreRejected() {
-        TomlReader.TomlException failure =
-                assertThrows(
-                        TomlReader.TomlException.class,
-                        () -> TomlReader.read("[indent]\nsize = 4\n[indent]\nsize = 5\n"));
+        TomlReader.TomlException failure = assertThrows(
+                TomlReader.TomlException.class,
+                () -> TomlReader.read("[indent]\nsize = 4\n[indent]\nsize = 5\n"));
         assertTrue(failure.getMessage().contains("indent"), failure.getMessage());
     }
 
@@ -184,9 +179,8 @@ class StyleFileTest {
 
     @Test
     void integerValuesAcceptDigitGroupingUnderscores() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                         [wrapping]
                         max-line-length = 1_000
                         """);
@@ -195,9 +189,8 @@ class StyleFileTest {
 
     @Test
     void quotedKeysAreAccepted() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                         [indent]
                         "size" = 6
                         """);
@@ -212,11 +205,10 @@ class StyleFileTest {
 
     @Test
     void aLineLengthBelowOneNamesTheOption() {
-        IllegalArgumentException failure =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> StyleFiles.parse(
-                                """
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> StyleFiles.parse(
+                        """
                                 [wrapping]
                                 max-line-length = 0
                                 """));
@@ -225,11 +217,10 @@ class StyleFileTest {
 
     @Test
     void aNegativeCountNamesTheOption() {
-        IllegalArgumentException failure =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> StyleFiles.parse(
-                                """
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> StyleFiles.parse(
+                        """
                                 [blank-lines]
                                 max-consecutive = -1
                                 """));
@@ -252,9 +243,8 @@ class StyleFileTest {
 
     @Test
     void filesIncludeAndExcludeDoNotLeakIntoTheStyleOrFailAsUnknownOptions() {
-        Style style =
-                StyleFiles.parse(
-                        """
+        Style style = StyleFiles.parse(
+                """
                         [files]
                         include = ["src/**"]
                         exclude = ["**/generated/**"]

@@ -106,16 +106,17 @@ public final class TextBlockRewrite implements Rewrite {
         if (position < 0) {
             return child;
         }
-        context.record(
-                new TokenEdit(
-                        authority,
-                        "a text block written the way the text block rules ask for",
-                        position,
-                        List.of(original),
-                        List.of(rewritten),
-                        TokenEdit.Bias.INNERMOST_FIRST));
-        return GreenNode.leaf(
-                new SyntaxToken(syntax.leading(), Token.synthetic(TokenKind.TEXT_BLOCK, rewritten), syntax.trailing()));
+        context.record(new TokenEdit(
+                authority,
+                "a text block written the way the text block rules ask for",
+                position,
+                List.of(original),
+                List.of(rewritten),
+                TokenEdit.Bias.INNERMOST_FIRST));
+        return GreenNode.leaf(new SyntaxToken(
+                syntax.leading(),
+                Token.synthetic(TokenKind.TEXT_BLOCK, rewritten),
+                syntax.trailing()));
     }
 
 }

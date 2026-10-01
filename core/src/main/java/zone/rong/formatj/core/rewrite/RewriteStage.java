@@ -36,18 +36,17 @@ import java.util.List;
  */
 public final class RewriteStage {
 
-    private static final List<Rewrite> REWRITES =
-            List.of(
-                    new ImportRewrite(),
-                    new ModifierRewrite(),
-                    new SealedRewrite(),
-                    new SwitchCaseRewrite(),
-                    new SwitchRewrite(),
-                    new LambdaRewrite(),
-                    new BraceRewrite(),
-                    new TextBlockRewrite());
+    private static final List<Rewrite> REWRITES = List.of(
+            new ImportRewrite(),
+            new ModifierRewrite(),
+            new SealedRewrite(),
+            new SwitchCaseRewrite(),
+            new SwitchRewrite(),
+            new LambdaRewrite(),
+            new BraceRewrite(),
+            new TextBlockRewrite());
 
-    private RewriteStage() { }
+    private RewriteStage() {}
 
     /** Every rewrite the formatter ships, in the order they run. */
     public static List<Rewrite> defaults() {

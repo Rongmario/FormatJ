@@ -76,8 +76,9 @@ class TextBlockRulesTest {
 
         assertEquals(emSpace, TextBlocks.value(block));
 
-        FormatResult result =
-                format(Style.builder().set(TextBlockRules.INDENT_POLICY, TextBlockIndentPolicy.MINIMAL).build(), block);
+        FormatResult result = format(
+                Style.builder().set(TextBlockRules.INDENT_POLICY, TextBlockIndentPolicy.MINIMAL).build(),
+                block);
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals(emSpace, TextBlocks.value(blockOf(result.text())));
         assertTrue(result.text().contains(emSpace), result.text());
@@ -111,8 +112,9 @@ class TextBlockRulesTest {
     @Test
     void theClosingDelimiterRuleAddsTheLineTerminatorItImplies() {
         String inline = "\"\"\"\n        a\n        b\"\"\"";
-        FormatResult result =
-                format(Style.builder().set(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE, true).build(), inline);
+        FormatResult result = format(
+                Style.builder().set(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE, true).build(),
+                inline);
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals("a\nb\n", TextBlocks.value(blockOf(result.text())));
     }
@@ -145,18 +147,16 @@ class TextBlockRulesTest {
     @Test
     void anEditThatChangesTheContentFailsTheLaw() {
         GreenNode tree = tree();
-        String problem =
-                RewriteVerification.verifyOutput(
-                        tree,
-                        tree,
-                        List.of(
-                                new TokenEdit(
-                                        TextBlockRules.ESCAPE_TRAILING_SPACES,
-                                        "quietly editing the query",
-                                        blockPosition(tree),
-                                        List.of(BLOCK),
-                                        List.of("\"\"\"\n        delete *\n          from t\n        \"\"\""),
-                                        TokenEdit.Bias.INNERMOST_FIRST)));
+        String problem = RewriteVerification.verifyOutput(
+                tree,
+                tree,
+                List.of(new TokenEdit(
+                        TextBlockRules.ESCAPE_TRAILING_SPACES,
+                        "quietly editing the query",
+                        blockPosition(tree),
+                        List.of(BLOCK),
+                        List.of("\"\"\"\n        delete *\n          from t\n        \"\"\""),
+                        TokenEdit.Bias.INNERMOST_FIRST)));
         assertNotNull(problem);
         assertTrue(problem.contains("what the text block says"), problem);
     }
@@ -164,36 +164,32 @@ class TextBlockRulesTest {
     @Test
     void anEditThatOnlyMovesTheEndSatisfiesTheLaw() {
         GreenNode tree = tree();
-        String problem =
-                RewriteVerification.verifyOutput(
-                        tree,
-                        tree,
-                        List.of(
-                                new TokenEdit(
-                                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
-                                        "moving the delimiter",
-                                        blockPosition(tree),
-                                        List.of(BLOCK),
-                                        List.of(BLOCK),
-                                        TokenEdit.Bias.INNERMOST_FIRST)));
+        String problem = RewriteVerification.verifyOutput(
+                tree,
+                tree,
+                List.of(new TokenEdit(
+                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
+                        "moving the delimiter",
+                        blockPosition(tree),
+                        List.of(BLOCK),
+                        List.of(BLOCK),
+                        TokenEdit.Bias.INNERMOST_FIRST)));
         assertNull(problem);
     }
 
     @Test
     void anEditThatIsNotAWholeTextBlockFailsTheLaw() {
         GreenNode tree = tree();
-        String problem =
-                RewriteVerification.verifyOutput(
-                        tree,
-                        tree,
-                        List.of(
-                                new TokenEdit(
-                                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
-                                        "reaching outside the block",
-                                        blockPosition(tree),
-                                        List.of(BLOCK),
-                                        List.of("\"a\""),
-                                        TokenEdit.Bias.INNERMOST_FIRST)));
+        String problem = RewriteVerification.verifyOutput(
+                tree,
+                tree,
+                List.of(new TokenEdit(
+                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
+                        "reaching outside the block",
+                        blockPosition(tree),
+                        List.of(BLOCK),
+                        List.of("\"a\""),
+                        TokenEdit.Bias.INNERMOST_FIRST)));
         assertNotNull(problem);
         assertTrue(problem.contains("one whole text block"), problem);
     }

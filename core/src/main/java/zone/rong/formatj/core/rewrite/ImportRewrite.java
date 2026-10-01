@@ -65,14 +65,13 @@ public final class ImportRewrite implements Rewrite {
             if (position < 0) {
                 return node;
             }
-            context.record(
-                    new TokenEdit(
-                            ImportRules.ORDER,
-                            "imports reordered or removed",
-                            position,
-                            before,
-                            after,
-                            TokenEdit.Bias.INNERMOST_FIRST));
+            context.record(new TokenEdit(
+                    ImportRules.ORDER,
+                    "imports reordered or removed",
+                    position,
+                    before,
+                    after,
+                    TokenEdit.Bias.INNERMOST_FIRST));
         }
 
         return replaceRun(node, entries, ordered, sorts);

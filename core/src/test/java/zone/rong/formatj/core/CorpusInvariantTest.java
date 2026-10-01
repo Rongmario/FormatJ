@@ -111,18 +111,22 @@ class CorpusInvariantTest {
                 .set(BraceRules.WHILE_LOOP, BracePolicy.ALWAYS)
                 .build();
         Formatter formatter = FormatJ.newFormatter().style(bracing).build();
-        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-            String source = Files.readString(path, StandardCharsets.UTF_8);
-            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-            assertTrue(once.diagnostics()
-                    .stream()
-                    .noneMatch(d -> d.severity()
-                            == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
+        return corpus()
+                .stream()
+                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+                    assertTrue(
+                            once.diagnostics()
+                                    .stream()
+                                    .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                            () -> "rewrites were dropped: "
+                                    + once.diagnostics());
 
-            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-        }));
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
     }
 
     /**
@@ -140,18 +144,22 @@ class CorpusInvariantTest {
                 .set(ImportRules.REMOVE_UNUSED, true)
                 .build();
         Formatter formatter = FormatJ.newFormatter().style(sorting).build();
-        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-            String source = Files.readString(path, StandardCharsets.UTF_8);
-            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-            assertTrue(once.diagnostics()
-                    .stream()
-                    .noneMatch(d -> d.severity()
-                            == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
+        return corpus()
+                .stream()
+                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+                    assertTrue(
+                            once.diagnostics()
+                                    .stream()
+                                    .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                            () -> "rewrites were dropped: "
+                                    + once.diagnostics());
 
-            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-        }));
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
     }
 
     /**
@@ -176,14 +184,16 @@ class CorpusInvariantTest {
                 .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
                 .build();
         Formatter formatter = FormatJ.newFormatter().style(aligning).build();
-        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-            String source = Files.readString(path, StandardCharsets.UTF_8);
-            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+        return corpus()
+                .stream()
+                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
 
-            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-        }));
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
     }
 
     @TestFactory
@@ -211,9 +221,7 @@ class CorpusInvariantTest {
                         FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
                         assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
                         ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
-                        assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green())
-                                == null, () -> "formatting changed the program: "
-                                + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
+                        assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, () -> "formatting changed the program: " + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
 
                         FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
                         assertEquals(once.text(), twice.text(), "formatting must be a fixed point");

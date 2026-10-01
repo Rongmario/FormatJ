@@ -31,7 +31,7 @@ import zone.rong.formatj.core.lexer.Token;
  */
 final class AuthorLines {
 
-    private AuthorLines() { }
+    private AuthorLines() {}
 
     /** Whether the author wrote every token of this node on one line. */
     static boolean onOneLine(GreenNode node) {

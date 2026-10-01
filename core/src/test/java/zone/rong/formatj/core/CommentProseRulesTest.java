@@ -82,15 +82,16 @@ class CommentProseRulesTest {
     @Test
     void paragraphTagsStayOutOfCodeSamples() {
         String body = "    /**\n     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n     * </pre>\n     */\n    void f() { }\n";
-        String formatted =
-                format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true).addParagraphTags(true)), body);
+        String formatted = format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true).addParagraphTags(true)), body);
         assertTrue(formatted.contains("     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n"), formatted);
     }
 
     @Test
     void reflowKeepsTheParagraphsOfABlockComment() {
         String source = "/* One.\n *\n * Two  three. */\nclass T { }\n";
-        String formatted = reformat(rules -> rules.comments(comments -> comments.reflow(CommentReflow.REFLOW_TO_LINE_LENGTH)), source);
+        String formatted = reformat(
+                rules -> rules.comments(comments -> comments.reflow(CommentReflow.REFLOW_TO_LINE_LENGTH)),
+                source);
         assertTrue(formatted.startsWith("/*\n * One.\n *\n * Two three.\n */\n"), formatted);
     }
 
@@ -98,62 +99,57 @@ class CommentProseRulesTest {
     void reflowIsOffByDefault() {
         String body = "    // one two three four five six seven eight nine ten eleven twelve\n    void f() { }\n";
         assertTrue(
-                format(style -> { }, body).contains(
+                format(style -> {}, body).contains(
                         "// one two three four five six seven eight nine ten eleven twelve"));
     }
 
     @Test
     void reflowRefillsARunOfLineCommentsToTheMargin() {
-        String formatted =
-                format(
-                        style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    // one two three four five six seven eight nine\n    // ten\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    // one two three four five six seven eight nine\n    // ten\n    void f() { }\n");
         assertTrue(formatted.contains("    // one two three four five six seven\n    // eight nine ten\n"), formatted);
     }
 
     @Test
     void reflowLeavesATrailingCommentOnItsOwnLine() {
-        String formatted =
-                format(
-                        style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    void f() { } // one two three four five six seven eight\n");
+        String formatted = format(
+                style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    void f() { } // one two three four five six seven eight\n");
         assertTrue(formatted.contains("// one two three four five six seven eight"), formatted);
     }
 
     @Test
     void reflowLeavesCommentedOutCodeRagged() {
-        String formatted =
-                format(
-                        style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    //g();\n    //h();\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    //g();\n    //h();\n    void f() { }\n");
         assertTrue(formatted.contains("    //g();\n    //h();\n"), formatted);
     }
 
     @Test
     void reflowLeavesAFencedCodeBlockInADocCommentRunAlone() {
-        String formatted =
-                format(
-                        style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    /// ```\n    ///   int x =   1;\n    /// ```\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    /// ```\n    ///   int x =   1;\n    /// ```\n    void f() { }\n");
         assertTrue(formatted.contains("///   int x =   1;\n"), formatted);
     }
 
     @Test
     void markdownProbeCasesKeepTheirLineStructure() {
-        List<String> comments =
-                List.of(
-                        "    /// First paragraph.\n    ///\n    /// Second paragraph.\n",
-                        "    /// - first\n    ///   continued\n    /// - second\n",
-                        "    /// | Name | Value |\n    /// | --- | ---: |\n    /// | one | 1 |\n",
-                        "    /// @param value the value\n    /// @return the result\n",
-                        "    /// ```java\n    /// int x = 1;\n    /// ```\n",
-                        "    /// ~~~java\n    /// int x = 1;\n    /// ~~~\n");
+        List<String> comments = List.of(
+                "    /// First paragraph.\n    ///\n    /// Second paragraph.\n",
+                "    /// - first\n    ///   continued\n    /// - second\n",
+                "    /// | Name | Value |\n    /// | --- | ---: |\n    /// | one | 1 |\n",
+                "    /// @param value the value\n    /// @return the result\n",
+                "    /// ```java\n    /// int x = 1;\n    /// ```\n",
+                "    /// ~~~java\n    /// int x = 1;\n    /// ~~~\n");
         for (String comment : comments) {
-            assertMarkdownPreserved(style -> { }, comment);
+            assertMarkdownPreserved(style -> {}, comment);
             assertMarkdownPreserved(
                     style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH),
                     comment);
@@ -162,13 +158,13 @@ class CommentProseRulesTest {
 
     @Test
     void markdownHardBreakSurvivesWhenReflowIsDisabled() {
-        assertMarkdownPreserved(style -> { }, "    /// first line  \n    /// second line\n");
+        assertMarkdownPreserved(style -> {}, "    /// first line  \n    /// second line\n");
     }
 
     @Test
     void markdownNestedListIndentationSurvives() {
         String comment = "    /// - outer\n    ///   - inner\n    ///     continuation\n";
-        assertMarkdownPreserved(style -> { }, comment);
+        assertMarkdownPreserved(style -> {}, comment);
         assertMarkdownPreserved(style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH), comment);
     }
 
@@ -181,31 +177,29 @@ class CommentProseRulesTest {
     @Test
     void physicalBlankLineSeparatesMarkdownRuns() {
         String comment = "    /// ignored documentation\n\n    /// declaration documentation\n";
-        assertMarkdownPreserved(style -> { }, comment);
+        assertMarkdownPreserved(style -> {}, comment);
         assertMarkdownPreserved(style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH), comment);
     }
 
     @Test
     void javadocRulesFormatMarkdownWithoutFlatteningItsBlocks() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true)
-                                .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
-                                .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
-                                .set(JavadocRules.TAG_CONTINUATION_INDENT, 4)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 48),
-                        "    /// This ordinary paragraph contains enough words to wrap safely at the configured margin.\n"
-                                + "    ///\n" + "    /// `code span with  spaces` stays here.\n" + "    ///\n"
-                                + "    /// # Heading\n" + "    /// Heading text.\n" + "    ///\n"
-                                + "    /// - first item\n" + "    ///   - nested item\n" + "    ///\n"
-                                + "    /// | Name | Value |\n" + "    /// | --- | ---: |\n" + "    /// | one | 1 |\n"
-                                + "    ///\n" + "    /// > quoted text\n" + "    ///\n"
-                                + "    /// Read [the guide][guide] before use.\n" + "    ///\n"
-                                + "    /// [guide]: https://example.com/guide\n" + "    ///\n"
-                                + "    /// @return a result description with enough words to wrap onto another line\n"
-                                + "    /// @param a short parameter description\n"
-                                + "    /// @param longer another parameter description\n"
-                                + "    int f(int a, int longer) { return a; }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.WRAP, true)
+                        .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
+                        .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
+                        .set(JavadocRules.TAG_CONTINUATION_INDENT, 4)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 48),
+                "    /// This ordinary paragraph contains enough words to wrap safely at the configured margin.\n"
+                        + "    ///\n" + "    /// `code span with  spaces` stays here.\n" + "    ///\n"
+                        + "    /// # Heading\n" + "    /// Heading text.\n" + "    ///\n" + "    /// - first item\n"
+                        + "    ///   - nested item\n" + "    ///\n" + "    /// | Name | Value |\n"
+                        + "    /// | --- | ---: |\n" + "    /// | one | 1 |\n" + "    ///\n"
+                        + "    /// > quoted text\n" + "    ///\n" + "    /// Read [the guide][guide] before use.\n"
+                        + "    ///\n" + "    /// [guide]: https://example.com/guide\n" + "    ///\n"
+                        + "    /// @return a result description with enough words to wrap onto another line\n"
+                        + "    /// @param a short parameter description\n"
+                        + "    /// @param longer another parameter description\n"
+                        + "    int f(int a, int longer) { return a; }\n");
 
         assertTrue(formatted.contains("/// This ordinary paragraph contains enough\n"), formatted);
         assertTrue(formatted.contains("/// `code span with  spaces` stays here.\n"), formatted);
@@ -245,16 +239,12 @@ class CommentProseRulesTest {
 
     @Test
     void markdownTagReaderIgnoresTagTextInCodeBlocks() {
-        String formatted =
-                format(
-                        style -> style.set(
-                                JavadocRules.TAG_ORDER,
-                                zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
-                        "    /// Description.\n" + "    ///\n" + "    /// ```text\n"
-                                + "    /// @return fenced sample\n" + "    /// ```\n" + "    ///\n"
-                                + "    ///     @param indented sample\n" + "    ///\n"
-                                + "    /// @return real result\n" + "    /// @param value real parameter\n"
-                                + "    int f(int value) { return value; }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
+                "    /// Description.\n" + "    ///\n" + "    /// ```text\n" + "    /// @return fenced sample\n"
+                        + "    /// ```\n" + "    ///\n" + "    ///     @param indented sample\n" + "    ///\n"
+                        + "    /// @return real result\n" + "    /// @param value real parameter\n"
+                        + "    int f(int value) { return value; }\n");
 
         assertTrue(formatted.contains("/// @return fenced sample\n"), formatted);
         assertTrue(formatted.contains("///     @param indented sample\n"), formatted);
@@ -273,13 +263,12 @@ class CommentProseRulesTest {
                 + "    /// [guide]: https://example.com/guide\n" + "    ///\n" + "    /// @return the supplied value\n"
                 + "    /// @param value the value to return\n" + "    public int f(int value) { return value; }\n"
                 + "}\n";
-        String formatted =
-                reformat(
-                        style -> style.set(JavadocRules.WRAP, true)
-                                .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
-                                .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 56),
-                        source);
+        String formatted = reformat(
+                style -> style.set(JavadocRules.WRAP, true)
+                        .set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL)
+                        .set(JavadocRules.ALIGN_TAG_DESCRIPTIONS, true)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 56),
+                source);
 
         String before = generateJavadoc(source, output.resolve("before"));
         String after = generateJavadoc(formatted, output.resolve("after"));
@@ -298,15 +287,14 @@ class CommentProseRulesTest {
         assumeTrue(tool != null);
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         StringWriter log = new StringWriter();
-        JavaFileObject unit =
-                new SimpleJavaFileObject(URI.create("string:///T.java"), JavaFileObject.Kind.SOURCE) {
+        JavaFileObject unit = new SimpleJavaFileObject(URI.create("string:///T.java"), JavaFileObject.Kind.SOURCE) {
 
-                    @Override
-                    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                        return source;
-                    }
+            @Override
+            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                return source;
+            }
 
-                };
+        };
         try (StandardJavaFileManager files = tool.getStandardFileManager(diagnostics, null, null)) {
             boolean documented = tool.getTask(
                     log,
@@ -346,25 +334,23 @@ class CommentProseRulesTest {
     @Test
     void aCommentNoRuleHasAnythingToSayAboutComesOutUntouched() {
         String comment = "    /**\n     * Text.\n     *\n     * @param a x\n     */\n";
-        String formatted = format(style -> { }, comment + "    void f(int a) { }\n");
+        String formatted = format(style -> {}, comment + "    void f(int a) { }\n");
         assertTrue(formatted.contains(comment), formatted);
     }
 
     @Test
     void blankLineBeforeTagsWritesTheBlankLineItAsksFor() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.BLANK_LINE_BEFORE_TAGS, true),
-                        "    /**\n     * Text.\n     * @param a x\n     */\n    void f(int a) { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.BLANK_LINE_BEFORE_TAGS, true),
+                "    /**\n     * Text.\n     * @param a x\n     */\n    void f(int a) { }\n");
         assertTrue(formatted.contains("     * Text.\n     *\n     * @param a x\n"), formatted);
     }
 
     @Test
     void blankLineBeforeTagsTakesItAwayAgainWhenTurnedOff() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.BLANK_LINE_BEFORE_TAGS, false),
-                        "    /**\n     * Text.\n     *\n     * @param a x\n     */\n    void f(int a) { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.BLANK_LINE_BEFORE_TAGS, false),
+                "    /**\n     * Text.\n     *\n     * @param a x\n     */\n    void f(int a) { }\n");
         assertTrue(formatted.contains("     * Text.\n     * @param a x\n"), formatted);
     }
 
@@ -376,50 +362,43 @@ class CommentProseRulesTest {
 
     @Test
     void keepSingleLineTurnedOffSpreadsItOut() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true).set(JavadocRules.KEEP_SINGLE_LINE, false),
-                        "    /** Text. */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.WRAP, true).set(JavadocRules.KEEP_SINGLE_LINE, false),
+                "    /** Text. */\n    void f() { }\n");
         assertTrue(formatted.contains("    /**\n     * Text.\n     */\n"), formatted);
     }
 
     @Test
     void tagContinuationIndentPushesTheSecondLineOfATagOver() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true)
-                                .set(JavadocRules.TAG_CONTINUATION_INDENT, 4)
-                                .set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    /**\n     * @param a one two three four five six seven\n     */\n    void f(int a) { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.WRAP, true)
+                        .set(JavadocRules.TAG_CONTINUATION_INDENT, 4)
+                        .set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    /**\n     * @param a one two three four five six seven\n     */\n    void f(int a) { }\n");
         assertTrue(formatted.contains("\n     *     "), formatted);
     }
 
     @Test
     void wrappingNeverTouchesASample() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    /**\n     * <pre>\n     *   int x =   1;\n     * </pre>\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    /**\n     * <pre>\n     *   int x =   1;\n     * </pre>\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     *   int x =   1;\n"), formatted);
     }
 
     @Test
     void wrappingNeverTouchesAFencedCodeBlock() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
-                        "    /**\n     * ```\n     *   int x =   1;\n     * ```\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.WRAP, true).set(WrappingRules.MAX_LINE_LENGTH, 40),
+                "    /**\n     * ```\n     *   int x =   1;\n     * ```\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     *   int x =   1;\n"), formatted);
     }
 
     @Test
     void tagOrderPutsTheTagsInTheConventionalOrder() {
-        String formatted =
-                format(
-                        style -> style.set(
-                                JavadocRules.TAG_ORDER,
-                                zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
-                        "    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.TAG_ORDER, zone.rong.formatj.api.rules.JavadocTagOrder.CANONICAL),
+                "    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n");
         assertTrue(formatted.indexOf("@param") < formatted.indexOf("@return"), formatted);
     }
 

@@ -96,26 +96,22 @@ class FormatJEngineTest {
                 }
                 """;
         FormatJEngine engine = new FormatJEngine(FormatJEngine.Settings.discover());
-        FormatJEngine.Outcome withRewrites =
-                engine.format(
-                        new FormatJEngine.Request(
-                                source,
-                                "T.java",
-                                file,
-                                List.of(),
-                                LanguageLevel.LATEST,
-                                false,
-                                true));
-        FormatJEngine.Outcome withoutRewrites =
-                engine.format(
-                        new FormatJEngine.Request(
-                                source,
-                                "T.java",
-                                file,
-                                List.of(),
-                                LanguageLevel.LATEST,
-                                false,
-                                false));
+        FormatJEngine.Outcome withRewrites = engine.format(new FormatJEngine.Request(
+                source,
+                "T.java",
+                file,
+                List.of(),
+                LanguageLevel.LATEST,
+                false,
+                true));
+        FormatJEngine.Outcome withoutRewrites = engine.format(new FormatJEngine.Request(
+                source,
+                "T.java",
+                file,
+                List.of(),
+                LanguageLevel.LATEST,
+                false,
+                false));
         assertTrue(withRewrites.text().contains("if (n > 0) {"), withRewrites.text());
         assertFalse(withoutRewrites.text().contains("if (n > 0) {"), withoutRewrites.text());
     }
@@ -153,9 +149,9 @@ class FormatJEngineTest {
                 }
                 """;
         FormatJEngine.Outcome emptyRanges = formatWhole(source);
-        FormatJEngine.Outcome covering =
-                new FormatJEngine(FormatJEngine.Settings.discover()).format(
-                        request(source, List.of(new SourceRange(0, source.length()))));
+        FormatJEngine.Outcome covering = new FormatJEngine(FormatJEngine.Settings.discover()).format(request(
+                source,
+                List.of(new SourceRange(0, source.length()))));
         assertEquals(emptyRanges.text(), covering.text());
     }
 

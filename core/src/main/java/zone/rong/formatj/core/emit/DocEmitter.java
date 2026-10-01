@@ -352,10 +352,10 @@ public final class DocEmitter extends StatementEmitter {
         return emitBracedBody(
                 node,
                 rule(ModuleRules.EMPTY_BODY).orElse(rule(BraceRules.EMPTY_CLASS_BODY)),
-                rule(ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE).orElse(
-                        rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE)),
-                rule(ModuleRules.BLANK_LINES_BEFORE_CLOSING_BRACE).orElse(
-                        rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE)));
+                rule(ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE).orElse(rule(
+                        BlankLineRules.AFTER_CLASS_OPENING_BRACE)),
+                rule(ModuleRules.BLANK_LINES_BEFORE_CLOSING_BRACE).orElse(rule(
+                        BlankLineRules.BEFORE_CLASS_CLOSING_BRACE)));
     }
 
     /**
@@ -367,9 +367,8 @@ public final class DocEmitter extends StatementEmitter {
      */
     private Doc emitModuleNameList(GreenNode node) {
         List<GreenNode> children = node.children();
-        WrapPolicy policy =
-                rule(
-                        node.kind() == SyntaxKind.TO_CLAUSE
+        WrapPolicy policy = rule(
+                node.kind() == SyntaxKind.TO_CLAUSE
                         ? ModuleRules.EXPORTS_OPENS_TARGET_LIST_WRAPPING
                         : ModuleRules.PROVIDES_IMPLEMENTATION_LIST_WRAPPING);
         Doc list = emitModuleCommaList(node, children.subList(1, children.size()), policy);
@@ -416,8 +415,7 @@ public final class DocEmitter extends StatementEmitter {
         }
 
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
-        Doc content =
-                policy == WrapPolicy.WRAP_IF_LONG
+        Doc content = policy == WrapPolicy.WRAP_IF_LONG
                 ? Doc.fill(withSeparators(elements, separator))
                 : Doc.join(separator, elements);
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(content) : authorGroup(owner, content);
@@ -456,12 +454,11 @@ public final class DocEmitter extends StatementEmitter {
         if (previous.kind() == SyntaxKind.INITIALIZER_BLOCK || next.kind() == SyntaxKind.INITIALIZER_BLOCK) {
             return rule(BlankLineRules.AROUND_INITIALIZER_BLOCK);
         }
-        int afterMethod =
-                switch (previous.kind()) {
-                    case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION ->
-                            rule(BlankLineRules.BEFORE_METHOD);
-                    default -> 0;
-                };
+        int afterMethod = switch (previous.kind()) {
+            case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION ->
+                    rule(BlankLineRules.BEFORE_METHOD);
+            default -> 0;
+        };
         return Math.max(afterMethod, betweenMembers(next));
     }
 
@@ -685,8 +682,7 @@ public final class DocEmitter extends StatementEmitter {
             return Doc.indent(indent, Doc.concat(lead, keyword, space(), Doc.concat(parts)));
         }
 
-        Doc separator =
-                policy == WrapPolicy.NEVER
+        Doc separator = policy == WrapPolicy.NEVER
                 ? spaceIf(rule(SpacingRules.AFTER_COMMA))
                 : rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         List<Doc> parts = new ArrayList<>();
@@ -801,13 +797,12 @@ public final class DocEmitter extends StatementEmitter {
             if (child.kind() == SyntaxKind.BLOCK) {
                 int padding = rule(RecordRules.COMPACT_CONSTRUCTOR_BLANK_LINE) ? 1 : 0;
                 parts.add(braceLead(rule(BraceRules.METHOD_PLACEMENT)));
-                parts.add(
-                        emitBracedBody(
-                                child,
-                                rule(BraceRules.EMPTY_METHOD_BODY),
-                                padding,
-                                padding,
-                                keepsOnOneLine(child, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)));
+                parts.add(emitBracedBody(
+                        child,
+                        rule(BraceRules.EMPTY_METHOD_BODY),
+                        padding,
+                        padding,
+                        keepsOnOneLine(child, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)));
                 continue;
             }
             if (i > 0) {
@@ -872,8 +867,8 @@ public final class DocEmitter extends StatementEmitter {
             // is where that is known, since the expression itself cannot see what encloses it.
             parts.add(
                     i == 0 && child.kind() == SyntaxKind.ASSIGNMENT_EXPRESSION
-                    ? emitAssignment(child, true)
-                    : emit(child));
+                            ? emitAssignment(child, true)
+                            : emit(child));
         }
         return Doc.concat(parts);
     }

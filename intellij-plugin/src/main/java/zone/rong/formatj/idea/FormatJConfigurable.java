@@ -54,13 +54,12 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
             styleFile.addBrowseFolderListener(
                     project,
                     FileChooserDescriptorFactory.createSingleFileDescriptor("toml").withTitle("FormatJ style file"));
-            preset =
-                    new ComboBox<>(
-                            new PresetItem[] {
-                                new PresetItem(PRESET_NONE, "None (discover formatj.toml)"),
-                                new PresetItem(PRESET_FORMATJ, "formatj"),
-                                new PresetItem(PRESET_GOOGLE, "google")
-                            });
+            preset = new ComboBox<>(
+                    new PresetItem[] {
+                        new PresetItem(PRESET_NONE, "None (discover formatj.toml)"),
+                        new PresetItem(PRESET_FORMATJ, "formatj"),
+                        new PresetItem(PRESET_GOOGLE, "google")
+                    });
             discovered = new JLabel();
             panel = new JPanel(new BorderLayout());
             panel.add(

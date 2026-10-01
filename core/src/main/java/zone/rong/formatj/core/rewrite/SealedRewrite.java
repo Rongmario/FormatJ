@@ -63,14 +63,13 @@ public final class SealedRewrite implements Rewrite {
         if (position < 0) {
             return node;
         }
-        context.record(
-                new TokenEdit(
-                        SealedRules.PERMITS_ORDER,
-                        "permitted types reordered",
-                        position,
-                        run(children, slots, types),
-                        run(children, slots, sorted),
-                        TokenEdit.Bias.INNERMOST_FIRST));
+        context.record(new TokenEdit(
+                SealedRules.PERMITS_ORDER,
+                "permitted types reordered",
+                position,
+                run(children, slots, types),
+                run(children, slots, sorted),
+                TokenEdit.Bias.INNERMOST_FIRST));
 
         List<GreenNode> rewritten = new ArrayList<>(children);
         for (int i = 0; i < slots.size(); i++) {

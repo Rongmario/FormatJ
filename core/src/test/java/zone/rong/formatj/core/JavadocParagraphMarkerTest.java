@@ -32,19 +32,17 @@ class JavadocParagraphMarkerTest {
 
     @Test
     void closingFormPreservesByDefault() {
-        String formatted =
-                format(
-                        style -> { },
-                        "    /**\n     * First.\n     * <p/>\n     * Second.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> {},
+                "    /**\n     * First.\n     * <p/>\n     * Second.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * <p/>\n"), formatted);
     }
 
     @Test
     void closingFormSlashFirstConvertsSelfClosingButLeavesOpeners() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST),
-                        "    /**\n     * First.\n     * <p/>\n     * Second.\n     * <p>\n     * Third.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST),
+                "    /**\n     * First.\n     * <p/>\n     * Second.\n     * <p>\n     * Third.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * </p>\n"), formatted);
         assertTrue(formatted.contains("     * <p>\n"), formatted);
         assertFalse(formatted.contains("<p/>"), formatted);
@@ -52,59 +50,53 @@ class JavadocParagraphMarkerTest {
 
     @Test
     void closingFormLeavesPreContentAlone() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST),
-                        "    /**\n     * <pre>\n     * <p/>\n     * </pre>\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST),
+                "    /**\n     * <pre>\n     * <p/>\n     * </pre>\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * <p/>\n"), formatted);
     }
 
     @Test
     void openingPositionNewLineSplitsLeadingMarker() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
-                        "    /**\n     * First.\n     * <p> Second.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
+                "    /**\n     * First.\n     * <p> Second.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * <p>\n     * Second.\n"), formatted);
     }
 
     @Test
     void openingPositionNewLineSplitsInlineMarker() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
-                        "    /**\n     * First <p> Second.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
+                "    /**\n     * First <p> Second.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * First\n     * <p>\n     * Second.\n"), formatted);
     }
 
     @Test
     void openingPositionSameLineJoinsMarkerWithNext() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.SAME_LINE),
-                        "    /**\n     * First.\n     * <p>\n     * Second.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.SAME_LINE),
+                "    /**\n     * First.\n     * <p>\n     * Second.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * <p> Second.\n"), formatted);
     }
 
     @Test
     void openingPositionSameLineKeepsMarkerWithTextWhenWrapping() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.SAME_LINE)
-                                .set(JavadocRules.WRAP, true),
-                        "    /**\n     * First.\n     * <p>\n     * Second.\n     */\n    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.SAME_LINE)
+                        .set(JavadocRules.WRAP, true),
+                "    /**\n     * First.\n     * <p>\n     * Second.\n     */\n    void f() { }\n");
         assertTrue(formatted.contains("     * <p> Second.\n"), formatted);
     }
 
     @Test
     void traditionalParagraphRulesDoNotRewriteMarkdown() {
-        String formatted =
-                format(
-                        style -> style.set(JavadocRules.ADD_PARAGRAPH_TAGS, true)
-                                .set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST)
-                                .set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
-                        "    /// First paragraph.\n" + "    ///\n" + "    /// <p/> remains Markdown content.\n"
-                                + "    void f() { }\n");
+        String formatted = format(
+                style -> style.set(JavadocRules.ADD_PARAGRAPH_TAGS, true)
+                        .set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST)
+                        .set(JavadocRules.OPENING_TAG_POSITION, JavadocOpeningTagPosition.NEW_LINE),
+                "    /// First paragraph.\n" + "    ///\n" + "    /// <p/> remains Markdown content.\n"
+                        + "    void f() { }\n");
         assertTrue(
                 formatted.contains("    /// First paragraph.\n    ///\n    /// <p/> remains Markdown content.\n"),
                 formatted);

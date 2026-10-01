@@ -132,8 +132,8 @@ public final class DefaultFormatter implements Formatter {
         }
         boolean incomplete = !parsed.complete();
         if (incomplete) {
-            diagnostics.add(
-                    Diagnostic.info("Unparsed regions were left unchanged; the rest of the file was formatted"));
+            diagnostics.add(Diagnostic.info(
+                    "Unparsed regions were left unchanged; the rest of the file was formatted"));
         }
 
         // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
@@ -145,9 +145,8 @@ public final class DefaultFormatter implements Formatter {
             if (withoutRewrites.failed()) {
                 return FormatResult.failed(source, List.of(Diagnostic.error(withoutRewrites.problem())));
             }
-            diagnostics.add(
-                    Diagnostic.warning(
-                            "Rules that add or remove code were skipped for this file: " + attempt.problem()));
+            diagnostics.add(Diagnostic.warning(
+                    "Rules that add or remove code were skipped for this file: " + attempt.problem()));
             text = withoutRewrites.text();
         } else if (attempt.failed()) {
             return FormatResult.failed(source, List.of(Diagnostic.error(attempt.problem())));
@@ -170,18 +169,18 @@ public final class DefaultFormatter implements Formatter {
                 if (difference != null) {
                     return FormatResult.failed(
                             source,
-                            List.of(
-                                    Diagnostic.error(
-                                            "Formatting the selection would change the program: " + difference)));
+                            List.of(Diagnostic.error(
+                                    "Formatting the selection would change the program: " + difference)));
                 }
-                String prose =
-                        ProsePreservation.firstDifference(parsed.root().green(), splicedTree.root().green(), style);
+                String prose = ProsePreservation.firstDifference(
+                        parsed.root().green(),
+                        splicedTree.root().green(),
+                        style);
                 if (prose != null) {
                     return FormatResult.failed(
                             source,
-                            List.of(
-                                    Diagnostic.error(
-                                            "Formatting the selection would change what a comment says: " + prose)));
+                            List.of(Diagnostic.error(
+                                    "Formatting the selection would change what a comment says: " + prose)));
                 }
             }
             text = spliced;
@@ -197,8 +196,9 @@ public final class DefaultFormatter implements Formatter {
      */
     private Attempt attempt(ParseResult parsed, boolean allowed, String source) {
         GreenNode original = parsed.root().green();
-        RewriteResult rewritten =
-                allowed ? RewriteStage.apply(original, style, this.rewrites) : new RewriteResult(original, List.of());
+        RewriteResult rewritten = allowed
+                ? RewriteStage.apply(original, style, this.rewrites)
+                : new RewriteResult(original, List.of());
 
         // Not "did it declare an edit" but "did it touch anything": a rewrite that changed the tree
         // and declared nothing is the worst case, and the one most in need of the fallback.
@@ -230,8 +230,7 @@ public final class DefaultFormatter implements Formatter {
             return Attempt.failure("Formatting produced source that no longer parses", rewrote);
         }
 
-        String problem =
-                rewrote
+        String problem = rewrote
                 ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
                 : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
@@ -247,8 +246,7 @@ public final class DefaultFormatter implements Formatter {
             return Attempt.failure("Formatting would change what a comment says: " + prose, rewrote);
         }
 
-        GreenNode second =
-                allowed
+        GreenNode second = allowed
                 ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
                 : formattedTree.root().green();
         String twice = layout(SyntaxNode.root(second), source);
@@ -292,10 +290,9 @@ public final class DefaultFormatter implements Formatter {
     String layout(SyntaxNode root, String source) {
         String separator = lineSeparator(source);
         DocPrinter.Printed printed = printer(separator).printMarked(new DocEmitter(style).emit(root));
-        String text =
-                new ColumnAligner(
-                        style.get(FileRules.TAB_WIDTH),
-                        style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(printed);
+        String text = new ColumnAligner(
+                style.get(FileRules.TAB_WIDTH),
+                style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(printed);
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
     }

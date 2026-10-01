@@ -24,7 +24,7 @@ final class LineDiffer {
     private static final int MAX_ANCHOR_SCANS = 200_000;
     private static final int MAX_REFINEMENT_CHARACTERS = 2_000_000;
 
-    private LineDiffer() { }
+    private LineDiffer() {}
 
     static String splice(String original, String formatted, List<SourceRange> ranges) {
         if (original.equals(formatted) || ranges.isEmpty()) {
@@ -154,12 +154,11 @@ final class LineDiffer {
             if (original.get(window.originalStart + originalLine)
                     .equals(formatted.get(window.formattedStart + formattedLine))) {
                 if (originalStart >= 0) {
-                    hunks.add(
-                            new Hunk(
-                                    window.originalStart + originalStart,
-                                    window.originalStart + originalLine,
-                                    window.formattedStart + formattedStart,
-                                    window.formattedStart + formattedLine));
+                    hunks.add(new Hunk(
+                            window.originalStart + originalStart,
+                            window.originalStart + originalLine,
+                            window.formattedStart + formattedStart,
+                            window.formattedStart + formattedLine));
                     originalStart = -1;
                     formattedStart = -1;
                 }
@@ -187,12 +186,11 @@ final class LineDiffer {
             formattedLine = m;
         }
         if (originalStart >= 0) {
-            hunks.add(
-                    new Hunk(
-                            window.originalStart + originalStart,
-                            window.originalStart + originalLine,
-                            window.formattedStart + formattedStart,
-                            window.formattedStart + formattedLine));
+            hunks.add(new Hunk(
+                    window.originalStart + originalStart,
+                    window.originalStart + originalLine,
+                    window.formattedStart + formattedStart,
+                    window.formattedStart + formattedLine));
         }
     }
 
@@ -381,7 +379,7 @@ final class LineDiffer {
 
     }
 
-    private record Anchor(int originalLine, int formattedLine) { }
+    private record Anchor(int originalLine, int formattedLine) {}
 
     private record AnchorIndex(
             List<String> originalLines,
@@ -482,7 +480,7 @@ final class LineDiffer {
 
     }
 
-    record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) { }
+    record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) {}
 
     record Split(
             List<String> lines,
@@ -583,6 +581,6 @@ final class LineDiffer {
 
     }
 
-    private record LexicalLines(List<String> content, boolean[] safeBreaks) { }
+    private record LexicalLines(List<String> content, boolean[] safeBreaks) {}
 
 }

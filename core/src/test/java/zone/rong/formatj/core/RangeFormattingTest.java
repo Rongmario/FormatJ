@@ -148,9 +148,8 @@ class RangeFormattingTest {
         int start = source.indexOf("import java.util.Set");
         int end = source.indexOf('\n', start);
 
-        FormatResult result =
-                formatter.format(
-                        FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
+        FormatResult result = formatter.format(
+                FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals(source, result.text());
@@ -165,9 +164,8 @@ class RangeFormattingTest {
         int start = source.indexOf("if (b)");
         int end = start + "if (b)".length();
 
-        FormatResult result =
-                formatter.format(
-                        FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
+        FormatResult result = formatter.format(
+                FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
 
         assertEquals(source, result.text());
     }
@@ -205,14 +203,12 @@ class RangeFormattingTest {
         int firstStart = source.indexOf("void first");
         int thirdStart = source.indexOf("void third");
 
-        FormatResult result =
-                FORMATTER.format(
-                        FormatRequest.of(source)
-                                .withName("A.java")
-                                .withRanges(
-                                        List.of(
-                                                new SourceRange(firstStart, source.indexOf('\n', firstStart)),
-                                                new SourceRange(thirdStart, source.indexOf('\n', thirdStart)))));
+        FormatResult result = FORMATTER.format(
+                FormatRequest.of(source)
+                        .withName("A.java")
+                        .withRanges(List.of(
+                                new SourceRange(firstStart, source.indexOf('\n', firstStart)),
+                                new SourceRange(thirdStart, source.indexOf('\n', thirdStart)))));
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertTrue(result.text().contains("void first() {"), result.text());
@@ -337,9 +333,8 @@ class RangeFormattingTest {
         int start = source.indexOf("        a");
         int end = source.indexOf('\n', start);
 
-        FormatResult result =
-                formatter.format(
-                        FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
+        FormatResult result = formatter.format(
+                FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
 
         assertEquals(source, result.text());
     }
@@ -354,9 +349,8 @@ class RangeFormattingTest {
         int start = source.indexOf("@return");
         int end = source.indexOf('\n', start);
 
-        FormatResult result =
-                formatter.format(
-                        FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
+        FormatResult result = formatter.format(
+                FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end))));
 
         assertEquals(source, result.text());
     }

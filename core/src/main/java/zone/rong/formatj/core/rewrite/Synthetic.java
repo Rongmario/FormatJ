@@ -14,7 +14,7 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 final class Synthetic {
 
-    private Synthetic() { }
+    private Synthetic() {}
 
     /** A separator such as a brace or a parenthesis. */
     static GreenNode separator(String lexeme) {

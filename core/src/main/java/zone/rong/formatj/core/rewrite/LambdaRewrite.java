@@ -72,8 +72,8 @@ public final class LambdaRewrite implements Rewrite {
             return parameters;
         }
         return style == LambdaParameterStyle.ALWAYS_PARENTHESISE
-               ? parenthesise(parameters, context)
-               : unparenthesise(parameters, context);
+                ? parenthesise(parameters, context)
+                : unparenthesise(parameters, context);
     }
 
     /** Wraps a bare name in parentheses. */
@@ -87,20 +87,18 @@ public final class LambdaRewrite implements Rewrite {
             return parameters;
         }
 
-        context.record(
-                TokenEdit.insert(
-                        LambdaRules.PARAMETER_STYLE,
-                        "parentheses added around a lambda parameter",
-                        start,
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "("));
-        context.record(
-                TokenEdit.insert(
-                        LambdaRules.PARAMETER_STYLE,
-                        "parentheses added around a lambda parameter",
-                        end,
-                        TokenEdit.Bias.INNERMOST_FIRST,
-                        ")"));
+        context.record(TokenEdit.insert(
+                LambdaRules.PARAMETER_STYLE,
+                "parentheses added around a lambda parameter",
+                start,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "("));
+        context.record(TokenEdit.insert(
+                LambdaRules.PARAMETER_STYLE,
+                "parentheses added around a lambda parameter",
+                end,
+                TokenEdit.Bias.INNERMOST_FIRST,
+                ")"));
 
         List<GreenNode> children = new ArrayList<>();
         children.add(Synthetic.separator("("));
@@ -135,18 +133,16 @@ public final class LambdaRewrite implements Rewrite {
             return parameters;
         }
 
-        context.record(
-                TokenEdit.delete(
-                        LambdaRules.PARAMETER_STYLE,
-                        "parentheses removed from a single lambda parameter",
-                        openPosition,
-                        "("));
-        context.record(
-                TokenEdit.delete(
-                        LambdaRules.PARAMETER_STYLE,
-                        "parentheses removed from a single lambda parameter",
-                        closePosition,
-                        ")"));
+        context.record(TokenEdit.delete(
+                LambdaRules.PARAMETER_STYLE,
+                "parentheses removed from a single lambda parameter",
+                openPosition,
+                "("));
+        context.record(TokenEdit.delete(
+                LambdaRules.PARAMETER_STYLE,
+                "parentheses removed from a single lambda parameter",
+                closePosition,
+                ")"));
         return GreenNode.branch(SyntaxKind.LAMBDA_PARAMETERS, List.of(name));
     }
 
@@ -199,14 +195,13 @@ public final class LambdaRewrite implements Rewrite {
         if (context.firstPosition(keyword) != openPosition + 1) {
             return body;
         }
-        context.record(
-                new TokenEdit(
-                        LambdaRules.BODY_BRACES,
-                        reason,
-                        openPosition,
-                        List.of("{", "return"),
-                        List.of(),
-                        TokenEdit.Bias.INNERMOST_FIRST));
+        context.record(new TokenEdit(
+                LambdaRules.BODY_BRACES,
+                reason,
+                openPosition,
+                List.of("{", "return"),
+                List.of(),
+                TokenEdit.Bias.INNERMOST_FIRST));
         context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, semicolonPosition, ";", "}"));
         return expression;
     }

@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  */
 public final class StageTimer {
 
-    private StageTimer() { }
+    private StageTimer() {}
 
     /** Nanoseconds spent in each named stage, summed over every file. */
     public record Times(
@@ -131,15 +131,16 @@ public final class StageTimer {
             throw new IllegalStateException("formatted source did not parse completely");
         }
         boolean changed = !rewritten.unchanged() || rewritten.root() != original;
-        String outputProblem =
-                changed
+        String outputProblem = changed
                 ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
                 : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (outputProblem != null) {
             throw new IllegalStateException(outputProblem);
         }
-        String proseProblem =
-                ProsePreservation.firstDifference(rewritten.root(), formattedTree.root().green(), formatter.style());
+        String proseProblem = ProsePreservation.firstDifference(
+                rewritten.root(),
+                formattedTree.root().green(),
+                formatter.style());
         if (proseProblem != null) {
             throw new IllegalStateException(proseProblem);
         }

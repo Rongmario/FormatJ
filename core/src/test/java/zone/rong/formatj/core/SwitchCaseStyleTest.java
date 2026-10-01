@@ -40,10 +40,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void aGroupThatCannotFallThroughConverts() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.ARROW,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.ARROW,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -60,10 +59,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void emptyCasesBecomeMoreLabelsOnTheOneBelowThem() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.ARROW,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.ARROW,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -79,10 +77,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void aGroupWithSeveralStatementsGetsABlock() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.ARROW,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.ARROW,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -97,10 +94,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void aLoneYieldBecomesAnExpressionBody() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.ARROW,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.ARROW,
+                """
                     int f(int n) {
                         return switch (n) {
                             case 1: yield 2;
@@ -187,10 +183,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void aBreakBelongingToANestedLoopDoesNotStopTheConversion() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.ARROW,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.ARROW,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -228,10 +223,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void anExpressionBodyGetsItsBreakBack() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.COLON,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.COLON,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1, 2 -> g(n);
@@ -246,10 +240,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void anExpressionSwitchGetsItsYieldBack() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.COLON,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.COLON,
+                """
                     int f(int n) {
                         return switch (n) {
                             case 1 -> 2;
@@ -263,10 +256,9 @@ class SwitchCaseStyleTest {
 
     @Test
     void aBlockBodyIsRefusedBecauseNobodyKnowsWhereTheBreakGoes() {
-        String formatted =
-                format(
-                        SwitchCaseStyle.COLON,
-                        """
+        String formatted = format(
+                SwitchCaseStyle.COLON,
+                """
                     void f(int n) {
                         switch (n) {
                             case 1 -> {

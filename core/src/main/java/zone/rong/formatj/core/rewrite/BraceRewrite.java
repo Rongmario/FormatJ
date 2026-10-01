@@ -84,13 +84,12 @@ public final class BraceRewrite implements Rewrite {
             Option<BracePolicy> authority,
             RewriteContext context) {
         boolean braced = body.kind() == SyntaxKind.BLOCK;
-        boolean wanted =
-                switch (policy) {
-                    case ALWAYS -> true;
-                    case NEVER -> false;
-                    case WHEN_MULTI_STATEMENT -> braced ? statementsIn(body) != 1 : false;
-                    case PRESERVE -> braced;
-                };
+        boolean wanted = switch (policy) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            case WHEN_MULTI_STATEMENT -> braced ? statementsIn(body) != 1 : false;
+            case PRESERVE -> braced;
+        };
         // A loop inside this body may already have lost its braces, which can leave an if open at its
         // end. Braces here are then what keeps the else attached to this if.
         if (!braced && danglingElse(statement, body)) {
@@ -112,20 +111,18 @@ public final class BraceRewrite implements Rewrite {
             return body;
         }
 
-        context.record(
-                TokenEdit.insert(
-                        authority,
-                        "braces added around a control statement body",
-                        start,
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "{"));
-        context.record(
-                TokenEdit.insert(
-                        authority,
-                        "braces added around a control statement body",
-                        end,
-                        TokenEdit.Bias.INNERMOST_FIRST,
-                        "}"));
+        context.record(TokenEdit.insert(
+                authority,
+                "braces added around a control statement body",
+                start,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"));
+        context.record(TokenEdit.insert(
+                authority,
+                "braces added around a control statement body",
+                end,
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "}"));
 
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(brace("{"), body, brace("}")));
     }

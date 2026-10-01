@@ -6,25 +6,22 @@ import zone.rong.formatj.api.StyleBuilder;
 /** Where annotations sit relative to what they annotate. */
 public final class AnnotationRules {
 
-    public static final Option<AnnotationPlacement> DECLARATION_PLACEMENT =
-            Option.ofEnum(
-                    "annotations.declaration-placement",
-                    AnnotationPlacement.PRESERVE,
-                    "Placement of an annotation on a type, method or field declaration");
+    public static final Option<AnnotationPlacement> DECLARATION_PLACEMENT = Option.ofEnum(
+            "annotations.declaration-placement",
+            AnnotationPlacement.PRESERVE,
+            "Placement of an annotation on a type, method or field declaration");
 
-    public static final Option<AnnotationPlacement> PARAMETER_PLACEMENT =
-            Option.ofEnum(
-                    "annotations.parameter-placement",
-                    AnnotationPlacement.SAME_LINE,
-                    "Placement of an annotation on a parameter or local variable");
+    public static final Option<AnnotationPlacement> PARAMETER_PLACEMENT = Option.ofEnum(
+            "annotations.parameter-placement",
+            AnnotationPlacement.SAME_LINE,
+            "Placement of an annotation on a parameter or local variable");
 
-    public static final Option<Boolean> SINGLE_MARKER_INLINE =
-            Option.ofBoolean(
-                    "annotations.single-marker-inline",
-                    false,
-                    "Keep a lone marker annotation on the line of its declaration");
+    public static final Option<Boolean> SINGLE_MARKER_INLINE = Option.ofBoolean(
+            "annotations.single-marker-inline",
+            false,
+            "Keep a lone marker annotation on the line of its declaration");
 
-    private AnnotationRules() { }
+    private AnnotationRules() {}
 
     /** Fluent view of the {@code annotations.*} rules. */
     public static final class Builder {

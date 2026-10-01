@@ -21,7 +21,7 @@ import java.util.Set;
  */
 public final class ImportUsage {
 
-    private ImportUsage() { }
+    private ImportUsage() {}
 
     /** The simple names a file mentions anywhere other than in its own import declarations. */
     public static Set<String> namesMentioned(GreenNode compilationUnit) {

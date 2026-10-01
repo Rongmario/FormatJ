@@ -6,37 +6,57 @@ import zone.rong.formatj.api.StyleBuilder;
 /** Indentation widths and which constructs earn an extra level. */
 public final class IndentRules {
 
-    public static final Option<Integer> SIZE =
-            Option.ofInt("indent.size", 4, "Columns of indentation per nesting level");
+    public static final Option<Integer> SIZE = Option.ofInt(
+            "indent.size",
+            4,
+            "Columns of indentation per nesting level");
 
-    public static final Option<Boolean> USE_TABS =
-            Option.ofBoolean("indent.use-tabs", false, "Indent with tab characters instead of spaces");
+    public static final Option<Boolean> USE_TABS = Option.ofBoolean(
+            "indent.use-tabs",
+            false,
+            "Indent with tab characters instead of spaces");
 
-    public static final Option<Integer> CONTINUATION =
-            Option.ofInt("indent.continuation", 8, "Columns added to a wrapped continuation line");
+    public static final Option<Integer> CONTINUATION = Option.ofInt(
+            "indent.continuation",
+            8,
+            "Columns added to a wrapped continuation line");
 
-    public static final Option<Integer> CHAINED_CALL =
-            Option.ofInt("indent.chained-call", 8, "Columns added to a wrapped method chain link");
+    public static final Option<Integer> CHAINED_CALL = Option.ofInt(
+            "indent.chained-call",
+            8,
+            "Columns added to a wrapped method chain link");
 
-    public static final Option<Integer> ARRAY_INITIALIZER =
-            Option.ofInt("indent.array-initializer", 4, "Columns added inside a wrapped array initializer");
+    public static final Option<Integer> ARRAY_INITIALIZER = Option.ofInt(
+            "indent.array-initializer",
+            4,
+            "Columns added inside a wrapped array initializer");
 
-    public static final Option<Integer> TERNARY =
-            Option.ofInt("indent.ternary", 8, "Columns added to a wrapped ternary branch");
+    public static final Option<Integer> TERNARY = Option.ofInt(
+            "indent.ternary",
+            8,
+            "Columns added to a wrapped ternary branch");
 
-    public static final Option<Integer> THROWS_CLAUSE =
-            Option.ofInt("indent.throws-clause", 8, "Columns added to a wrapped throws clause");
+    public static final Option<Integer> THROWS_CLAUSE = Option.ofInt(
+            "indent.throws-clause",
+            8,
+            "Columns added to a wrapped throws clause");
 
-    public static final Option<Boolean> SWITCH_CASE_LABELS =
-            Option.ofBoolean("indent.switch-case-labels", true, "Indent case labels one level inside the switch block");
+    public static final Option<Boolean> SWITCH_CASE_LABELS = Option.ofBoolean(
+            "indent.switch-case-labels",
+            true,
+            "Indent case labels one level inside the switch block");
 
-    public static final Option<Boolean> SWITCH_CASE_BODY =
-            Option.ofBoolean("indent.switch-case-body", true, "Indent a colon-label case body past its label");
+    public static final Option<Boolean> SWITCH_CASE_BODY = Option.ofBoolean(
+            "indent.switch-case-body",
+            true,
+            "Indent a colon-label case body past its label");
 
-    public static final Option<Boolean> BLANK_LINES =
-            Option.ofBoolean("indent.blank-lines", false, "Emit indentation whitespace on otherwise blank lines");
+    public static final Option<Boolean> BLANK_LINES = Option.ofBoolean(
+            "indent.blank-lines",
+            false,
+            "Emit indentation whitespace on otherwise blank lines");
 
-    private IndentRules() { }
+    private IndentRules() {}
 
     /** Fluent view of the {@code indent.*} rules. */
     public static final class Builder {
