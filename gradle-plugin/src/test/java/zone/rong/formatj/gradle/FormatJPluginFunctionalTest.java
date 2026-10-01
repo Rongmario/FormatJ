@@ -71,6 +71,15 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void anUndecodableSourceNamesTheByteOffsetInTheFailure() throws IOException {
+        Files.write(projectDirectory.resolve("src/main/java/sample/Sample.java"), new byte[] {'c', (byte) 0xFF});
+
+        BuildResult result = runner("formatJavaCheck").buildAndFail();
+
+        assertTrue(result.getOutput().contains("malformed input at byte 2"), result.getOutput());
+    }
+
+    @Test
     void applyTaskLeavesAlreadyFormattedSourcesAlone() throws IOException {
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
         String before = Files.readString(source);

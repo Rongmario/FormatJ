@@ -178,7 +178,7 @@ public abstract class FormatJTask extends DefaultTask {
             String source = SourceFiles.readString(file.toPath(), FileRules.charset(formatter.style()));
             return formatter.format(FormatRequest.of(source).withName(file.getPath()));
         } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + file, e);
+            throw new UncheckedIOException("Cannot read " + file + ": " + e.getMessage(), e);
         }
     }
 

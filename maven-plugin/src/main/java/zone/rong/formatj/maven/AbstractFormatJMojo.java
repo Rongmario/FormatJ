@@ -117,7 +117,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             try {
                 source = SourceFiles.readString(file, charset);
             } catch (IOException e) {
-                throw new MojoExecutionException("Cannot read " + file, e);
+                throw new MojoExecutionException("Cannot read " + file + ": " + e.getMessage(), e);
             }
             FormatResult result = formatter.format(FormatRequest.of(source).withName(file.toString()));
             for (Diagnostic diagnostic : result.diagnostics()) {
