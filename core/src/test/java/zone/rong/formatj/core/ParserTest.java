@@ -88,6 +88,7 @@ class ParserTest {
                 "class A { void f() { if (a) { b(); } else if (c) { d(); } else { e(); } } }\n",
                 "class A { void f() { switch (x) { case 1: g(); break; default: h(); } } }\n",
                 "class A { String f(Object o) { return switch (o) { case Integer i when i > 2 -> \"big\"; case String s -> s; case null, default -> \"other\"; }; } }\n",
+                "class A { int f(int t) { return switch (t) { case 1 -> { yield (t); } default -> { yield (int) (t - 1); } }; } }\n",
                 "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
                 "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
                 "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",

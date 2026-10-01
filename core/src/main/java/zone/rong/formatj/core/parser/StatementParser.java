@@ -83,7 +83,7 @@ abstract class StatementParser extends ExpressionParser {
         if (at(";")) {
             return branch(SyntaxKind.EMPTY_STATEMENT, List.of(advance()));
         }
-        if (atContextual("yield") && !peek(1).is("=") && !peek(1).is(".") && !peek(1).is("(")) {
+        if (atYieldStatement()) {
             return parseSimpleStatement(SyntaxKind.YIELD_STATEMENT, true);
         }
         if (atIdentifier() && peek(1).is(":")) {
@@ -103,6 +103,77 @@ abstract class StatementParser extends ExpressionParser {
         children.add(parseExpression());
         children.add(expect(";"));
         return branch(SyntaxKind.EXPRESSION_STATEMENT, children);
+    }
+
+    /**
+     * Whether a statement-starting {@code yield} is a yield statement, mirroring javac's
+     * disambiguation (JLS 14.21) from an expression statement that happens to begin with the
+     * identifier {@code yield}: an assignment, a field access, an array access, or a post-increment
+     * or post-decrement of a variable named {@code yield}.
+     */
+    private boolean atYieldStatement() {
+        if (!atContextual("yield")) {
+            return false;
+        }
+        Token next = peek(1);
+        if (next.is(";")) {
+            return true;
+        }
+        if (next.is("++") || next.is("--")) {
+            return !peek(2).is(";");
+        }
+        if (next.is("(")) {
+            return atYieldParenthesized();
+        }
+        return startsExpression(next);
+    }
+
+    /**
+     * Disambiguates {@code yield (}, which is otherwise indistinguishable from a call to a method
+     * named {@code yield}: empty parentheses or a comma-separated list (unless it turns out to be a
+     * lambda parameter list) hold no single expression, so they are left as a call.
+     */
+    private boolean atYieldParenthesized() {
+        boolean hasComma = false;
+        boolean inTypeArguments = false;
+        int depth = 0;
+        for (int ahead = 1; ahead < 512; ahead++) {
+            Token token = peek(ahead);
+            if (token.kind() == TokenKind.END_OF_FILE) {
+                return false;
+            }
+            if (token.is("(")) {
+                depth++;
+            } else if (token.is(")")) {
+                depth--;
+                if (depth == 0) {
+                    return ahead != 2 && (!hasComma || peek(ahead + 1).is("->"));
+                }
+            } else if (token.is(",") && depth == 1 && !inTypeArguments) {
+                hasComma = true;
+            } else if (token.is("<")) {
+                inTypeArguments = true;
+            } else if (token.is(">")) {
+                inTypeArguments = false;
+            }
+        }
+        return false;
+    }
+
+    /** Whether {@code token} can be the first token of an Expression. */
+    private boolean startsExpression(Token token) {
+        return switch (token.kind()) {
+            case NUMBER_LITERAL, STRING_LITERAL, CHAR_LITERAL, TEXT_BLOCK, IDENTIFIER -> true;
+            case KEYWORD ->
+                    LITERAL_KEYWORDS.contains(token.decodedText())
+                            || PRIMITIVE_TYPES.contains(token.decodedText())
+                            || token.is("new")
+                            || token.is("switch")
+                            || token.is("this")
+                            || token.is("super");
+            case OPERATOR -> token.is("+") || token.is("-") || token.is("!") || token.is("~");
+            default -> false;
+        };
     }
 
     private boolean atLocalTypeDeclaration() {
