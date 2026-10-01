@@ -92,6 +92,7 @@ class ParserTest {
                 "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
                 "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
                 "class A { String[] f(List<String> l) { return l.toArray(String[]::new); } }\n",
+                "class A { void f() { g(byte[]::new); g(Class<?>[]::new); g(int[][]::new); } }\n",
                 "class A { Class<?> c = String[][].class; }\n",
                 "class A { Function<Integer, Integer> g = _ -> 1; }\n",
                 "class A { Function<Integer, Integer> g = (_) -> 1; }\n",

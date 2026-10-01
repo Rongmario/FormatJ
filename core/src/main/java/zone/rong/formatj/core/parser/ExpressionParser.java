@@ -605,6 +605,11 @@ abstract class ExpressionParser extends ParserBase {
     }
 
     private GreenNode parseIdentifierPrimary() {
+        if (peek(1).is("<") && atTypeMethodReference()) {
+            // A parameterized method reference target, e.g. Class<?>[]::new, which an ordinary
+            // name would misread as the start of a less-than comparison.
+            return parseType();
+        }
         GreenNode name = identifier();
         if (at("(")) {
             List<GreenNode> children = new ArrayList<>();
@@ -613,6 +618,19 @@ abstract class ExpressionParser extends ParserBase {
             return branch(SyntaxKind.METHOD_INVOCATION, children);
         }
         return branch(SyntaxKind.NAME, List.of(name));
+    }
+
+    /** Whether a type, possibly generic or an array, starts here and is immediately followed by {@code ::}. */
+    private boolean atTypeMethodReference() {
+        int start = mark();
+        try {
+            parseType();
+            return at("::");
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
     }
 
     private GreenNode parseKeywordPrimary(Token token) {
@@ -640,13 +658,8 @@ abstract class ExpressionParser extends ParserBase {
             return parseSwitchExpression();
         }
         if (PRIMITIVE_TYPES.contains(token.decodedText())) {
-            // int.class, int[].class
-            GreenNode type = parseType();
-            List<GreenNode> children = new ArrayList<>();
-            children.add(type);
-            children.add(expect("."));
-            children.add(expect("class"));
-            return branch(SyntaxKind.CLASS_LITERAL, children);
+            // int.class, int[].class, byte[]::new: parsePostfix finishes the chain from here.
+            return parseType();
         }
         throw fail("Expected an expression");
     }
