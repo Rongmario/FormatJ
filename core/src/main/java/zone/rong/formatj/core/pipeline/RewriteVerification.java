@@ -195,6 +195,9 @@ public final class RewriteVerification {
         if (authority == ModifierRules.ORDER) {
             return checkModifierLaw(edit, before);
         }
+        if (authority == ModifierRules.REMOVE_REDUNDANT) {
+            return checkRedundantModifierLaw(edit);
+        }
         if (authority == LambdaRules.PARAMETER_STYLE) {
             return checkOnly(edit, "parentheses", "(", ")");
         }
@@ -457,6 +460,14 @@ public final class RewriteVerification {
         return difference == null
                 ? null
                 : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
+    }
+
+    /** The redundant-modifier rule may delete one modifier at a time and insert nothing. */
+    private static String checkRedundantModifierLaw(TokenEdit edit) {
+        if (!edit.inserted().isEmpty() || edit.removed().size() != 1) {
+            return ModifierRules.REMOVE_REDUNDANT.key() + " may only delete a single modifier";
+        }
+        return checkOnly(edit, "modifiers", "public", "abstract", "static", "final", "private");
     }
 
     private static final Set<String> MODIFIERS = Set.of(

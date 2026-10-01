@@ -454,6 +454,150 @@ class RewriteRulesTest {
         assertTrue(format(expression, SwitchRules.YIELD_STYLE, YieldStyle.ALWAYS_BLOCK).contains("yield 2;"));
     }
 
+    // ------------------------------------------------ modifiers.remove-redundant
+
+    private static String removeRedundant(String source) {
+        return format(source, ModifierRules.REMOVE_REDUNDANT, true);
+    }
+
+    @Test
+    void interfaceMembersLoseWhatTheyImply() {
+        String source = """
+                interface T {
+
+                    public static final int X = 1;
+
+                    public abstract void a();
+
+                    public default void b() {}
+
+                    public static void c() {}
+
+                    private void d() {}
+
+                    public static class N {}
+                }
+                """;
+        assertEquals(
+                """
+                interface T {
+
+                    int X = 1;
+
+                    void a();
+
+                    default void b() {}
+
+                    static void c() {}
+
+                    private void d() {}
+
+                    class N {}
+                }
+                """,
+                removeRedundant(source));
+    }
+
+    @Test
+    void nestedEnumsRecordsAndInterfacesLoseStatic() {
+        String source = """
+                class T {
+
+                    public static enum E {
+                        A
+                    }
+
+                    static record R(int x) {}
+
+                    private static interface I {}
+
+                    static class C {}
+                }
+                """;
+        assertEquals(
+                """
+                class T {
+
+                    public enum E {
+                        A
+                    }
+
+                    record R(int x) {}
+
+                    private interface I {}
+
+                    static class C {}
+                }
+                """,
+                removeRedundant(source));
+    }
+
+    @Test
+    void privateFinalMethodsEnumConstructorsAndResourcesAreSimplified() {
+        String source = """
+                enum E {
+                    A;
+
+                    private E() {}
+
+                    private final void a() {}
+
+                    public final void b() {}
+
+                    void c() throws Exception {
+                        try (final var r = open()) {}
+                    }
+                }
+                """;
+        assertEquals(
+                """
+                enum E {
+                    A;
+
+                    E() {}
+
+                    private void a() {}
+
+                    public final void b() {}
+
+                    void c() throws Exception {
+                        try (var r = open()) {}
+                    }
+                }
+                """,
+                removeRedundant(source));
+    }
+
+    @Test
+    void aDocCommentAndBlankLineSurviveRemovingTheFirstModifier() {
+        String source = """
+                interface T {
+
+                    int a();
+
+                    /** Docs. */
+                    public abstract void b();
+                }
+                """;
+        assertEquals(
+                """
+                interface T {
+
+                    int a();
+
+                    /** Docs. */
+                    void b();
+                }
+                """,
+                removeRedundant(source));
+    }
+
+    @Test
+    void redundantModifiersWithCommentsStay() {
+        String source = "interface T {\n\n    public /* api */ void a();\n}\n";
+        assertEquals(source, removeRedundant(source));
+    }
+
     // ---------------------------------------------------------- fixed point
 
     @Test

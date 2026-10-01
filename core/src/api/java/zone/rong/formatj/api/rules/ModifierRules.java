@@ -28,6 +28,11 @@ public final class ModifierRules {
             ModifierOrder.PRESERVE,
             "Ordering of declaration modifiers");
 
+    public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
+            "modifiers.remove-redundant",
+            false,
+            "Remove modifiers the language already implies");
+
     private ModifierRules() {}
 
     /** Fluent view of the {@code modifiers.*} rules. */
@@ -41,6 +46,11 @@ public final class ModifierRules {
 
         public Builder order(ModifierOrder value) {
             style.set(ORDER, value);
+            return this;
+        }
+
+        public Builder removeRedundant(boolean value) {
+            style.set(REMOVE_REDUNDANT, value);
             return this;
         }
 

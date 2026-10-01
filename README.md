@@ -590,9 +590,16 @@ class brace, empty-body, and blank-line rules until a module-specific value is s
 their source order and their positions among the modifier slots. Modifier lists with comments,
 duplicates, or malformed modifiers remain unchanged.
 
-| Key               | Values                  | Default    | Effect                            | Example                                      |
-|-------------------|-------------------------|------------|-----------------------------------|----------------------------------------------|
-| `modifiers.order` | `preserve`, `canonical` | `preserve` | Ordering of declaration modifiers | `canonical`: `static public` becomes `public static` |
+`modifiers.remove-redundant` removes only what the JLS implies. That is `public` and bodiless `abstract`
+on interface methods, `public static final` on interface fields, `public static` on interface member
+types, `static` on nested enums, records and interfaces, `final` on records and on private methods,
+`private` on enum constructors and `final` on try-with-resources variables. A modifier that carries a
+comment stays.
+
+| Key                           | Values                  | Default    | Effect                                | Example                                              |
+|-------------------------------|-------------------------|------------|---------------------------------------|------------------------------------------------------|
+| `modifiers.order`             | `preserve`, `canonical` | `preserve` | Ordering of declaration modifiers     | `canonical`: `static public` becomes `public static` |
+| `modifiers.remove-redundant`  | boolean                 | `false`    | Remove modifiers the JLS makes implicit | `true`: `public abstract void run();` in an interface becomes `void run();` |
 
 ### `switch`
 
