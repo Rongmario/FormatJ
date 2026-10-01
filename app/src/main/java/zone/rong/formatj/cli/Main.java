@@ -1,6 +1,7 @@
 package zone.rong.formatj.cli;
 
 import zone.rong.formatj.core.config.TomlReader;
+import java.io.UncheckedIOException;
 
 /** Command line entry point. */
 public final class Main {
@@ -16,7 +17,7 @@ public final class Main {
         try {
             CliOptions options = CliOptions.parse(arguments);
             return new CliRunner(options, System.out, System.err, System.in).run();
-        } catch (CliOptions.CliException | IllegalArgumentException | TomlReader.TomlException e) {
+        } catch (CliOptions.CliException | IllegalArgumentException | TomlReader.TomlException | UncheckedIOException e) {
             System.err.println("formatj: " + e.getMessage());
             return CliRunner.ERROR;
         } catch (RuntimeException e) {

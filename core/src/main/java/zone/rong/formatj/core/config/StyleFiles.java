@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,18 +35,22 @@ public final class StyleFiles {
 
     /** Reads a style file. */
     public static Style load(Path file) {
-        String document;
         try {
-            document = Files.readString(file, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read style file " + file, e);
-        }
-        try {
-            return parse(document);
+            return parse(read(file));
         } catch (TomlReader.TomlException e) {
             throw e.forFile(file);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(file + ": " + e.getMessage(), e);
+        }
+    }
+
+    private static String read(Path file) {
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (NoSuchFileException e) {
+            throw new UncheckedIOException("cannot read style file " + file + ": no such file", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read style file " + file + ": " + e.getMessage(), e);
         }
     }
 
@@ -67,12 +72,7 @@ public final class StyleFiles {
 
     /** The {@code [files] include/exclude} globs a style file declares, relative to its directory. */
     public static FileSelection fileSelection(Path file) {
-        Map<String, String> entries;
-        try {
-            entries = TomlReader.read(Files.readString(file, StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read style file " + file, e);
-        }
+        Map<String, String> entries = TomlReader.read(read(file));
         Path base = file.toAbsolutePath().getParent();
         return new FileSelection(
                 base,
