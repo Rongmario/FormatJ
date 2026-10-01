@@ -716,10 +716,16 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** Whether an argument is a plain call or creation with arguments of its own to wrap. */
     private static boolean breaksInside(GreenNode argument) {
-        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && chainLength(argument) < 2
+        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && !hasCall(argument.children().getFirst())
                 || argument.kind() == SyntaxKind.OBJECT_CREATION;
         GreenNode last = argument.children().getLast();
         return call && last.kind() == SyntaxKind.ARGUMENTS && last.children().size() > 2;
+    }
+
+    /** Whether a receiver holds a call, which makes what hangs off it a chain rather than one call. */
+    private static boolean hasCall(GreenNode receiver) {
+        return receiver.kind() == SyntaxKind.METHOD_INVOCATION
+                || isChainLink(receiver) && hasCall(receiver.children().getFirst());
     }
 
     private static boolean hugsItsArgument(GreenNode argument) {
