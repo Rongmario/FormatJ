@@ -129,22 +129,46 @@ public final class CommentFormatter {
 
     private Doc blockComment(Token comment) {
         if (rule(CommentRules.REFLOW) != CommentReflow.REFLOW_TO_LINE_LENGTH
+                || !comment.hasLineTerminator()
                 || !reflowable(List.of(comment))
                 || !rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT)) {
             return verbatim(comment);
         }
-        List<String> words = words(List.of(comment));
-        if (words.isEmpty()) {
+        List<Doc> parts = new ArrayList<>();
+        parts.add(Doc.text("/*"));
+        // Blank lines separate paragraphs, which are refilled one at a time.
+        List<String> paragraph = new ArrayList<>();
+        for (String line : Prose.blockContentLines(comment.text())) {
+            if (!line.isBlank()) {
+                paragraph.add(line);
+                continue;
+            }
+            addParagraph(parts, paragraph);
+            paragraph.clear();
+        }
+        addParagraph(parts, paragraph);
+        if (parts.size() == 1) {
             return verbatim(comment);
         }
-        return Doc.align(
-                Doc.concat(
-                        Doc.text("/*"),
-                        Doc.hardLine(),
-                        Doc.text(" * "),
-                        fill(words, " * "),
-                        Doc.hardLine(),
-                        Doc.text(" */")));
+        parts.add(Doc.hardLine());
+        parts.add(Doc.text(" */"));
+        return Doc.align(Doc.concat(parts));
+    }
+
+    private void addParagraph(List<Doc> parts, List<String> paragraph) {
+        if (paragraph.isEmpty()) {
+            return;
+        }
+        if (parts.size() > 1) {
+            parts.add(Doc.hardLine());
+            parts.add(Doc.text(" *"));
+        }
+        List<String> words = new ArrayList<>();
+        for (Prose.Atom atom : Prose.atoms(String.join("\n", paragraph))) {
+            words.add(atom.text());
+        }
+        parts.add(Doc.hardLine());
+        parts.add(Doc.concat(Doc.text(" * "), fill(words, " * ")));
     }
 
     // ---------------------------------------------------------------- javadoc

@@ -88,6 +88,13 @@ class CommentProseRulesTest {
     }
 
     @Test
+    void reflowKeepsTheParagraphsOfABlockComment() {
+        String source = "/* One.\n *\n * Two  three. */\nclass T { }\n";
+        String formatted = reformat(rules -> rules.comments(comments -> comments.reflow(CommentReflow.REFLOW_TO_LINE_LENGTH)), source);
+        assertTrue(formatted.startsWith("/*\n * One.\n *\n * Two three.\n */\n"), formatted);
+    }
+
+    @Test
     void reflowIsOffByDefault() {
         String body = "    // one two three four five six seven eight nine ten eleven twelve\n    void f() { }\n";
         assertTrue(

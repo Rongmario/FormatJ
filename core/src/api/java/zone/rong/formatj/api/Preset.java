@@ -5,7 +5,6 @@ import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
-import zone.rong.formatj.api.rules.CommentReflow;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.StaticImportPlacement;
@@ -88,7 +87,6 @@ public enum Preset {
                             .blankLineBeforeTags(true)
                             .addParagraphTags(true)
                             .tagContinuationIndent(4))
-                    .comments(comments -> comments.reflow(CommentReflow.REFLOW_TO_LINE_LENGTH))
                     .preservation(preservation -> preservation.keepAuthorBlankLines(true)
                             .maxPreservedBlankLines(1)
                             .keepLineBreakAfterOpenParen(false)
