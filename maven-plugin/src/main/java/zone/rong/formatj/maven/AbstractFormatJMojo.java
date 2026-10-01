@@ -162,14 +162,18 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
      * <p>Neither {@link #preset} nor {@link #styleFile} was set: discover the nearest
      * {@code formatj.toml} above the project directory, the same lookup the CLI does.
      */
-    protected Style style() {
+    protected Style style() throws MojoExecutionException {
         StyleBuilder builder = Style.builder();
         boolean explicit = (preset != null && !preset.isBlank()) || styleFile != null;
         if (!explicit) {
             StyleFiles.discover(project.getBasedir().toPath()).ifPresent(file -> builder.apply(StyleFiles.load(file)));
         }
         if (preset != null && !preset.isBlank()) {
-            builder.apply(Preset.of(preset).style());
+            try {
+                builder.apply(Preset.of(preset).style());
+            } catch (IllegalArgumentException e) {
+                throw new MojoExecutionException(e.getMessage() + ". Use formatj or google.", e);
+            }
         }
         if (styleFile != null) {
             builder.apply(StyleFiles.load(styleFile.toPath()));
@@ -189,7 +193,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         return StyleFiles.discover(project.getBasedir().toPath());
     }
 
-    private Formatter formatter() {
+    private Formatter formatter() throws MojoExecutionException {
         return FormatJ.newFormatter()
                 .style(style())
                 .languageLevel(languageLevel == null ? LanguageLevel.LATEST : LanguageLevel.ofRelease(languageLevel))

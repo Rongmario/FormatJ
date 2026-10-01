@@ -1,6 +1,7 @@
 package zone.rong.formatj.maven;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import zone.rong.formatj.api.rules.IndentRules;
 import java.io.IOException;
@@ -16,7 +17,9 @@ import org.junit.jupiter.api.io.TempDir;
 class AbstractFormatJMojoTest {
 
     @Test
-    void discoversTheNearestStyleFileWhenNeitherPresetNorStyleFileIsSet(@TempDir Path root) throws IOException {
+    void discoversTheNearestStyleFileWhenNeitherPresetNorStyleFileIsSet(@TempDir Path root)
+            throws IOException,
+            MojoExecutionException {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
         FormatMojo mojo = new FormatMojo();
         mojo.project = new MavenProject();
@@ -26,7 +29,7 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void anExplicitPresetSkipsDiscovery(@TempDir Path root) throws IOException {
+    void anExplicitPresetSkipsDiscovery(@TempDir Path root) throws IOException, MojoExecutionException {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
         FormatMojo mojo = new FormatMojo();
         mojo.project = new MavenProject();
@@ -90,6 +93,14 @@ class AbstractFormatJMojoTest {
         mojo.includeTestSources = false;
 
         assertEquals(List.of(sourceRoot.resolve("Kept.java")), mojo.sourceFiles());
+    }
+
+    @Test
+    void anUnknownPresetIsAMojoExecutionException() {
+        FormatMojo mojo = new FormatMojo();
+        mojo.preset = "nope";
+
+        assertThrows(MojoExecutionException.class, mojo::style);
     }
 
 }
