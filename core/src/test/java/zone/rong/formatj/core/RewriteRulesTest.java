@@ -1,14 +1,14 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.BracketStyle;
+import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
@@ -22,7 +22,9 @@ import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.rewrite.RewriteResult;
 import zone.rong.formatj.core.rewrite.RewriteStage;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The five rules that add or remove code outside the brace and import families, and the cases where
@@ -35,17 +37,25 @@ import org.junit.jupiter.api.Test;
  */
 class RewriteRulesTest {
 
+    /** A style whose only token-changing rule is the one under test. */
+    private static <T> Style only(Option<T> option, T value) {
+        return Style.builder()
+            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
+            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
+            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
+            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
+            .set(ImportRules.ORDER, SortOrder.PRESERVE)
+            .set(option, value)
+            .build();
+    }
+
     private static <T> String format(String source, Option<T> option, T value) {
-        return FormatJ.newFormatter()
-                .style(Style.builder().set(option, value).build())
-                .previewFeatures(true)
-                .build()
-                .format(source);
+        return FormatJ.newFormatter().style(only(option, value)).previewFeatures(true).build().format(source);
     }
 
     private static <T> RewriteResult rewrite(String source, Option<T> option, T value) {
         GreenNode root = JavaParser.parse(source, LanguageLevel.LATEST, true).root().green();
-        return RewriteStage.apply(root, Style.builder().set(option, value).build());
+        return RewriteStage.apply(root, only(option, value));
     }
 
     private static <T> String tokens(String source, Option<T> option, T value) {
@@ -62,32 +72,40 @@ class RewriteRulesTest {
     void parenthesesAreAddedRoundABareParameter() {
         String source = method("        run(x -> x + 1);");
         assertTrue(
-                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.ALWAYS_PARENTHESISE).contains(
-                        "run((x) -> x + 1);"));
+            format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.ALWAYS_PARENTHESISE).contains(
+                "run((x) -> x + 1);"
+            )
+        );
     }
 
     @Test
     void parenthesesAreRemovedFromALoneUntypedParameter() {
         String source = method("        run((x) -> x + 1);");
         assertTrue(
-                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).contains(
-                        "run(x -> x + 1);"));
+            format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).contains(
+                "run(x -> x + 1);"
+            )
+        );
     }
 
     @Test
     void parenthesesAreAddedRoundAnUnnamedParameter() {
         String source = method("        run(_ -> 1);");
         assertTrue(
-                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.ALWAYS_PARENTHESISE).contains(
-                        "run((_) -> 1);"));
+            format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.ALWAYS_PARENTHESISE).contains(
+                "run((_) -> 1);"
+            )
+        );
     }
 
     @Test
     void parenthesesAreRemovedFromALoneUnnamedParameter() {
         String source = method("        run((_) -> 1);");
         assertTrue(
-                format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).contains(
-                        "run(_ -> 1);"));
+            format(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).contains(
+                "run(_ -> 1);"
+            )
+        );
     }
 
     @Test
@@ -105,23 +123,28 @@ class RewriteRulesTest {
         }) {
             String source = method("        run(" + parameters + " -> 1);");
             assertTrue(
-                    rewrite(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).unchanged(),
-                    parameters);
+                rewrite(source, LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.OMIT_WHEN_POSSIBLE).unchanged(),
+                parameters
+            );
         }
     }
 
     @Test
     void preserveLeavesEitherFormAlone() {
         assertTrue(
-                rewrite(
-                        method("        run(x -> 1);"),
-                        LambdaRules.PARAMETER_STYLE,
-                        LambdaParameterStyle.PRESERVE).unchanged());
+            rewrite(
+                method("        run(x -> 1);"),
+                LambdaRules.PARAMETER_STYLE,
+                LambdaParameterStyle.PRESERVE
+            ).unchanged()
+        );
         assertTrue(
-                rewrite(
-                        method("        run((x) -> 1);"),
-                        LambdaRules.PARAMETER_STYLE,
-                        LambdaParameterStyle.PRESERVE).unchanged());
+            rewrite(
+                method("        run((x) -> 1);"),
+                LambdaRules.PARAMETER_STYLE,
+                LambdaParameterStyle.PRESERVE
+            ).unchanged()
+        );
     }
 
     // ----------------------------------------------------- lambdas.body-braces
@@ -133,52 +156,25 @@ class RewriteRulesTest {
     }
 
     @Test
-    void aLambdaBlockHoldingOneCallKeepsItsBracesWithoutTargetTypeInformation() {
+    void aLambdaBlockHoldingOneCallCollapsesToTheCall() {
         String source = method("        run(x -> { log(x); });");
-        assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
+        assertTrue(format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> log(x));"));
     }
 
     @Test
-    void aReturnedStatementExpressionKeepsItsBracesBecauseOverloadResolutionCanChange() {
-        String source = """
-                import java.util.function.Consumer;
-                import java.util.function.Function;
-
-                class T {
-
-                    String task(String value) {
-                        return value;
-                    }
-
-                    String pick(Function<String, String> function) {
-                        return "function";
-                    }
-
-                    String pick(Consumer<String> consumer) {
-                        return "consumer";
-                    }
-
-                    String choose() {
-                        return pick(value -> { return task(value); });
-                    }
-
-                }
-                """;
-
-        assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
-    }
-
-    @Test
-    void everyReturnedStatementExpressionKeepsItsBraces() {
-        for (String expression : new String[] {"log(x)", "x = 1", "x++", "++x", "new Object()"}) {
+    void aReturnedStatementExpressionCollapsesLikeAnyOtherValue() {
+        for (String expression : new String[] { "log(x)", "x = 1", "x++", "++x", "new Object()" }) {
             String source = method("        run(x -> { return " + expression + "; });");
-            assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged(), expression);
+            assertTrue(
+                format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> " + expression + ");"),
+                expression
+            );
         }
     }
 
     @Test
     void aLambdaBodyThatIsNotOneExpressionKeepsItsBraces() {
-        String[] bodies = {"{ }", "{ log(x); log(x); }", "{ return; }", "{ int y = x; }", "{ if (x) f(); }"};
+        String[] bodies = { "{ }", "{ log(x); log(x); }", "{ return; }", "{ int y = x; }", "{ if (x) f(); }" };
         for (String body : bodies) {
             String source = method("        run(x -> " + body + ");");
             assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged(), body);
@@ -188,21 +184,26 @@ class RewriteRulesTest {
     @Test
     void whenMultiStatementCollapsesTheOneStatementBodyAndLeavesTheRest() {
         assertTrue(
-                format(
-                        method("        run(x -> { return x; });"),
-                        LambdaRules.BODY_BRACES,
-                        BracePolicy.WHEN_MULTI_STATEMENT).contains("run(x -> x);"));
+            format(
+                method("        run(x -> { return x; });"),
+                LambdaRules.BODY_BRACES,
+                BracePolicy.WHEN_MULTI_STATEMENT
+            ).contains("run(x -> x);")
+        );
         assertTrue(
-                rewrite(
-                        method("        run(x -> { f(); g(); });"),
-                        LambdaRules.BODY_BRACES,
-                        BracePolicy.WHEN_MULTI_STATEMENT).unchanged());
+            rewrite(
+                method("        run(x -> { f(); g(); });"),
+                LambdaRules.BODY_BRACES,
+                BracePolicy.WHEN_MULTI_STATEMENT
+            ).unchanged()
+        );
     }
 
     @Test
     void alwaysDeclinesBecauseTheTargetTypeDecidesWhatTheBlockWouldSay() {
         assertTrue(
-                rewrite(method("        run(x -> x + 1);"), LambdaRules.BODY_BRACES, BracePolicy.ALWAYS).unchanged());
+            rewrite(method("        run(x -> x + 1);"), LambdaRules.BODY_BRACES, BracePolicy.ALWAYS).unchanged()
+        );
     }
 
     @Test
@@ -218,8 +219,9 @@ class RewriteRulesTest {
     @Test
     void permittedTypesSortAscending() {
         assertTrue(
-                format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits A, B, C"),
-                format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING));
+            format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits A, B, C"),
+            format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING)
+        );
     }
 
     @Test
@@ -231,19 +233,19 @@ class RewriteRulesTest {
     void permitsPreserveAndAnAlreadySortedClauseTouchNothing() {
         assertTrue(rewrite(SEALED, SealedRules.PERMITS_ORDER, SortOrder.PRESERVE).unchanged());
         assertTrue(
-                rewrite(
-                        "sealed interface I permits A, B {\n}\n",
-                        SealedRules.PERMITS_ORDER,
-                        SortOrder.ASCENDING).unchanged());
+            rewrite(
+                "sealed interface I permits A, B {\n}\n",
+                SealedRules.PERMITS_ORDER,
+                SortOrder.ASCENDING
+            ).unchanged()
+        );
     }
 
     @Test
     void aSinglePermittedTypeIsAlreadyInOrder() {
         assertTrue(
-                rewrite(
-                        "sealed interface I permits A {\n}\n",
-                        SealedRules.PERMITS_ORDER,
-                        SortOrder.ASCENDING).unchanged());
+            rewrite("sealed interface I permits A {\n}\n", SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).unchanged()
+        );
     }
 
     @Test
@@ -323,15 +325,15 @@ class RewriteRulesTest {
     @Test
     void commentsAndMalformedModifierListsLeaveTheSequenceAlone() {
         assertTrue(
-                rewrite(
-                        "static /* boundary */ public class T {\n}\n",
-                        ModifierRules.ORDER,
-                        ModifierOrder.CANONICAL).unchanged());
+            rewrite(
+                "static /* boundary */ public class T {\n}\n",
+                ModifierRules.ORDER,
+                ModifierOrder.CANONICAL
+            ).unchanged()
+        );
         assertTrue(
-                rewrite(
-                        "static public public class T {\n}\n",
-                        ModifierRules.ORDER,
-                        ModifierOrder.CANONICAL).unchanged());
+            rewrite("static public public class T {\n}\n", ModifierRules.ORDER, ModifierOrder.CANONICAL).unchanged()
+        );
         assertTrue(rewrite("native public class T {\n}\n", ModifierRules.ORDER, ModifierOrder.CANONICAL).unchanged());
     }
 
@@ -340,9 +342,9 @@ class RewriteRulesTest {
         String source = """
                 class T {
                     static public int sorted;
-                    // formatj:off
+                    // @formatter:off
                     static public int untouched;
-                    // formatj:on
+                    // @formatter:on
                 }
                 """;
         String formatted = format(source, ModifierRules.ORDER, ModifierOrder.CANONICAL);
@@ -360,10 +362,10 @@ class RewriteRulesTest {
                 }
                 """;
         Style style = Style.builder()
-                .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
-                .sealedTypes(sealed -> sealed.permitsOrder(SortOrder.ASCENDING))
-                .braces(braces -> braces.ifElse(BracePolicy.ALWAYS))
-                .build();
+            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
+            .sealedTypes(sealed -> sealed.permitsOrder(SortOrder.ASCENDING))
+            .braces(braces -> braces.ifElse(BracePolicy.ALWAYS))
+            .build();
         String formatted = FormatJ.newFormatter().style(style).build().format(source);
         assertTrue(formatted.contains("public sealed interface I permits A, B, C"), formatted);
         assertTrue(formatted.contains("public static void run"), formatted);
@@ -379,9 +381,10 @@ class RewriteRulesTest {
     @Test
     void bracesAreAddedRoundAStatementArrowBody() {
         String formatted = format(
-                statementSwitch("            case 1 -> f();"),
-                SwitchRules.ARROW_CASE_BRACES,
-                BracePolicy.ALWAYS);
+            statementSwitch("            case 1 -> f();"),
+            SwitchRules.ARROW_CASE_BRACES,
+            BracePolicy.ALWAYS
+        );
         assertTrue(formatted.contains("case 1 -> {"), formatted);
     }
 
@@ -390,13 +393,13 @@ class RewriteRulesTest {
         String source = statementSwitch("            case 1 -> { f(); }");
         assertTrue(format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).contains("case 1 -> f();"));
         assertTrue(
-                format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.WHEN_MULTI_STATEMENT).contains(
-                        "case 1 -> f();"));
+            format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.WHEN_MULTI_STATEMENT).contains("case 1 -> f();")
+        );
     }
 
     @Test
     void aBodyWithNoUnbracedFormKeepsItsBraces() {
-        for (String body : new String[] {"{ f(); g(); }", "{ int x = 1; }", "{ if (n > 0) f(); }", "{ }"}) {
+        for (String body : new String[] { "{ f(); g(); }", "{ int x = 1; }", "{ if (n > 0) f(); }", "{ }" }) {
             String source = statementSwitch("            case 1 -> " + body);
             assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).unchanged(), body);
         }
@@ -481,23 +484,25 @@ class RewriteRulesTest {
                 }
                 """;
         assertEquals(
-                """
+            """
                 interface T {
 
                     int X = 1;
 
                     void a();
 
-                    default void b() {}
+                    default void b() { }
 
-                    static void c() {}
+                    static void c() { }
 
-                    private void d() {}
+                    private void d() { }
 
-                    class N {}
+                    class N { }
+
                 }
                 """,
-                removeRedundant(source));
+            removeRedundant(source)
+        );
     }
 
     @Test
@@ -517,21 +522,25 @@ class RewriteRulesTest {
                 }
                 """;
         assertEquals(
-                """
+            """
                 class T {
 
                     public enum E {
+
                         A
+
                     }
 
-                    record R(int x) {}
+                    record R(int x) { }
 
-                    private interface I {}
+                    private interface I { }
 
-                    static class C {}
+                    static class C { }
+
                 }
                 """,
-                removeRedundant(source));
+            removeRedundant(source)
+        );
     }
 
     @Test
@@ -552,22 +561,26 @@ class RewriteRulesTest {
                 }
                 """;
         assertEquals(
-                """
+            """
                 enum E {
+
                     A;
 
-                    E() {}
+                    E() { }
 
-                    private void a() {}
+                    private void a() { }
 
-                    public final void b() {}
+                    public final void b() { }
 
                     void c() throws Exception {
-                        try (var r = open()) {}
+                        try (var r = open()) {
+                        }
                     }
+
                 }
                 """,
-                removeRedundant(source));
+            removeRedundant(source)
+        );
     }
 
     @Test
@@ -582,21 +595,23 @@ class RewriteRulesTest {
                 }
                 """;
         assertEquals(
-                """
+            """
                 interface T {
 
                     int a();
 
                     /** Docs. */
                     void b();
+
                 }
                 """,
-                removeRedundant(source));
+            removeRedundant(source)
+        );
     }
 
     @Test
     void redundantModifiersWithCommentsStay() {
-        String source = "interface T {\n\n    public /* api */ void a();\n}\n";
+        String source = "interface T {\n\n    public /* api */ void a();\n\n}\n";
         assertEquals(source, removeRedundant(source));
     }
 
@@ -620,24 +635,27 @@ class RewriteRulesTest {
                 }
                 """;
         assertEquals(
-                """
+            """
                 class T {
 
-                    int[] a = {1};
+                    int[] a = { 1 };
 
                     void run(String[] args, int[] ok, int[][] m) {
                         long[] l = new long[1];
-                        for (int[] i = null;;) {}
+                        for (int[] i = null;;) {
+                        }
                     }
+
                 }
                 """,
-                javaBrackets(source));
+            javaBrackets(source)
+        );
     }
 
     @Test
     void declaratorsMoveTogetherOrNotAtAll() {
-        assertEquals("class T {\n\n    int[] a, b;\n}\n", javaBrackets("class T {\n\n    int a[], b[];\n}\n"));
-        String mixed = "class T {\n\n    int a[], b;\n}\n";
+        assertEquals("class T {\n\n    int[] a, b;\n\n}\n", javaBrackets("class T {\n\n    int a[], b[];\n\n}\n"));
+        String mixed = "class T {\n\n    int a[], b;\n\n}\n";
         assertEquals(mixed, javaBrackets(mixed));
     }
 
@@ -654,7 +672,8 @@ class RewriteRulesTest {
                         return null;
                     }
 
-                    void v(String... a[]) {}
+                    void v(String... a[]) { }
+
                 }
                 """;
         assertEquals(source, javaBrackets(source));
@@ -666,19 +685,22 @@ class RewriteRulesTest {
     void everyRuleSettlesAfterOnePass() {
         assertSettles(method("        run((x) -> { return x + 1; });"), LambdaRules.BODY_BRACES, BracePolicy.NEVER);
         assertSettles(
-                method("        run((x) -> 1);"),
-                LambdaRules.PARAMETER_STYLE,
-                LambdaParameterStyle.OMIT_WHEN_POSSIBLE);
+            method("        run((x) -> 1);"),
+            LambdaRules.PARAMETER_STYLE,
+            LambdaParameterStyle.OMIT_WHEN_POSSIBLE
+        );
         assertSettles(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING);
         assertSettles(MODIFIERS, ModifierRules.ORDER, ModifierOrder.CANONICAL);
         assertSettles(
-                statementSwitch("            case 1 -> { f(); }"),
-                SwitchRules.ARROW_CASE_BRACES,
-                BracePolicy.NEVER);
+            statementSwitch("            case 1 -> { f(); }"),
+            SwitchRules.ARROW_CASE_BRACES,
+            BracePolicy.NEVER
+        );
         assertSettles(
-                expressionSwitch("            case 1 -> { yield 2; }"),
-                SwitchRules.YIELD_STYLE,
-                YieldStyle.EXPRESSION_WHEN_POSSIBLE);
+            expressionSwitch("            case 1 -> { yield 2; }"),
+            SwitchRules.YIELD_STYLE,
+            YieldStyle.EXPRESSION_WHEN_POSSIBLE
+        );
     }
 
     private static <T> void assertSettles(String source, Option<T> option, T value) {

@@ -7,21 +7,24 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class PatternRules {
 
     public static final Option<WrapPolicy> DECONSTRUCTION_WRAPPING = Option.ofEnum(
-            "patterns.deconstruction-wrapping",
-            WrapPolicy.WRAP_IF_LONG,
-            "Wrapping of a record deconstruction pattern");
+        "patterns.deconstruction-wrapping",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a record deconstruction pattern"
+    );
 
     public static final Option<Boolean> KEEP_SIMPLE_PATTERN_INLINE = Option.ofBoolean(
-            "patterns.keep-simple-pattern-inline",
-            true,
-            "Keep a short pattern on the line of its test");
+        "patterns.keep-simple-pattern-inline",
+        true,
+        "Keep a short pattern on the line of its test"
+    );
 
     public static final Option<Integer> NESTED_INDENT = Option.ofInt(
-            "patterns.nested-indent",
-            8,
-            "Columns a wrapped nested pattern is indented");
+        "patterns.nested-indent",
+        4,
+        "Columns a wrapped nested pattern is indented"
+    );
 
-    private PatternRules() {}
+    private PatternRules() { }
 
     /** Fluent view of the {@code patterns.*} rules. */
     public static final class Builder {

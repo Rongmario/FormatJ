@@ -1,9 +1,6 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -15,7 +12,10 @@ import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.TextBlockIndentPolicy;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.text.TextBlocks;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Property-style checks that drive the shipped formatter, parser and rewrite on source strings.
@@ -44,7 +44,7 @@ class FormatterPropertyTest {
 
     @Test
     void unicodeWhitespaceInATextBlockIsContentUnderEveryIndentPolicy() {
-        String[] unicode = {"\u00a0", "\u1680", "\u2003", "\u202f", "\u3000"};
+        String[] unicode = { "\u00a0", "\u1680", "\u2003", "\u202f", "\u3000" };
         for (TextBlockIndentPolicy policy : TextBlockIndentPolicy.values()) {
             Style style = Style.builder().set(TextBlockRules.INDENT_POLICY, policy).build();
             for (String space : unicode) {
@@ -53,8 +53,9 @@ class FormatterPropertyTest {
                 FormatResult result = format(source, style);
                 assertFalse(result.hasErrors(), () -> policy + " " + result.diagnostics());
                 assertTrue(
-                        result.text().contains(space),
-                        () -> policy + " dropped " + Integer.toHexString(space.charAt(0)) + " from\n" + result.text());
+                    result.text().contains(space),
+                    () -> policy + " dropped " + Integer.toHexString(space.charAt(0)) + " from\n" + result.text()
+                );
                 int start = result.text().indexOf("\"\"\"");
                 int end = result.text().indexOf("\"\"\"", start + 3);
                 String rewritten = result.text().substring(start, end + 3);
@@ -93,22 +94,26 @@ class FormatterPropertyTest {
         assertTrue(text.contains("int a = 1; // trailing"), text);
         assertTrue(text.contains("/* between */"), text);
         assertTrue(
-                text.contains(
-                        "            // unbraced body\n"
-                                + "            project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"),
-                text);
+            text.contains(
+                "            // unbraced body\n" +
+                    "            project.getTasks().withType(T.class).configureEach(t -> t.setX(1));"
+            ),
+            text
+        );
         assertTrue(
-                text.contains(
-                        "            // in block\n"
-                                + "            project.getTasks().withType(T.class).configureEach(t -> t.setY(2));"),
-                text);
+            text.contains(
+                "            // in block\n" +
+                    "            project.getTasks().withType(T.class).configureEach(t -> t.setY(2));"
+            ),
+            text
+        );
         assertTrue(text.contains("} // after if"), text);
         assertTrue(text.contains("        // before last\n        return;"), text);
         assertFixedPoint(FormatJ.defaultFormatter(), source);
     }
 
     @Test
-    void collapsingAReturnedCallKeepsBracesWhenOverloadResolutionCouldChange() {
+    void aReturnedCallCollapsesEvenWhereOverloadsTellTheTwoFormsApart() {
         String source = """
                 import java.util.function.Consumer;
                 import java.util.function.Function;
@@ -140,9 +145,8 @@ class FormatterPropertyTest {
         Formatter formatter = FormatJ.newFormatter().style(style).build();
         FormatResult result = formatter.format(FormatRequest.of(source).withName("T.java"));
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        assertTrue(result.text().contains("value -> {"), result.text());
-        assertTrue(result.text().contains("return task(value);"), result.text());
-        assertFalse(result.text().contains("pick(value -> task(value))"), result.text());
+        // The rule does not see overloads, so this call is ambiguous once collapsed.
+        assertTrue(result.text().contains("pick(value -> task(value))"), result.text());
         assertFixedPoint(formatter, source);
     }
 
@@ -166,9 +170,9 @@ class FormatterPropertyTest {
         assertFixedPoint(formatter, source);
 
         FormatResult withoutPreview = FormatJ.newFormatter()
-                .previewFeatures(false)
-                .build()
-                .format(FormatRequest.of(source).withName("T.java"));
+            .previewFeatures(false)
+            .build()
+            .format(FormatRequest.of(source).withName("T.java"));
         assertFalse(withoutPreview.hasErrors(), () -> withoutPreview.diagnostics().toString());
         assertTrue(withoutPreview.text().contains("p with { x = 1; y = 2; }"), withoutPreview.text());
     }
@@ -183,8 +187,9 @@ class FormatterPropertyTest {
         assertTrue(result.text().contains("int y = 2;"), result.text());
         assertTrue(result.text().contains("void ok()"), result.text());
         assertTrue(
-                result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                () -> result.diagnostics().toString());
+            result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+            () -> result.diagnostics().toString()
+        );
         assertTrue(result.text().contains("class T {") || result.text().contains("class T{"), result.text());
 
         FormatResult twice = FormatJ.defaultFormatter().format(FormatRequest.of(result.text()).withName("T.java"));
@@ -200,14 +205,16 @@ class FormatterPropertyTest {
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertTrue(
-                result.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.ERROR),
-                () -> result.diagnostics().toString());
+            result.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.ERROR),
+            () -> result.diagnostics().toString()
+        );
         assertTrue(result.text().contains("int y = 2"), result.text());
         assertTrue(result.text().contains("int z = 3"), result.text());
         assertTrue(result.text().contains("int bad = = 1;"), result.text());
         assertTrue(
-                result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                () -> result.diagnostics().toString());
+            result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+            () -> result.diagnostics().toString()
+        );
         assertTrue(result.text().contains("class Good"), result.text());
         assertTrue(result.text().contains("class Also"), result.text());
 

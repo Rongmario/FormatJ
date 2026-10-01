@@ -1,9 +1,16 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -15,6 +22,7 @@ import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
+import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
@@ -22,16 +30,10 @@ import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.pipeline.TokenEquivalence;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.DynamicTest;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestFactory;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Runs the invariants over a real corpus: FormatJ's own sources. No expected output is needed, which
@@ -60,11 +62,11 @@ class CorpusInvariantTest {
         Path repository = Path.of("..").toAbsolutePath().normalize();
         try (Stream<Path> files = Files.walk(repository)) {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> !path.toString().contains("/build/"))
-                    .filter(path -> !hasHiddenSegment(repository, path))
-                    .sorted()
-                    .toList();
+                .filter(path -> path.toString().endsWith(".java"))
+                .filter(path -> !path.toString().contains("/build/"))
+                .filter(path -> !hasHiddenSegment(repository, path))
+                .sorted()
+                .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
             return javaFiles;
         }
@@ -106,26 +108,20 @@ class CorpusInvariantTest {
     Stream<DynamicTest> everySourceFileSurvivesHavingBracesAdded() throws IOException {
         Path repository = Path.of("..").toAbsolutePath().normalize();
         Style bracing = Style.builder()
-                .set(BraceRules.IF_ELSE, BracePolicy.ALWAYS)
-                .set(BraceRules.FOR_LOOP, BracePolicy.ALWAYS)
-                .set(BraceRules.WHILE_LOOP, BracePolicy.ALWAYS)
-                .build();
+            .set(BraceRules.IF_ELSE, BracePolicy.ALWAYS)
+            .set(BraceRules.FOR_LOOP, BracePolicy.ALWAYS)
+            .set(BraceRules.WHILE_LOOP, BracePolicy.ALWAYS)
+            .build();
         Formatter formatter = FormatJ.newFormatter().style(bracing).build();
-        return corpus()
-                .stream()
-                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-                    String source = Files.readString(path, StandardCharsets.UTF_8);
-                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-                    assertTrue(
-                            once.diagnostics()
-                                    .stream()
-                                    .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                            () -> "rewrites were dropped: " + once.diagnostics());
+        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+            String source = Files.readString(path, StandardCharsets.UTF_8);
+            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+            assertTrue(once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
 
-                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-                }));
+            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+        }));
     }
 
     /**
@@ -139,25 +135,19 @@ class CorpusInvariantTest {
     Stream<DynamicTest> everySourceFileSurvivesHavingItsImportsSorted() throws IOException {
         Path repository = Path.of("..").toAbsolutePath().normalize();
         Style sorting = Style.builder()
-                .set(ImportRules.ORDER, SortOrder.ASCENDING)
-                .set(ImportRules.REMOVE_UNUSED, true)
-                .build();
+            .set(ImportRules.ORDER, SortOrder.ASCENDING)
+            .set(ImportRules.REMOVE_UNUSED, true)
+            .build();
         Formatter formatter = FormatJ.newFormatter().style(sorting).build();
-        return corpus()
-                .stream()
-                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-                    String source = Files.readString(path, StandardCharsets.UTF_8);
-                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-                    assertTrue(
-                            once.diagnostics()
-                                    .stream()
-                                    .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                            () -> "rewrites were dropped: " + once.diagnostics());
+        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+            String source = Files.readString(path, StandardCharsets.UTF_8);
+            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+            assertTrue(once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
 
-                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-                }));
+            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+        }));
     }
 
     /**
@@ -172,26 +162,24 @@ class CorpusInvariantTest {
     Stream<DynamicTest> everySourceFileSurvivesBeingAligned() throws IOException {
         Path repository = Path.of("..").toAbsolutePath().normalize();
         Style aligning = Style.builder()
-                .set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.METHOD_CHAINS, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.ANNOTATION_VALUES, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.SWITCH_ARROWS, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.TERNARY_BRANCHES, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
-                .build();
+            .set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.METHOD_CHAINS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.ANNOTATION_VALUES, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.SWITCH_ARROWS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.TERNARY_BRANCHES, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .build();
         Formatter formatter = FormatJ.newFormatter().style(aligning).build();
-        return corpus()
-                .stream()
-                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-                    String source = Files.readString(path, StandardCharsets.UTF_8);
-                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+        return corpus().stream().map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+            String source = Files.readString(path, StandardCharsets.UTF_8);
+            FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+            assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
 
-                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-                }));
+            FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+            assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+        }));
     }
 
     @TestFactory
@@ -199,31 +187,40 @@ class CorpusInvariantTest {
         Path repository = Path.of("..").toAbsolutePath().normalize();
         try (Stream<Path> files = Files.walk(repository)) {
             List<Path> javaFiles = files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> !path.toString().contains("/build/"))
-                    .filter(path -> !hasHiddenSegment(repository, path))
-                    .sorted()
-                    .toList();
+                .filter(path -> path.toString().endsWith(".java"))
+                .filter(path -> !path.toString().contains("/build/"))
+                .filter(path -> !hasHiddenSegment(repository, path))
+                .sorted()
+                .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
-            Formatter formatter = FormatJ.defaultFormatter();
+            // The default style rewrites tokens, and the tests above cover those rewrites. This one holds
+            // the layout to the tokens it was given.
+            Style layoutOnly = Style.builder()
+                .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
+                .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
+                .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
+                .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
+                .set(ImportRules.ORDER, SortOrder.PRESERVE)
+                .build();
+            Formatter formatter = FormatJ.newFormatter().style(layoutOnly).build();
             return javaFiles.stream()
-                    .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
-                        String source = Files.readString(path, StandardCharsets.UTF_8);
-                        assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)), "lexer must round-trip");
+                .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
+                    String source = Files.readString(path, StandardCharsets.UTF_8);
+                    assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)), "lexer must round-trip");
 
-                        ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
-                        assertEquals(source, parsed.root().text(), "the tree must round-trip");
-                        List<String> unparsed = unparsedRegions(parsed.root());
-                        assertTrue(unparsed.isEmpty(), () -> "unparsed regions: " + unparsed);
+                    ParseResult parsed = JavaParser.parse(source, LanguageLevel.LATEST, false);
+                    assertEquals(source, parsed.root().text(), "the tree must round-trip");
+                    List<String> unparsed = unparsedRegions(parsed.root());
+                    assertTrue(unparsed.isEmpty(), () -> "unparsed regions: " + unparsed);
 
-                        FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
-                        assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-                        ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
-                        assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, () -> "formatting changed the program: " + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
+                    FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
+                    assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+                    ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
+                    assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, () -> "formatting changed the program: " + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
 
-                        FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
-                        assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
-                    }));
+                    FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
+                    assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
+                }));
         }
     }
 

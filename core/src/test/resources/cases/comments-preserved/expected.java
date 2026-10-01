@@ -2,6 +2,7 @@ package sample;
 
 /** A documented class. */
 public class Commented {
+
     // a leading comment
     private int count; // a trailing comment
 
@@ -15,4 +16,5 @@ public class Commented {
     void empty() {
         // nothing to do yet
     }
+
 }

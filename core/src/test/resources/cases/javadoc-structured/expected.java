@@ -8,7 +8,7 @@ class Documented {
      *
      * @param first  the first one
      * @param second the second one, described at some length so that
-     *         the description has to wrap
+     * the description has to wrap
      * @return what came of it
      * @throws IllegalStateException when it will not
      */
@@ -16,8 +16,10 @@ class Documented {
         return first + second;
     }
 
-    /** Left alone. */
-    void single() {}
+    /**
+     * Left alone.
+     */
+    void single() { }
 
     /**
      * Holds a sample.
@@ -26,6 +28,6 @@ class Documented {
      *     int x =   1;
      * </pre>
      */
-    void sample() {}
+    void sample() { }
 
 }

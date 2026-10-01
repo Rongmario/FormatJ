@@ -1,9 +1,6 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -15,7 +12,10 @@ import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.pipeline.TokenEquivalence;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FormatterPipelineTest {
 
@@ -32,9 +32,9 @@ class FormatterPipelineTest {
     @Test
     void theBuilderProducesAFormatterCarryingItsConfiguration() {
         Formatter formatter = FormatJ.newFormatter()
-                .style(Preset.GOOGLE.style())
-                .languageLevel(LanguageLevel.JAVA_21)
-                .build();
+            .style(Preset.GOOGLE.style())
+            .languageLevel(LanguageLevel.JAVA_21)
+            .build();
 
         assertEquals(LanguageLevel.JAVA_21, formatter.languageLevel());
         assertEquals(Preset.GOOGLE.style(), formatter.style());
@@ -57,10 +57,11 @@ class FormatterPipelineTest {
 
         assertFalse(result.hasErrors());
         assertEquals(
-                """
+            """
                 package a;
 
                 class A {
+
                     void run() {
                         if (x) {
                             g();
@@ -68,9 +69,11 @@ class FormatterPipelineTest {
                             h();
                         }
                     }
+
                 }
                 """,
-                result.text());
+            result.text()
+        );
     }
 
     @Test
@@ -82,10 +85,9 @@ class FormatterPipelineTest {
         assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
         assertTrue(result.text().contains("int x = = 1;"), result.text());
         assertTrue(
-                result.diagnostics()
-                        .stream()
-                        .anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                "an unparsed region must be reported");
+            result.diagnostics().stream().anyMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+            "an unparsed region must be reported"
+        );
     }
 
     @Test
@@ -116,7 +118,7 @@ class FormatterPipelineTest {
     @Test
     void enumTerminatorStaysOnTheLastConstant() {
         FormatResult result = format(
-                """
+            """
                 public enum LanguageLevel {
                     JAVA_17(17),
                     JAVA_25(25)
@@ -124,7 +126,8 @@ class FormatterPipelineTest {
                     public static final LanguageLevel LATEST = JAVA_25;
                     LanguageLevel(int release) {}
                 }
-                """);
+                """
+        );
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertTrue(result.text().contains("JAVA_25(25);"), result.text());
@@ -156,9 +159,10 @@ class FormatterPipelineTest {
     @Test
     void parameterizedEnumsAlwaysKeepTheSemicolon() {
         FormatResult result = format(
-                """
+            """
                 enum Named { A(1), B(2); Named(int n) { } }
-                """);
+                """
+        );
 
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertTrue(result.text().contains("B(2);"), result.text());

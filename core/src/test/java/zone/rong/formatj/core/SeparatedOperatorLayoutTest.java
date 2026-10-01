@@ -1,9 +1,8 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.function.Consumer;
 
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
@@ -11,8 +10,10 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.OperatorWrap;
 import zone.rong.formatj.api.rules.WrapPolicy;
-import java.util.function.Consumer;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SeparatedOperatorLayoutTest {
 
@@ -37,7 +38,7 @@ class SeparatedOperatorLayoutTest {
                 }
                 """;
 
-        String formatted = formatFixedPoint(source, style -> {});
+        String formatted = formatFixedPoint(source, style -> { });
 
         assertTrue(formatted.contains("A::<String>identity"), formatted);
         assertTrue(formatted.contains("value instanceof String text"), formatted);
@@ -66,11 +67,12 @@ class SeparatedOperatorLayoutTest {
                 """;
 
         String formatted = formatFixedPoint(
-                source,
-                style -> style.spacing(spacing -> spacing
-                        .aroundMethodReferenceOperator(true)
-                        .aroundMulticatchSeparator(false)
-                        .aroundIntersectionSeparator(false)));
+            source,
+            style -> style.spacing(spacing -> spacing
+                .aroundMethodReferenceOperator(true)
+                .aroundMulticatchSeparator(false)
+                .aroundIntersectionSeparator(false))
+        );
 
         assertTrue(formatted.contains("A :: <String>identity"), formatted);
         assertTrue(formatted.contains("FirstFailure|SecondFailure failure"), formatted);
@@ -92,35 +94,39 @@ class SeparatedOperatorLayoutTest {
                 """;
         for (WrapPolicy policy : WrapPolicy.values()) {
             String formatted = formatFixedPoint(
-                    source,
-                    style -> style.wrapping(wrapping -> wrapping
-                            .maxLineLength(55)
-                            .methodReference(policy)));
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(55).methodReference(policy))
+            );
             boolean broken = formatted.contains("AnExceptionallyLongQualifierName\n");
             assertEquals(
-                    policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
-                    broken,
-                    () -> policy + ":\n" + formatted);
+                policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
+                broken,
+                () -> policy + ":\n" + formatted
+            );
         }
 
         String before = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .methodReference(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .methodReferenceOperatorPosition(OperatorWrap.BEFORE_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .methodReference(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .methodReferenceOperatorPosition(OperatorWrap.BEFORE_OPERATOR))
+        );
         String after = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .methodReference(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .methodReferenceOperatorPosition(OperatorWrap.AFTER_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .methodReference(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .methodReferenceOperatorPosition(OperatorWrap.AFTER_OPERATOR))
+        );
         String shortForm = formatFixedPoint(
-                "class A { Object f() { return A::create; } }\n",
-                style -> style.wrapping(wrapping -> wrapping.methodReference(WrapPolicy.WRAP_IF_LONG)));
+            "class A { Object f() { return A::create; } }\n",
+            style -> style.wrapping(wrapping -> wrapping.methodReference(WrapPolicy.WRAP_IF_LONG))
+        );
         String preserved = formatFixedPoint(
-                "class A { Object f() { return A::\n        create; } }\n",
-                style -> style.wrapping(wrapping -> wrapping.methodReference(WrapPolicy.PRESERVE)));
+            "class A { Object f() { return A::\n        create; } }\n",
+            style -> style.wrapping(wrapping -> wrapping.methodReference(WrapPolicy.PRESERVE))
+        );
 
-        assertTrue(before.contains("AnExceptionallyLongQualifierName\n" + "                ::"), before);
+        assertTrue(before.contains("AnExceptionallyLongQualifierName\n" + "            ::"), before);
         assertTrue(after.contains("AnExceptionallyLongQualifierName::\n"), after);
         assertTrue(shortForm.contains("return A::create;"), shortForm);
         assertFalse(preserved.contains("A::create"), preserved);
@@ -139,33 +145,36 @@ class SeparatedOperatorLayoutTest {
                 """;
         for (WrapPolicy policy : WrapPolicy.values()) {
             String formatted = formatFixedPoint(
-                    source,
-                    style -> style.wrapping(wrapping -> wrapping
-                            .maxLineLength(45)
-                            .instanceofExpression(policy)));
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(45).instanceofExpression(policy))
+            );
             assertEquals(
-                    policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
-                    formatted.contains("value instanceof\n"),
-                    () -> policy + ":\n" + formatted);
+                policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
+                formatted.contains("value instanceof\n"),
+                () -> policy + ":\n" + formatted
+            );
         }
 
         String legacy = formatFixedPoint(source, style -> style.wrapping(wrapping -> wrapping.maxLineLength(45)));
         String patternAllowsWrap = formatFixedPoint(
-                source,
-                style -> style
-                        .patterns(patterns -> patterns.keepSimplePatternInline(false))
-                        .wrapping(wrapping -> wrapping.maxLineLength(45)));
+            source,
+            style -> style
+                .patterns(patterns -> patterns.keepSimplePatternInline(false))
+                .wrapping(wrapping -> wrapping.maxLineLength(45))
+        );
         String explicit = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .instanceofExpression(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .instanceofOperatorPosition(OperatorWrap.BEFORE_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .instanceofExpression(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .instanceofOperatorPosition(OperatorWrap.BEFORE_OPERATOR))
+        );
 
         assertTrue(legacy.contains("value instanceof AnExceptionallyLongTypeName patternVariable"), legacy);
         assertTrue(patternAllowsWrap.contains("value instanceof\n"), patternAllowsWrap);
         assertTrue(
-                explicit.contains("value\n" + "                instanceof AnExceptionallyLongTypeName patternVariable"),
-                explicit);
+            explicit.contains("value\n" + "            instanceof AnExceptionallyLongTypeName patternVariable"),
+            explicit
+        );
     }
 
     @Test
@@ -185,28 +194,30 @@ class SeparatedOperatorLayoutTest {
                 """;
         for (WrapPolicy policy : WrapPolicy.values()) {
             String formatted = formatFixedPoint(
-                    source,
-                    style -> style.wrapping(wrapping -> wrapping
-                            .maxLineLength(60)
-                            .multicatch(policy)));
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(60).multicatch(policy))
+            );
             assertEquals(
-                    policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
-                    formatted.contains("@One FirstLongFailure\n"),
-                    () -> policy + ":\n" + formatted);
+                policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
+                formatted.contains("@One FirstLongFailure\n"),
+                () -> policy + ":\n" + formatted
+            );
         }
 
         String before = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .multicatch(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .multicatchSeparatorPosition(OperatorWrap.BEFORE_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .multicatch(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .multicatchSeparatorPosition(OperatorWrap.BEFORE_OPERATOR))
+        );
         String after = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .multicatch(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .multicatchSeparatorPosition(OperatorWrap.AFTER_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .multicatch(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .multicatchSeparatorPosition(OperatorWrap.AFTER_OPERATOR))
+        );
         String withComment = formatFixedPoint(
-                """
+            """
                 class A {
                     void f() {
                         try { run(); } catch (FirstFailure | // keep this alternative
@@ -214,10 +225,11 @@ class SeparatedOperatorLayoutTest {
                     }
                 }
                 """,
-                style -> style.wrapping(wrapping -> wrapping.multicatch(WrapPolicy.CHOP_DOWN_ALWAYS)));
+            style -> style.wrapping(wrapping -> wrapping.multicatch(WrapPolicy.CHOP_DOWN_ALWAYS))
+        );
 
-        assertTrue(before.contains("@One FirstLongFailure\n" + "                | @Two SecondLongFailure"), before);
-        assertTrue(after.contains("@One FirstLongFailure |\n" + "                @Two SecondLongFailure"), after);
+        assertTrue(before.contains("@One FirstLongFailure\n" + "            | @Two SecondLongFailure"), before);
+        assertTrue(after.contains("@One FirstLongFailure |\n" + "            @Two SecondLongFailure"), after);
         assertTrue(withComment.contains("// keep this alternative"), withComment);
     }
 
@@ -234,33 +246,33 @@ class SeparatedOperatorLayoutTest {
                 """;
         for (WrapPolicy policy : WrapPolicy.values()) {
             String formatted = formatFixedPoint(
-                    source,
-                    style -> style.wrapping(wrapping -> wrapping
-                            .maxLineLength(65)
-                            .intersectionTypes(policy)));
+                source,
+                style -> style.wrapping(wrapping -> wrapping.maxLineLength(65).intersectionTypes(policy))
+            );
             assertEquals(
-                    policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
-                    formatted.contains("@One FirstLongInterface\n"),
-                    () -> policy + ":\n" + formatted);
+                policy != WrapPolicy.NEVER && policy != WrapPolicy.PRESERVE,
+                formatted.contains("@One FirstLongInterface\n"),
+                () -> policy + ":\n" + formatted
+            );
         }
 
         String before = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .intersectionTypes(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .intersectionSeparatorPosition(OperatorWrap.BEFORE_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .intersectionTypes(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .intersectionSeparatorPosition(OperatorWrap.BEFORE_OPERATOR))
+        );
         String after = formatFixedPoint(
-                source,
-                style -> style.wrapping(wrapping -> wrapping
-                        .intersectionTypes(WrapPolicy.CHOP_DOWN_ALWAYS)
-                        .intersectionSeparatorPosition(OperatorWrap.AFTER_OPERATOR)));
+            source,
+            style -> style.wrapping(wrapping -> wrapping
+                .intersectionTypes(WrapPolicy.CHOP_DOWN_ALWAYS)
+                .intersectionSeparatorPosition(OperatorWrap.AFTER_OPERATOR))
+        );
 
-        assertTrue(before.contains("@One FirstLongInterface\n" + "                & @Two SecondLongInterface"), before);
-        assertTrue(
-                before.contains("(@One FirstLongInterface\n" + "                & @Two SecondLongInterface"),
-                before);
-        assertTrue(after.contains("@One FirstLongInterface &\n" + "                @Two SecondLongInterface"), after);
-        assertTrue(after.contains("(@One FirstLongInterface &\n" + "                @Two SecondLongInterface"), after);
+        assertTrue(before.contains("@One FirstLongInterface\n" + "            & @Two SecondLongInterface"), before);
+        assertTrue(before.contains("(@One FirstLongInterface\n" + "            & @Two SecondLongInterface"), before);
+        assertTrue(after.contains("@One FirstLongInterface &\n" + "            @Two SecondLongInterface"), after);
+        assertTrue(after.contains("(@One FirstLongInterface &\n" + "            @Two SecondLongInterface"), after);
     }
 
     @Test
@@ -283,7 +295,7 @@ class SeparatedOperatorLayoutTest {
                 }
                 """;
 
-        String formatted = formatFixedPoint(source, style -> {});
+        String formatted = formatFixedPoint(source, style -> { });
 
         assertTrue(formatted.contains("/* reference */"), formatted);
         assertTrue(formatted.contains("/* test */"), formatted);

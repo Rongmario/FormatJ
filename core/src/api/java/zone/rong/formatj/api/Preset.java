@@ -1,17 +1,21 @@
 package zone.rong.formatj.api;
 
+import java.util.List;
+import java.util.Locale;
+
 import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
+import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
+import zone.rong.formatj.api.rules.OperatorWrap;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.StaticImportPlacement;
 import zone.rong.formatj.api.rules.WrapPolicy;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * A named starting point for a style.
@@ -42,60 +46,80 @@ public enum Preset {
         @Override
         void applyTo(StyleBuilder style) {
             style.indent(indent -> indent.size(2)
-                    .continuation(4)
-                    .chainedCall(4)
-                    .arrayInitializer(2)
-                    .ternary(4)
-                    .throwsClause(4)
-                    .switchCaseLabels(true)
-                    .switchCaseBody(true))
-                    .wrapping(wrapping -> wrapping.maxLineLength(100)
-                            .methodParameters(WrapPolicy.WRAP_IF_LONG)
-                            .methodArguments(WrapPolicy.WRAP_IF_LONG)
-                            .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE)
-                            .chainThreshold(2)
-                            .closingDelimiter(ClosingDelimiter.ATTACHED)
-                            .assignmentBreak(AssignmentBreak.AFTER_OPERATOR)
-                            .hugSoleArgument(false)
-                            .keepSimpleMethodsOnOneLine(false)
-                            .keepSimpleClassesOnOneLine(false))
-                    .braces(braces -> braces.classPlacement(BracePlacement.END_OF_LINE)
-                            .methodPlacement(BracePlacement.END_OF_LINE)
-                            .controlPlacement(BracePlacement.END_OF_LINE)
-                            .ifElse(BracePolicy.ALWAYS)
-                            .forLoop(BracePolicy.ALWAYS)
-                            .whileLoop(BracePolicy.ALWAYS)
-                            .elseOnNewLine(false)
-                            .catchOnNewLine(false)
-                            .finallyOnNewLine(false))
-                    .blankLines(blank -> blank.maxConsecutive(1)
-                            .afterPackage(1)
-                            .afterImports(1)
-                            .beforeMethod(1)
-                            .beforeClass(1)
-                            .afterClassOpeningBrace(0)
-                            .beforeClassClosingBrace(0)
-                            .betweenMemberGroups(0))
-                    .alignment(alignment -> alignment.consecutiveFields(AlignmentPolicy.NONE)
-                            .consecutiveVariables(AlignmentPolicy.NONE)
-                            .consecutiveAssignments(AlignmentPolicy.NONE)
-                            .methodChains(AlignmentPolicy.NONE)
-                            .trailingComments(AlignmentPolicy.NONE)
-                            .ternaryBranches(AlignmentPolicy.NONE))
-                    .imports(imports -> imports.groups(List.of(List.of("*")))
-                            .order(SortOrder.ASCENDING)
-                            .staticPlacement(StaticImportPlacement.FIRST)
-                            .blankLineBetweenGroups(true))
-                    .javadoc(javadoc -> javadoc.wrap(true)
-                            .tagOrder(JavadocTagOrder.CANONICAL)
-                            .blankLineBeforeTags(true)
-                            .addParagraphTags(true)
-                            .tagContinuationIndent(4))
-                    .preservation(preservation -> preservation.keepAuthorBlankLines(true)
-                            .maxPreservedBlankLines(1)
-                            .keepLineBreakAfterOpenParen(false)
-                            .respectExistingChainBreaks(false)
-                            .keepSimpleBlocksInline(false));
+                .continuation(4)
+                .chainedCall(4)
+                .arrayInitializer(2)
+                .ternary(4)
+                .throwsClause(4)
+                .switchCaseLabels(true)
+                .switchCaseBody(true))
+                .wrapping(wrapping -> wrapping.maxLineLength(100)
+                    .methodParameters(WrapPolicy.WRAP_IF_LONG)
+                    .methodArguments(WrapPolicy.WRAP_IF_LONG)
+                    .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE)
+                    .chainThreshold(2)
+                    .operatorPosition(OperatorWrap.BEFORE_OPERATOR)
+                    .assignment(WrapPolicy.WRAP_IF_LONG)
+                    .arrayInitializers(WrapPolicy.WRAP_IF_LONG)
+                    .extendsImplements(WrapPolicy.WRAP_IF_LONG)
+                    .typeParameters(WrapPolicy.WRAP_IF_LONG)
+                    .enumConstants(WrapPolicy.CHOP_DOWN_IF_LONG)
+                    .forStatement(WrapPolicy.WRAP_IF_LONG)
+                    .tryResources(WrapPolicy.CHOP_DOWN_IF_LONG)
+                    .closingDelimiter(ClosingDelimiter.ATTACHED)
+                    .assignmentBreak(AssignmentBreak.AFTER_OPERATOR)
+                    .hugSoleArgument(false)
+                    .keepSimpleMethodsOnOneLine(false)
+                    .keepSimpleLambdasOnOneLine(true)
+                    .keepSimpleClassesOnOneLine(false))
+                .braces(braces -> braces.classPlacement(BracePlacement.END_OF_LINE)
+                    .methodPlacement(BracePlacement.END_OF_LINE)
+                    .controlPlacement(BracePlacement.END_OF_LINE)
+                    .ifElse(BracePolicy.ALWAYS)
+                    .forLoop(BracePolicy.ALWAYS)
+                    .whileLoop(BracePolicy.ALWAYS)
+                    .elseOnNewLine(false)
+                    .catchOnNewLine(false)
+                    .finallyOnNewLine(false)
+                    .emptyClassBody(EmptyBodyStyle.COMPACT)
+                    .emptyMethodBody(EmptyBodyStyle.COMPACT)
+                    .emptyControlBody(EmptyBodyStyle.COMPACT))
+                .spacing(spacing -> spacing.withinArrayInitializerBraces(false))
+                .annotations(annotations -> annotations.declarationPlacement(AnnotationPlacement.PRESERVE)
+                    .fieldPlacement(AnnotationPlacement.PRESERVE))
+                .lambdas(lambdas -> lambdas.bodyBraces(BracePolicy.PRESERVE))
+                .patterns(patterns -> patterns.nestedIndent(8))
+                .blankLines(blank -> blank.maxConsecutive(1)
+                    .afterPackage(1)
+                    .afterImports(1)
+                    .beforeMethod(1)
+                    .beforeClass(1)
+                    .afterClassOpeningBrace(0)
+                    .beforeClassClosingBrace(0)
+                    .beforeFirstEnumConstant(0)
+                    .betweenMemberGroups(0))
+                .alignment(alignment -> alignment.consecutiveFields(AlignmentPolicy.NONE)
+                    .consecutiveVariables(AlignmentPolicy.NONE)
+                    .consecutiveAssignments(AlignmentPolicy.NONE)
+                    .methodChains(AlignmentPolicy.NONE)
+                    .trailingComments(AlignmentPolicy.NONE)
+                    .ternaryBranches(AlignmentPolicy.NONE))
+                .imports(imports -> imports.groups(List.of(List.of("*")))
+                    .order(SortOrder.ASCENDING)
+                    .staticPlacement(StaticImportPlacement.FIRST)
+                    .blankLineBetweenGroups(true))
+                .javadoc(javadoc -> javadoc.wrap(true)
+                    .tagOrder(JavadocTagOrder.CANONICAL)
+                    .blankLineBeforeTags(true)
+                    .addParagraphTags(true)
+                    .keepSingleLine(true)
+                    .tagContinuationIndent(4))
+                .preservation(preservation -> preservation.keepAuthorBlankLines(true)
+                    .maxPreservedBlankLines(1)
+                    .keepLineBreakAfterOpenParen(false)
+                    .respectExistingChainBreaks(false)
+                    .keepArrayInitializerLayout(true)
+                    .keepSimpleBlocksInline(false));
         }
 
     };

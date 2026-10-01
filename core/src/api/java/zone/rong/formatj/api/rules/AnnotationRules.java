@@ -7,21 +7,30 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class AnnotationRules {
 
     public static final Option<AnnotationPlacement> DECLARATION_PLACEMENT = Option.ofEnum(
-            "annotations.declaration-placement",
-            AnnotationPlacement.PRESERVE,
-            "Placement of an annotation on a type, method or field declaration");
+        "annotations.declaration-placement",
+        AnnotationPlacement.NEW_LINE,
+        "Placement of an annotation on a type, method or constructor declaration"
+    );
+
+    public static final Option<AnnotationPlacement> FIELD_PLACEMENT = Option.ofEnum(
+        "annotations.field-placement",
+        AnnotationPlacement.SAME_LINE,
+        "Placement of an annotation on a field declaration"
+    );
 
     public static final Option<AnnotationPlacement> PARAMETER_PLACEMENT = Option.ofEnum(
-            "annotations.parameter-placement",
-            AnnotationPlacement.SAME_LINE,
-            "Placement of an annotation on a parameter or local variable");
+        "annotations.parameter-placement",
+        AnnotationPlacement.SAME_LINE,
+        "Placement of an annotation on a parameter or local variable"
+    );
 
     public static final Option<Boolean> SINGLE_MARKER_INLINE = Option.ofBoolean(
-            "annotations.single-marker-inline",
-            false,
-            "Keep a lone marker annotation on the line of its declaration");
+        "annotations.single-marker-inline",
+        false,
+        "Keep a lone marker annotation on the line of its declaration"
+    );
 
-    private AnnotationRules() {}
+    private AnnotationRules() { }
 
     /** Fluent view of the {@code annotations.*} rules. */
     public static final class Builder {
@@ -34,6 +43,11 @@ public final class AnnotationRules {
 
         public Builder declarationPlacement(AnnotationPlacement value) {
             style.set(DECLARATION_PLACEMENT, value);
+            return this;
+        }
+
+        public Builder fieldPlacement(AnnotationPlacement value) {
+            style.set(FIELD_PLACEMENT, value);
             return this;
         }
 

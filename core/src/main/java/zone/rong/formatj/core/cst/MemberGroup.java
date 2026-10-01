@@ -27,7 +27,7 @@ public final class MemberGroup {
     private static final int STATIC_CLASSES = 24;
     private static final int INNER_CLASSES = 25;
 
-    private MemberGroup() {}
+    private MemberGroup() { }
 
     /**
      * @param member a child of a type body
@@ -43,8 +43,8 @@ public final class MemberGroup {
                 boolean fieldStatic = isStatic || interfaceBody;
                 boolean fieldFinal = modifiers.contains("final") || interfaceBody;
                 int first = fieldStatic
-                        ? (fieldFinal ? STATIC_FINAL_FIELDS : STATIC_FIELDS)
-                        : (fieldFinal ? FINAL_FIELDS : FIELDS);
+                    ? (fieldFinal ? STATIC_FINAL_FIELDS : STATIC_FIELDS)
+                    : (fieldFinal ? FINAL_FIELDS : FIELDS);
                 yield first + access(modifiers, interfaceBody);
             }
             case INITIALIZER_BLOCK -> isStatic ? STATIC_INITIALIZER : INSTANCE_INITIALIZER;
@@ -60,15 +60,15 @@ public final class MemberGroup {
     }
 
     /**
-     * The section a member sits in for blank-line purposes: its group with access level and finality
-     * folded away, so a run of static fields or of instance fields reads as one block.
+     * The section a member sits in for blank-line purposes: its group with access level folded away,
+     * so a run of fields that agree on {@code static} and {@code final} reads as one block.
      */
     public static int section(GreenNode member, boolean interfaceBody) {
         int group = of(member, interfaceBody);
         if (group >= STATIC_FINAL_FIELDS && group < STATIC_INITIALIZER) {
-            return STATIC_FINAL_FIELDS;
+            return group - (group - STATIC_FINAL_FIELDS) % 4;
         }
-        return group >= FINAL_FIELDS && group < INSTANCE_INITIALIZER ? FINAL_FIELDS : group;
+        return group >= FINAL_FIELDS && group < INSTANCE_INITIALIZER ? group - (group - FINAL_FIELDS) % 4 : group;
     }
 
     private static int access(List<String> modifiers, boolean interfaceBody) {
@@ -86,12 +86,12 @@ public final class MemberGroup {
             return List.of();
         }
         return member.children()
-                .getFirst()
-                .children()
-                .stream()
-                .filter(GreenNode.Leaf.class::isInstance)
-                .map(leaf -> ((GreenNode.Leaf) leaf).decodedLexeme())
-                .toList();
+            .getFirst()
+            .children()
+            .stream()
+            .filter(GreenNode.Leaf.class::isInstance)
+            .map(leaf -> ((GreenNode.Leaf) leaf).decodedLexeme())
+            .toList();
     }
 
 }

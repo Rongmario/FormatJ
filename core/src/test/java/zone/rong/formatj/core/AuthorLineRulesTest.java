@@ -1,17 +1,19 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.function.Consumer;
 
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.WrapPolicy;
-import java.util.function.Consumer;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The rules that read the author's own line structure.
@@ -27,17 +29,17 @@ class AuthorLineRulesTest {
     void aBlockTheAuthorWroteOnOneLineStaysOnOneLine() {
         String source = "class A {\n\n    void f() {\n        if (x) { g(); }\n    }\n\n}\n";
 
-        assertTrue(format(source, style -> {}).contains("if (x) {\n            g();\n        }"));
+        assertTrue(format(source, style -> { }).contains("if (x) {\n            g();\n        }"));
         assertTrue(
-                format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(true))).contains(
-                        "if (x) { g(); }"));
+            format(source, style -> style.preservation(p -> p.keepSimpleBlocksInline(true))).contains("if (x) { g(); }")
+        );
     }
 
     @Test
     void aBlockTheAuthorSpreadOutIsLeftSpreadOut() {
         String source = "class A {\n\n    void f() {\n        if (x) {\n            g();\n        }\n    }\n\n}\n";
 
-        assertTrue(format(source, style -> {}).contains("if (x) {\n            g();\n        }"));
+        assertTrue(format(source, style -> { }).contains("if (x) {\n            g();\n        }"));
     }
 
     @Test
@@ -49,9 +51,11 @@ class AuthorLineRulesTest {
         String narrow = format(source, style -> style.wrapping(w -> w.maxLineLength(30)));
 
         assertTrue(
-                narrow.contains(
-                        "if (x) {\n            alpha();\n            beta();\n            gamma();\n" + "        }"),
-                narrow);
+            narrow.contains(
+                "if (x) {\n            alpha();\n            beta();\n            gamma();\n" + "        }"
+            ),
+            narrow
+        );
         assertEquals(narrow, format(narrow, style -> style.wrapping(w -> w.maxLineLength(30))));
     }
 
@@ -64,26 +68,32 @@ class AuthorLineRulesTest {
 
         // Too long for one line, so it lays out as an ordinary body.
         String narrow = format(
-                source,
-                style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true).maxLineLength(20)));
-        assertTrue(narrow.contains("static class B {\n        int x;\n    }"), narrow);
+            source,
+            style -> style.wrapping(w -> w.keepSimpleClassesOnOneLine(true).maxLineLength(20))
+        );
+        assertTrue(narrow.contains("static class B {\n\n        int x;\n\n    }"), narrow);
     }
 
     @Test
     void methodsAndLambdasHaveTheirOwnRules() {
-        String source = "class A {\n\n    void f() { g(); }\n\n    void h() {\n        run(() -> { g(); });\n"
-                + "    }\n\n}\n";
+        String source = "class A {\n\n    void f() { g(); }\n\n    void h() {\n        run(() -> { g(); });\n" +
+            "    }\n\n}\n";
 
-        String defaults = format(source, style -> {});
-        // Lambdas keep their line by default, whole methods do not.
-        assertTrue(defaults.contains("run(() -> { g(); })"), defaults);
+        String defaults = format(source, style -> { });
+        // Neither keeps its line by default, and a lambda holding one call loses its braces.
+        assertTrue(defaults.contains("run(() -> g())"), defaults);
         assertTrue(defaults.contains("void f() {\n        g();\n    }"), defaults);
 
+        String braced = format(source, style -> style.lambdas(l -> l.bodyBraces(BracePolicy.PRESERVE)));
+        assertTrue(braced.contains("run(() -> {\n            g();\n        })"), braced);
+
         String both = format(
-                source,
-                style -> style.wrapping(w -> w.keepSimpleMethodsOnOneLine(true).keepSimpleLambdasOnOneLine(false)));
+            source,
+            style -> style.lambdas(l -> l.bodyBraces(BracePolicy.PRESERVE))
+                .wrapping(w -> w.keepSimpleMethodsOnOneLine(true).keepSimpleLambdasOnOneLine(true))
+        );
         assertTrue(both.contains("void f() { g(); }"), both);
-        assertTrue(both.contains("run(() -> {\n            g();\n        })"), both);
+        assertTrue(both.contains("run(() -> { g(); })"), both);
     }
 
     @Test
@@ -92,7 +102,7 @@ class AuthorLineRulesTest {
         // in the first place and the ordinary layout is what applies.
         String source = "class A {\n\n    void f() {\n        if (x) { g(); // done\n        }\n    }\n\n}\n";
 
-        String formatted = format(source, style -> {});
+        String formatted = format(source, style -> { });
 
         assertTrue(formatted.contains("if (x) {\n            g(); // done\n        }"), formatted);
     }
@@ -103,98 +113,104 @@ class AuthorLineRulesTest {
         // on one line.
         String source = "class A {\n\n    void f() {\n        if (x) { g(); /* done */ }\n    }\n\n}\n";
 
-        String formatted = format(source, style -> {});
+        String formatted = format(source, style -> { });
 
         assertTrue(formatted.contains("    g(); /* done */\n        }"), formatted);
     }
 
     @Test
     void aBreakAfterAnOpeningParenthesisSurvivesWhenTheRuleAsksIt() {
-        String source = "class A {\n\n    void f() {\n        g(\n                a,\n                b);\n"
-                + "    }\n\n}\n";
+        String source = "class A {\n\n    void f() {\n        g(\n                a,\n                b);\n" +
+            "    }\n\n}\n";
 
-        assertTrue(format(source, style -> {}).contains("g(a, b);"));
+        assertTrue(format(source, style -> { }).contains("g(a, b);"));
         assertTrue(
-                format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true))).contains(
-                        "g(\n                a,\n                b);"));
+            format(source, style -> style.preservation(p -> p.keepLineBreakAfterOpenParen(true))).contains(
+                "g(\n            a,\n            b\n        );"
+            )
+        );
     }
 
     @Test
     void neverJoinLinesKeepsBreaksTheAuthorTookAnywhere() {
-        String source = "class A {\n\n    void f() {\n        int x = one\n                + two;\n"
-                + "        g(\n                a,\n                b);\n    }\n\n}\n";
+        String source = "class A {\n\n    void f() {\n        int x = one\n                + two;\n" +
+            "        g(\n                a,\n                b);\n    }\n\n}\n";
 
-        String joined = format(source, style -> {});
+        String joined = format(source, style -> { });
         assertTrue(joined.contains("int x = one + two;"), joined);
         assertTrue(joined.contains("g(a, b);"), joined);
 
         String kept = format(source, style -> style.preservation(p -> p.neverJoinLines(true)));
-        assertTrue(kept.contains("int x = one\n                + two;"), kept);
-        assertTrue(kept.contains("g(\n                a,\n                b);"), kept);
+        assertTrue(kept.contains("int x = one +\n            two;"), kept);
+        assertTrue(kept.contains("g(\n            a,\n            b\n        );"), kept);
     }
 
     @Test
     void aPatternIsTiedToItsTestOnlyWhileTheRuleSaysSo() {
-        String source = "class A {\n\n    boolean f(Object candidate) {\n"
-                + "        return candidate instanceof SomeLongTypeName binding && binding.ready();\n    }\n\n}\n";
+        String source = "class A {\n\n    boolean f(Object candidate) {\n" +
+            "        return candidate instanceof SomeLongTypeName binding && binding.ready();\n    }\n\n}\n";
 
         String tied = format(source, style -> style.wrapping(w -> w.maxLineLength(50)));
         assertTrue(tied.contains("candidate instanceof SomeLongTypeName binding"), tied);
 
         String free = format(
-                source,
-                style -> style.wrapping(w -> w.maxLineLength(50)).patterns(p -> p.keepSimplePatternInline(false)));
+            source,
+            style -> style.wrapping(w -> w.maxLineLength(50)).patterns(p -> p.keepSimplePatternInline(false))
+        );
         assertTrue(free.contains("instanceof\n"), free);
     }
 
     @Test
     void caseNullDefaultIsOneLabelRatherThanTwo() {
-        String source = "class A {\n\n    int f(Object o) {\n        return switch (o) {\n"
-                + "            case null, default -> compute(withOneArgument, andAnother);\n        };\n"
-                + "    }\n\n}\n";
+        String source = "class A {\n\n    int f(Object o) {\n        return switch (o) {\n" +
+            "            case null, default -> compute(withOneArgument, andAnother);\n        };\n" + "    }\n\n}\n";
 
         String together = format(source, style -> style.wrapping(w -> w.maxLineLength(50)));
         assertTrue(together.contains("case null, default -> compute("), together);
 
         String split = format(
-                source,
-                style -> style.wrapping(w -> w.maxLineLength(50)).switches(s -> s.nullDefaultOnOneLine(false)));
+            source,
+            style -> style.wrapping(w -> w.maxLineLength(50)).switches(s -> s.nullDefaultOnOneLine(false))
+        );
         assertTrue(split.contains("case null, default ->\n"), split);
     }
 
     @Test
     void aThrowsClauseWrapsAsItsPolicyAsks() {
-        String source = "class A {\n\n    void f(int alpha, int beta) throws OneException, TwoException { }\n\n"
-                + "    void g()\n            throws OneException { }\n\n}\n";
+        String source = "class A {\n\n    void f(int alpha, int beta) throws OneException, TwoException { }\n\n" +
+            "    void g()\n            throws OneException { }\n\n}\n";
 
         String never = format(source, style -> style.wrapping(w -> w.throwsClause(WrapPolicy.NEVER).maxLineLength(50)));
         assertTrue(never.contains("throws OneException, TwoException"), never);
         assertFalse(never.contains("throws OneException,\n"), never);
 
         String preserve = format(source, style -> style.wrapping(w -> w.throwsClause(WrapPolicy.PRESERVE)));
-        assertTrue(preserve.contains("void g()\n            throws OneException"), preserve);
+        assertTrue(preserve.contains("void g()\n        throws OneException"), preserve);
 
         // The default rejoins a clause that fits.
-        assertTrue(format(source, style -> {}).contains("void g() throws OneException"));
+        assertTrue(format(source, style -> { }).contains("void g() throws OneException"));
     }
 
     @Test
     void blankLinesCarryTheirIndentationOnlyWhenAskedTo() {
         String source = "class A {\n\n    void f() {\n        int x = 1;\n\n        int y = 2;\n    }\n\n}\n";
 
-        assertTrue(format(source, style -> {}).contains("int x = 1;\n\n        int y"));
+        assertTrue(format(source, style -> { }).contains("int x = 1;\n\n        int y"));
         assertTrue(
-                format(source, style -> style.indent(i -> i.blankLines(true))).contains(
-                        "int x = 1;\n        \n        int y"));
+            format(source, style -> style.indent(i -> i.blankLines(true))).contains(
+                "int x = 1;\n        \n        int y"
+            )
+        );
     }
 
     @Test
     void anArrayInitializerKeepsItsRows() {
         String rows = "class A {\n    int[] a = {1, 2, 3,\n        4, 5};\n}\n";
-        assertTrue(format(rows, style -> {}).contains("    int[] a = {\n        1, 2, 3,\n        4, 5\n    };"));
+        Consumer<StyleBuilder> keepRows = style -> style.preservation(p -> p.keepArrayInitializerLayout(true));
+        assertTrue(format(rows, keepRows).contains("    int[] a = {\n        1, 2, 3,\n        4, 5\n    };"));
 
         String oneRow = "class A {\n    int[] a = {\n        1, 2, 3\n    };\n}\n";
-        assertTrue(format(oneRow, style -> {}).contains("int[] a = {1, 2, 3};"));
+        assertTrue(format(oneRow, keepRows).contains("int[] a = { 1, 2, 3 };"));
     }
 
     private static String format(String source, Consumer<StyleBuilder> configure) {

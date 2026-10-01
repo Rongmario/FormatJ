@@ -1,45 +1,52 @@
 package zone.rong.formatj.api.rules;
 
+import java.util.List;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.StyleBuilder;
-import java.util.List;
 
 /** Import ordering, grouping and wildcard policy. */
 public final class ImportRules {
 
     public static final Option<List<List<String>>> GROUPS = Option.ofStringGroups(
-            "imports.groups",
-            List.of(List.of("java"), List.of("javax"), List.of("*")),
-            "Import groups, in order; an entry is one prefix or a list of prefixes that share "
-                    + "a group, and * is the catch-all");
+        "imports.groups",
+        List.of(List.of("java"), List.of("javax"), List.of("*")),
+        "Import groups, in order; an entry is one prefix or a list of prefixes that share " +
+            "a group, and * is the catch-all"
+    );
 
     public static final Option<SortOrder> ORDER = Option.ofEnum(
-            "imports.order",
-            SortOrder.PRESERVE,
-            "Sort order applied within an import group; preserve leaves the whole run alone, "
-                    + "which also switches off grouping, static placement and module ordering");
+        "imports.order",
+        SortOrder.ASCENDING,
+        "Sort order applied within an import group; preserve leaves the whole run alone, " +
+            "which also switches off grouping, static placement and module ordering"
+    );
 
     public static final Option<StaticImportPlacement> STATIC_PLACEMENT = Option.ofEnum(
-            "imports.static-placement",
-            StaticImportPlacement.LAST,
-            "Where static imports sit relative to ordinary ones");
+        "imports.static-placement",
+        StaticImportPlacement.LAST,
+        "Where static imports sit relative to ordinary ones"
+    );
 
     public static final Option<Boolean> BLANK_LINE_BETWEEN_GROUPS = Option.ofBoolean(
-            "imports.blank-line-between-groups",
-            true,
-            "Separate import groups with a blank line");
+        "imports.blank-line-between-groups",
+        true,
+        "Separate import groups with a blank line"
+    );
 
     public static final Option<Boolean> REMOVE_UNUSED = Option.ofBoolean(
-            "imports.remove-unused",
-            false,
-            "Delete imports the file does not reference");
+        "imports.remove-unused",
+        false,
+        "Delete imports the file does not reference"
+    );
 
     public static final Option<Boolean> MODULE_IMPORTS_FIRST = Option.ofBoolean(
-            "imports.module-imports-first",
-            true,
-            "Place module imports before every other import");
+        "imports.module-imports-first",
+        true,
+        "Place module imports before every other import"
+    );
 
-    private ImportRules() {}
+    private ImportRules() { }
 
     /** Fluent view of the {@code imports.*} rules. */
     public static final class Builder {

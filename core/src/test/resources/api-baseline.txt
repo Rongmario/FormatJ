@@ -250,10 +250,12 @@ TYPE public final enum zone.rong.formatj.api.rules.AnnotationPlacement
 TYPE public final class zone.rong.formatj.api.rules.AnnotationRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.AnnotationRules.SINGLE_MARKER_INLINE
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.DECLARATION_PLACEMENT
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.FIELD_PLACEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.PARAMETER_PLACEMENT
 TYPE public static final class zone.rong.formatj.api.rules.AnnotationRules$Builder
   CTOR public zone.rong.formatj.api.rules.AnnotationRules$Builder(zone.rong.formatj.api.StyleBuilder)
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.declarationPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
+  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.fieldPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.parameterPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.singleMarkerInline(boolean)
 TYPE public final class zone.rong.formatj.api.rules.ArrayRules

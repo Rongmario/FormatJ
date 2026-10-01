@@ -1,5 +1,9 @@
 package sample;
 
 enum Color {
-    RED, GREEN, BLUE;
+
+    RED,
+    GREEN,
+    BLUE;
+
 }

@@ -1,9 +1,17 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 
+import javax.tools.JavaCompiler;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.ToolProvider;
+
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -16,22 +24,16 @@ import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.pipeline.RewriteVerification;
 import zone.rong.formatj.core.rewrite.TokenEdit;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.List;
-import javax.tools.JavaCompiler;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MemberOrderTest {
 
     private static final Style INTELLIJ = Style.builder()
-            .members(members -> members.order(MemberOrder.INTELLIJ))
-            .build();
+        .members(members -> members.order(MemberOrder.INTELLIJ))
+        .build();
 
     private static FormatResult format(String source, Style style) {
         return FormatJ.newFormatter().style(style).build().format(FormatRequest.of(source).withName("T.java"));
@@ -70,7 +72,9 @@ class MemberOrderTest {
                 """;
         String expected = """
                 class Everything {
+
                     public static final int PUBLIC_CONST = 5;
+
                     static int packageStatic = 6;
                     private static int privateStatic;
 
@@ -80,6 +84,7 @@ class MemberOrderTest {
 
                     public final int publicFinal = 2;
                     private final int privateFinal = 4;
+
                     public int publicField = 3;
                     protected int protectedField;
                     int packageField;
@@ -89,21 +94,24 @@ class MemberOrderTest {
                         privateField = 9;
                     }
 
-                    Everything() {}
+                    Everything() { }
 
-                    static void staticMethod() {}
+                    static void staticMethod() { }
 
-                    void instanceMethod() {}
+                    void instanceMethod() { }
 
                     enum Kind {
+
                         A
+
                     }
 
-                    interface Iface {}
+                    interface Iface { }
 
-                    static class Nested {}
+                    static class Nested { }
 
-                    class Inner {}
+                    class Inner { }
+
                 }
                 """;
 
@@ -123,12 +131,13 @@ class MemberOrderTest {
                 """;
         String expected = """
                 class A {
+
                     /** Docs for a. */
-                    @Deprecated
-                    static int a = 1; // after a
+                    @Deprecated static int a = 1; // after a
 
                     // about b
-                    void b() {} // after b
+                    void b() { } // after b
+
                 }
                 """;
 
@@ -148,11 +157,14 @@ class MemberOrderTest {
                 """;
         String expected = """
                 enum E {
-                    A, B;
+
+                    A,
+                    B;
 
                     static int X = 1;
 
-                    void f() {}
+                    void f() { }
+
                 }
                 """;
 
@@ -163,8 +175,10 @@ class MemberOrderTest {
     void membersWhoseInitializationOrderWouldChangeStayPut() {
         String source = """
                 class Foo {
+
                     private static final Object LOGGER = make();
                     public static final Object INSTANCE = make();
+
                 }
                 """;
 
@@ -174,8 +188,9 @@ class MemberOrderTest {
         Diagnostic warning = once.diagnostics().getFirst();
         assertEquals(Diagnostic.Severity.WARNING, warning.severity());
         assertEquals(
-                "members of Foo left in place: moving INSTANCE above LOGGER would change initialization order",
-                warning.message());
+            "members of Foo left in place: moving INSTANCE above LOGGER would change initialization order",
+            warning.message()
+        );
 
         FormatResult twice = format(once.text(), INTELLIJ);
         assertEquals(once.text(), twice.text());
@@ -204,8 +219,10 @@ class MemberOrderTest {
                 """;
         String expected = """
                 class Foo {
+
                     public static final String B = "b" + Integer.MAX_VALUE;
                     private static final int A = 1 + (int) 2L;
+
                 }
                 """;
 
@@ -227,11 +244,11 @@ class MemberOrderTest {
                 }
                 """;
         Style style = Style.builder()
-                .members(members -> members.order(MemberOrder.INTELLIJ))
-                .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL).removeRedundant(true))
-                .imports(imports -> imports.removeUnused(true))
-                .semicolons(semicolons -> semicolons.removeRedundant(true))
-                .build();
+            .members(members -> members.order(MemberOrder.INTELLIJ))
+            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL).removeRedundant(true))
+            .imports(imports -> imports.removeUnused(true))
+            .semicolons(semicolons -> semicolons.removeRedundant(true))
+            .build();
 
         FormatResult once = format(source, style);
         assertTrue(once.diagnostics().isEmpty(), () -> once.diagnostics().toString());
@@ -284,22 +301,23 @@ class MemberOrderTest {
         Path out = Files.createTempDirectory("member-order");
         try {
             return compiler.getTask(
-                    null,
-                    null,
-                    null,
-                    List.of("-d", out.toString(), "-proc:none"),
-                    null,
-                    List.of(new SimpleJavaFileObject(
-                            URI.create("string:///Machine.java"),
-                            SimpleJavaFileObject.Kind.SOURCE) {
+                null,
+                null,
+                null,
+                List.of("-d", out.toString(), "-proc:none"),
+                null,
+                List.of(new SimpleJavaFileObject(
+                    URI.create("string:///Machine.java"),
+                    SimpleJavaFileObject.Kind.SOURCE
+                ) {
 
-                        @Override
-                        public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                            return source;
-                        }
+                    @Override
+                    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                        return source;
+                    }
 
-                    }))
-                    .call();
+                })
+            ).call();
         } finally {
             try (var files = Files.walk(out)) {
                 files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());

@@ -25,7 +25,8 @@ class Cases {
                 one(n);
                 two(n);
             }
-            default -> {}
+            default -> {
+            }
         }
     }
 

@@ -1,3 +1,7 @@
 [wrapping]
 keep-simple-methods-on-one-line = true
 keep-simple-classes-on-one-line = true
+keep-simple-lambdas-on-one-line = true
+
+[lambdas]
+body-braces = "preserve"

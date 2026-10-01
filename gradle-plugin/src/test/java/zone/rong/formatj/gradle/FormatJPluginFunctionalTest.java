@@ -1,11 +1,9 @@
 package zone.rong.formatj.gradle;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
@@ -13,17 +11,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class FormatJPluginFunctionalTest {
 
-    @TempDir
-    Path projectDirectory;
+    @TempDir Path projectDirectory;
 
     @BeforeEach
     void writeProject() throws IOException {
         Files.writeString(projectDirectory.resolve("settings.gradle.kts"), "rootProject.name = \"fixture\"\n");
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
@@ -33,19 +33,21 @@ class FormatJPluginFunctionalTest {
                     rule("indent.size", 4)
                     sourceSets("main")
                 }
-                """);
+                """
+        );
         Path source = Files.createDirectories(projectDirectory.resolve("src/main/java/sample"));
         Files.writeString(
-                source.resolve("Sample.java"),
-                """
+            source.resolve("Sample.java"),
+            """
                 package sample;
 
                 class Sample {
                 
-                    void run() {}
+                    void run() { }
                     
                 }
-                """);
+                """
+        );
     }
 
     private BuildResult run(String... arguments) {
@@ -54,9 +56,9 @@ class FormatJPluginFunctionalTest {
 
     private GradleRunner runner(String... arguments) {
         GradleRunner runner = GradleRunner.create()
-                .withProjectDir(projectDirectory.toFile())
-                .withPluginClasspath()
-                .withArguments(arguments);
+            .withProjectDir(projectDirectory.toFile())
+            .withPluginClasspath()
+            .withArguments(arguments);
         String version = System.getProperty("formatj.gradle.version");
         return version == null || version.isBlank() ? runner : runner.withGradleVersion(version);
     }
@@ -72,7 +74,7 @@ class FormatJPluginFunctionalTest {
 
     @Test
     void anUndecodableSourceNamesTheByteOffsetInTheFailure() throws IOException {
-        Files.write(projectDirectory.resolve("src/main/java/sample/Sample.java"), new byte[] {'c', (byte) 0xFF});
+        Files.write(projectDirectory.resolve("src/main/java/sample/Sample.java"), new byte[] { 'c', (byte) 0xFF });
 
         BuildResult result = runner("formatJavaCheck").buildAndFail();
 
@@ -95,17 +97,19 @@ class FormatJPluginFunctionalTest {
         // No formatJ block at all: the extension's source set list is empty rather than absent, and
         // an empty list has to mean every source set, not none of them.
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
                 }
-                """);
+                """
+        );
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
         Files.writeString(
-                source,
-                "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
+            source,
+            "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n"
+        );
 
         BuildResult result = run("formatJavaApply");
 
@@ -135,13 +139,14 @@ class FormatJPluginFunctionalTest {
     @Test
     void aFormatjTomlInTheProjectDirectoryIsDiscoveredWithoutConfiguration() throws IOException {
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
                 }
-                """);
+                """
+        );
         Files.writeString(projectDirectory.resolve("formatj.toml"), "[indent]\nsize = 2\n");
 
         BuildResult failure = runner("formatJavaCheck").buildAndFail();
@@ -150,25 +155,27 @@ class FormatJPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
         assertTrue(
-                Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java"))
-                        .contains("\n  void run()"));
+            Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java")).contains("\n  void run()")
+        );
     }
 
     @Test
     void theStyleFilesFilesTableExcludesSourcesAcrossEverySourceSet() throws IOException {
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
                 }
-                """);
+                """
+        );
         Files.writeString(projectDirectory.resolve("formatj.toml"), "[files]\nexclude = [\"**/sample/**\"]\n");
         // Unformatted, so without the exclude taking effect the check below would fail.
         Files.writeString(
-                projectDirectory.resolve("src/main/java/sample/Sample.java"),
-                "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
+            projectDirectory.resolve("src/main/java/sample/Sample.java"),
+            "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n"
+        );
 
         BuildResult result = run("formatJavaCheck");
         assertEquals(TaskOutcome.SUCCESS, result.task(":formatJavaCheck").getOutcome());
@@ -190,8 +197,8 @@ class FormatJPluginFunctionalTest {
     @Test
     void anInlineStyleDocumentIsAppliedOnTopOfThePreset() throws IOException {
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
@@ -201,7 +208,8 @@ class FormatJPluginFunctionalTest {
                     style.set("[indent]\\nsize = 2\\n")
                     sourceSets("main")
                 }
-                """);
+                """
+        );
 
         BuildResult failure = runner("formatJavaCheck").buildAndFail();
         assertEquals(TaskOutcome.FAILED, failure.task(":formatJavaCheck").getOutcome());
@@ -209,8 +217,8 @@ class FormatJPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
         assertTrue(
-                Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java"))
-                        .contains("\n  void run()"));
+            Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java")).contains("\n  void run()")
+        );
     }
 
     @Test
@@ -218,8 +226,8 @@ class FormatJPluginFunctionalTest {
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaCheck").task(":formatJavaCheck").getOutcome());
 
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
@@ -229,7 +237,8 @@ class FormatJPluginFunctionalTest {
                     rule("indent.size", 2)
                     sourceSets("main")
                 }
-                """);
+                """
+        );
 
         // The four-space fixture no longer matches, so the task must run again and fail.
         BuildResult failure = runner("formatJavaCheck").buildAndFail();
@@ -238,16 +247,16 @@ class FormatJPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
         assertTrue(
-                Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java"))
-                        .contains("\n  void run()"));
+            Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java")).contains("\n  void run()")
+        );
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaCheck").task(":formatJavaCheck").getOutcome());
     }
 
     @Test
     void newCatalogueGroupsReachTheFormatterThroughRawRules() throws IOException {
         Files.writeString(
-                projectDirectory.resolve("build.gradle.kts"),
-                """
+            projectDirectory.resolve("build.gradle.kts"),
+            """
                 plugins {
                     java
                     id("zone.rong.formatj")
@@ -257,11 +266,12 @@ class FormatJPluginFunctionalTest {
                     rule("modifiers.order", "canonical")
                     sourceSets("main")
                 }
-                """);
+                """
+        );
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
         Files.writeString(
-                source,
-                """
+            source,
+            """
                 package sample;
 
                 class Sample {
@@ -269,7 +279,8 @@ class FormatJPluginFunctionalTest {
                     static public class Nested {}
 
                 }
-                """);
+                """
+        );
 
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
         assertTrue(Files.readString(source).contains("public static class Nested"), Files.readString(source));

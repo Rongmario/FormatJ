@@ -2,3 +2,6 @@ preset = "formatj"
 
 [wrapping]
 max-line-length = 80
+
+[preservation]
+respect-existing-chain-breaks = true

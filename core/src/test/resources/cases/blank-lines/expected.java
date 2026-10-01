@@ -12,4 +12,5 @@ class Spaced {
 
         int y = 2;
     }
+
 }

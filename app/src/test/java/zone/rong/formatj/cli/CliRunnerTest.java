@@ -1,10 +1,5 @@
 package zone.rong.formatj.cli;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -15,8 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CliRunnerTest {
 
@@ -25,22 +26,23 @@ class CliRunnerTest {
 
             class A {
             
-                void run() {}
+                void run() { }
                 
             }
             """;
 
-    private record Run(int exitCode, String out, String err) {}
+    private record Run(int exitCode, String out, String err) { }
 
     private static Run run(String stdin, String... arguments) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         InputStream in = new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8));
         int exitCode = new CliRunner(
-                CliOptions.parse(arguments),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8),
-                in).run();
+            CliOptions.parse(arguments),
+            new PrintStream(out, true, StandardCharsets.UTF_8),
+            new PrintStream(err, true, StandardCharsets.UTF_8),
+            in
+        ).run();
         return new Run(exitCode, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 
@@ -61,14 +63,15 @@ class CliRunnerTest {
     @Test
     void dumpConfigHonoursThePresetAndOverrides() {
         Run result = run(
-                "",
-                "--dump-config",
-                "--preset",
-                "google",
-                "--set",
-                "indent.size=3",
-                "--set",
-                "modifiers.order=canonical");
+            "",
+            "--dump-config",
+            "--preset",
+            "google",
+            "--set",
+            "indent.size=3",
+            "--set",
+            "modifiers.order=canonical"
+        );
 
         assertTrue(result.out().contains("size = 3"), result.out());
         assertTrue(result.out().contains("max-line-length = 100"), result.out());
@@ -96,13 +99,14 @@ class CliRunnerTest {
     void invalidUtf8OnStandardInputFailsInsteadOfBeingReplaced() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        InputStream in = new ByteArrayInputStream(new byte[] {'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF});
+        InputStream in = new ByteArrayInputStream(new byte[] { 'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF });
 
         int exitCode = new CliRunner(
-                CliOptions.parse(new String[] {"--stdin"}),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8),
-                in).run();
+            CliOptions.parse(new String[] { "--stdin" }),
+            new PrintStream(out, true, StandardCharsets.UTF_8),
+            new PrintStream(err, true, StandardCharsets.UTF_8),
+            in
+        ).run();
 
         assertEquals(2, exitCode);
         assertEquals(0, out.size());
@@ -114,7 +118,7 @@ class CliRunnerTest {
     @Test
     void invalidUtf8InAFileFailsWithAByteOffset(@TempDir Path root) throws IOException {
         Path file = root.resolve("A.java");
-        Files.write(file, new byte[] {'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF});
+        Files.write(file, new byte[] { 'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF });
 
         Run result = run("", "--check", file.toString());
 
@@ -129,10 +133,11 @@ class CliRunnerTest {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 2\n");
 
         Run result = run(
-                "class A {\n    void run() {}\n}\n",
-                "--diff",
-                "--stdin-name",
-                nested.resolve("A.java").toString());
+            "class A {\n    void run() {}\n}\n",
+            "--diff",
+            "--stdin-name",
+            nested.resolve("A.java").toString()
+        );
 
         assertEquals(1, result.exitCode());
         assertTrue(result.out().contains("+  void run()"), result.out());
@@ -198,8 +203,9 @@ class CliRunnerTest {
         Run write = run("", "--write", root.toString());
         assertEquals(0, write.exitCode());
         assertTrue(
-                Files.readString(root.resolve("A.java")).contains("\n  void run()"),
-                Files.readString(root.resolve("A.java")));
+            Files.readString(root.resolve("A.java")).contains("\n  void run()"),
+            Files.readString(root.resolve("A.java"))
+        );
     }
 
     @Test
@@ -210,16 +216,19 @@ class CliRunnerTest {
         assertEquals(1, run("", "--check", root.toString()).exitCode());
         assertEquals(0, run("", "--write", root.toString()).exitCode());
         assertEquals(
-                """
+            """
                 package sample;
 
                 class A {
+
                     void run() {
                         g();
                     }
+
                 }
                 """,
-                Files.readString(file));
+            Files.readString(file)
+        );
         assertEquals(0, run("", "--check", root.toString()).exitCode());
     }
 
@@ -232,7 +241,7 @@ class CliRunnerTest {
         Run result = run("", "--diff", root.toString());
 
         assertEquals(1, result.exitCode());
-        assertTrue(result.out().contains("+class A {}"), result.out());
+        assertTrue(result.out().contains("+class A { }"), result.out());
         assertEquals(before, Files.readString(file));
     }
 
@@ -287,7 +296,10 @@ class CliRunnerTest {
 
     @Test
     void linesRejectsABadRange() {
-        assertThrows(CliOptions.CliException.class, () -> CliOptions.parse(new String[] {"--stdin", "--lines", "2:1"}));
+        assertThrows(
+            CliOptions.CliException.class,
+            () -> CliOptions.parse(new String[] { "--stdin", "--lines", "2:1" })
+        );
     }
 
     @Test

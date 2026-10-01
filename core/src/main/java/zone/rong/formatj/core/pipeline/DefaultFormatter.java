@@ -1,5 +1,8 @@
 package zone.rong.formatj.core.pipeline;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -22,8 +25,6 @@ import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.rewrite.Rewrite;
 import zone.rong.formatj.core.rewrite.RewriteResult;
 import zone.rong.formatj.core.rewrite.RewriteStage;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The formatting pipeline: lex, parse, rewrite, emit, lay out, verify.
@@ -61,11 +62,12 @@ public final class DefaultFormatter implements Formatter {
     }
 
     public DefaultFormatter(
-            Style style,
-            LanguageLevel languageLevel,
-            boolean previewFeatures,
-            boolean verify,
-            boolean rewritesEnabled) {
+        Style style,
+        LanguageLevel languageLevel,
+        boolean previewFeatures,
+        boolean verify,
+        boolean rewritesEnabled
+    ) {
         this(style, languageLevel, previewFeatures, verify, rewritesEnabled, RewriteStage.defaults());
     }
 
@@ -76,21 +78,23 @@ public final class DefaultFormatter implements Formatter {
      * misbehaves on purpose, which is the one thing no shipped rewrite will do.
      */
     DefaultFormatter(
-            Style style,
-            LanguageLevel languageLevel,
-            boolean previewFeatures,
-            boolean verify,
-            List<Rewrite> rewrites) {
+        Style style,
+        LanguageLevel languageLevel,
+        boolean previewFeatures,
+        boolean verify,
+        List<Rewrite> rewrites
+    ) {
         this(style, languageLevel, previewFeatures, verify, true, rewrites);
     }
 
     DefaultFormatter(
-            Style style,
-            LanguageLevel languageLevel,
-            boolean previewFeatures,
-            boolean verify,
-            boolean rewritesEnabled,
-            List<Rewrite> rewrites) {
+        Style style,
+        LanguageLevel languageLevel,
+        boolean previewFeatures,
+        boolean verify,
+        boolean rewritesEnabled,
+        List<Rewrite> rewrites
+    ) {
         this.style = style;
         this.languageLevel = languageLevel;
         this.previewFeatures = previewFeatures;
@@ -113,17 +117,18 @@ public final class DefaultFormatter implements Formatter {
     public FormatResult format(FormatRequest request) {
         String source = request.source();
         List<Diagnostic> diagnostics = new ArrayList<>();
-        boolean wholeFile = request.isWholeFile()
-                || (request.ranges().size() == 1
-                        && request.ranges().getFirst().startOffset() == 0
-                        && request.ranges().getFirst().endOffset() >= source.length());
+        boolean wholeFile = request.isWholeFile() ||
+            (request.ranges().size() == 1 &&
+                request.ranges().getFirst().startOffset() == 0 &&
+                request.ranges().getFirst().endOffset() >= source.length());
 
         List<Token> tokens = JavaLexer.tokenize(source);
         if (!JavaLexer.toSource(tokens).equals(source)) {
             // A lexer that loses characters would make every later stage unsafe.
             return FormatResult.failed(
-                    source,
-                    List.of(Diagnostic.error("Lexer did not round-trip the source; file left unchanged")));
+                source,
+                List.of(Diagnostic.error("Lexer did not round-trip the source; file left unchanged"))
+            );
         }
         ParseResult parsed = JavaParser.parse(tokens, languageLevel, previewFeatures);
         diagnostics.addAll(parsed.diagnostics());
@@ -133,7 +138,8 @@ public final class DefaultFormatter implements Formatter {
         boolean incomplete = !parsed.complete();
         if (incomplete) {
             diagnostics.add(Diagnostic.info(
-                    "Unparsed regions were left unchanged; the rest of the file was formatted"));
+                "Unparsed regions were left unchanged; the rest of the file was formatted"
+            ));
         }
 
         // Rewrites need a complete tree. Layout still runs: UNPARSED nodes are reproduced verbatim,
@@ -146,7 +152,8 @@ public final class DefaultFormatter implements Formatter {
                 return FormatResult.failed(source, List.of(Diagnostic.error(withoutRewrites.problem())));
             }
             diagnostics.add(Diagnostic.warning(
-                    "Rules that add or remove code were skipped for this file: " + attempt.problem()));
+                "Rules that add or remove code were skipped for this file: " + attempt.problem()
+            ));
             text = withoutRewrites.text();
         } else if (attempt.failed()) {
             return FormatResult.failed(source, List.of(Diagnostic.error(attempt.problem())));
@@ -158,30 +165,34 @@ public final class DefaultFormatter implements Formatter {
         if (!wholeFile) {
             // Diff hunks can cross syntax and comment boundaries, so the selected result needs the same
             // safety checks as a whole-file result.
+            // A selection keeps the file's own line ending, so the result never mixes two.
+            text = text.replaceAll("\\r?\\n", sourceSeparator(source));
             String spliced = LineDiffer.splice(source, text, request.ranges());
             if (verify && !spliced.equals(source)) {
                 ParseResult splicedTree = JavaParser.parse(spliced, languageLevel, previewFeatures);
                 if (splicedTree.hasErrors() || parsed.complete() && !splicedTree.complete()) {
                     return FormatResult.failed(
-                            source,
-                            List.of(Diagnostic.error("Formatting the selection would leave the file unparsable")));
+                        source,
+                        List.of(Diagnostic.error("Formatting the selection would leave the file unparsable"))
+                    );
                 }
                 String difference = TokenEquivalence.firstDifference(parsed.root().green(), splicedTree.root().green());
                 if (difference != null) {
                     return FormatResult.failed(
-                            source,
-                            List.of(Diagnostic.error(
-                                    "Formatting the selection would change the program: " + difference)));
+                        source,
+                        List.of(Diagnostic.error("Formatting the selection would change the program: " + difference))
+                    );
                 }
                 String prose = ProsePreservation.firstDifference(
-                        parsed.root().green(),
-                        splicedTree.root().green(),
-                        style);
+                    parsed.root().green(),
+                    splicedTree.root().green(),
+                    style
+                );
                 if (prose != null) {
                     return FormatResult.failed(
-                            source,
-                            List.of(Diagnostic.error(
-                                    "Formatting the selection would change what a comment says: " + prose)));
+                        source,
+                        List.of(Diagnostic.error("Formatting the selection would change what a comment says: " + prose))
+                    );
                 }
             }
             text = spliced;
@@ -198,8 +209,8 @@ public final class DefaultFormatter implements Formatter {
     private Attempt attempt(ParseResult parsed, boolean allowed, String source) {
         GreenNode original = parsed.root().green();
         RewriteResult rewritten = allowed
-                ? RewriteStage.apply(original, style, this.rewrites)
-                : new RewriteResult(original, List.of());
+            ? RewriteStage.apply(original, style, this.rewrites)
+            : new RewriteResult(original, List.of());
 
         // Not "did it declare an edit" but "did it touch anything": a rewrite that changed the tree
         // and declared nothing is the worst case, and the one most in need of the fallback.
@@ -232,8 +243,8 @@ public final class DefaultFormatter implements Formatter {
         }
 
         String problem = rewrote
-                ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
-                : TokenEquivalence.firstDifference(original, formattedTree.root().green());
+            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
+            : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
             return Attempt.failure("Formatting would change the program: " + problem, rewrote);
         }
@@ -248,8 +259,8 @@ public final class DefaultFormatter implements Formatter {
         }
 
         GreenNode second = allowed
-                ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
-                : formattedTree.root().green();
+            ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
+            : formattedTree.root().green();
         String twice = layout(SyntaxNode.root(second), source);
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
@@ -293,8 +304,9 @@ public final class DefaultFormatter implements Formatter {
         String separator = lineSeparator(source);
         DocPrinter.Printed printed = printer(separator).printMarked(new DocEmitter(style).emit(root));
         String text = new ColumnAligner(
-                style.get(FileRules.TAB_WIDTH),
-                style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(printed);
+            style.get(FileRules.TAB_WIDTH),
+            style.get(CommentRules.TRAILING_COMMENT_COLUMN)
+        ).align(printed);
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
     }
@@ -309,12 +321,13 @@ public final class DefaultFormatter implements Formatter {
 
     private DocPrinter printer(String separator) {
         return new DocPrinter(
-                style.get(WrappingRules.MAX_LINE_LENGTH),
-                style.get(IndentRules.USE_TABS),
-                style.get(FileRules.TAB_WIDTH),
-                separator,
-                style.get(FileRules.TRIM_TRAILING_WHITESPACE),
-                style.get(IndentRules.BLANK_LINES));
+            style.get(WrappingRules.MAX_LINE_LENGTH),
+            style.get(IndentRules.USE_TABS),
+            style.get(FileRules.TAB_WIDTH),
+            separator,
+            style.get(FileRules.TRIM_TRAILING_WHITESPACE),
+            style.get(IndentRules.BLANK_LINES)
+        );
     }
 
     private String lineSeparator(String source) {
@@ -322,13 +335,14 @@ public final class DefaultFormatter implements Formatter {
             case CRLF -> "\r\n";
             case SYSTEM -> System.lineSeparator();
             case LF -> "\n";
-            // The file's own first line ending, so a formatter run does not flip a CRLF file to LF
-            // (or vice versa) on its own; a file with no line ending yet falls back to LF.
-            case PRESERVE -> {
-                int newline = source.indexOf('\n');
-                yield newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
-            }
+            case PRESERVE -> sourceSeparator(source);
         };
+    }
+
+    /** The file's own first line ending. A file with no line ending yet falls back to LF. */
+    private static String sourceSeparator(String source) {
+        int newline = source.indexOf('\n');
+        return newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
     }
 
 }

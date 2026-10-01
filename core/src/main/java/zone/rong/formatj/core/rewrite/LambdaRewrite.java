@@ -1,12 +1,13 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The two lambda rules that change tokens: the parentheses round a single parameter, and the braces
@@ -20,13 +21,14 @@ import java.util.List;
  *
  * <h2>Braces</h2>
  *
- * <p>Either direction can need target-type information. Adding braces has to choose between
- * {@code { return e; }} and {@code { e; }}. Removing them can also change compatibility when {@code e}
- * is a statement expression: {@code x -> { return call(x); }} is value-compatible only, while
- * {@code x -> call(x)} may also be void-compatible and make an overload ambiguous. This formatter
- * therefore removes a block only from {@code return e;} where {@code e} is syntactically not a
- * statement expression. It declines every other case rather than guessing at a functional interface
- * it cannot see.
+ * <p>Adding braces has to choose between {@code { return e; }} and {@code { e; }}, which the target
+ * type decides and the tokens do not say, so it is declined. Removing them collapses a block holding
+ * only {@code return e;} or only the statement expression {@code e;} to {@code e}.
+ *
+ * <p>The collapsed lambda always fits the interface the braced one was written for. Where {@code e} is
+ * a statement expression it can fit a second shape too: {@code x -> { call(x); }} is void-compatible
+ * only, while {@code x -> call(x)} is also value-compatible. A call site overloaded on both shapes
+ * then resolves differently or becomes ambiguous.
  */
 public final class LambdaRewrite implements Rewrite {
 
@@ -37,8 +39,8 @@ public final class LambdaRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(LambdaRules.PARAMETER_STYLE) != LambdaParameterStyle.PRESERVE
-                || context.rule(LambdaRules.BODY_BRACES) != BracePolicy.PRESERVE;
+        return context.rule(LambdaRules.PARAMETER_STYLE) != LambdaParameterStyle.PRESERVE ||
+            context.rule(LambdaRules.BODY_BRACES) != BracePolicy.PRESERVE;
     }
 
     @Override
@@ -72,8 +74,8 @@ public final class LambdaRewrite implements Rewrite {
             return parameters;
         }
         return style == LambdaParameterStyle.ALWAYS_PARENTHESISE
-                ? parenthesise(parameters, context)
-                : unparenthesise(parameters, context);
+            ? parenthesise(parameters, context)
+            : unparenthesise(parameters, context);
     }
 
     /** Wraps a bare name in parentheses. */
@@ -88,17 +90,19 @@ public final class LambdaRewrite implements Rewrite {
         }
 
         context.record(TokenEdit.insert(
-                LambdaRules.PARAMETER_STYLE,
-                "parentheses added around a lambda parameter",
-                start,
-                TokenEdit.Bias.OUTERMOST_FIRST,
-                "("));
+            LambdaRules.PARAMETER_STYLE,
+            "parentheses added around a lambda parameter",
+            start,
+            TokenEdit.Bias.OUTERMOST_FIRST,
+            "("
+        ));
         context.record(TokenEdit.insert(
-                LambdaRules.PARAMETER_STYLE,
-                "parentheses added around a lambda parameter",
-                end,
-                TokenEdit.Bias.INNERMOST_FIRST,
-                ")"));
+            LambdaRules.PARAMETER_STYLE,
+            "parentheses added around a lambda parameter",
+            end,
+            TokenEdit.Bias.INNERMOST_FIRST,
+            ")"
+        ));
 
         List<GreenNode> children = new ArrayList<>();
         children.add(Synthetic.separator("("));
@@ -134,15 +138,17 @@ public final class LambdaRewrite implements Rewrite {
         }
 
         context.record(TokenEdit.delete(
-                LambdaRules.PARAMETER_STYLE,
-                "parentheses removed from a single lambda parameter",
-                openPosition,
-                "("));
+            LambdaRules.PARAMETER_STYLE,
+            "parentheses removed from a single lambda parameter",
+            openPosition,
+            "("
+        ));
         context.record(TokenEdit.delete(
-                LambdaRules.PARAMETER_STYLE,
-                "parentheses removed from a single lambda parameter",
-                closePosition,
-                ")"));
+            LambdaRules.PARAMETER_STYLE,
+            "parentheses removed from a single lambda parameter",
+            closePosition,
+            ")"
+        ));
         return GreenNode.branch(SyntaxKind.LAMBDA_PARAMETERS, List.of(name));
     }
 
@@ -178,10 +184,10 @@ public final class LambdaRewrite implements Rewrite {
 
         // A brace, a return or a semicolon that carries a comment has nowhere to rehome it once it is
         // gone, so the whole collapse is declined rather than done at the comment's expense.
-        if (Synthetic.carriesComments(open)
-                || Synthetic.carriesComments(close)
-                || Synthetic.carriesComments(semicolon)
-                || Synthetic.carriesComments(keyword)) {
+        if (Synthetic.carriesComments(open) ||
+            Synthetic.carriesComments(close) ||
+            Synthetic.carriesComments(semicolon) ||
+            Synthetic.carriesComments(keyword)) {
             return body;
         }
 
@@ -196,12 +202,13 @@ public final class LambdaRewrite implements Rewrite {
             return body;
         }
         context.record(new TokenEdit(
-                LambdaRules.BODY_BRACES,
-                reason,
-                openPosition,
-                List.of("{", "return"),
-                List.of(),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            LambdaRules.BODY_BRACES,
+            reason,
+            openPosition,
+            only.kind() == SyntaxKind.RETURN_STATEMENT ? List.of("{", "return") : List.of("{"),
+            List.of(),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
         context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, semicolonPosition, ";", "}"));
         return expression;
     }
@@ -209,30 +216,17 @@ public final class LambdaRewrite implements Rewrite {
     /**
      * The expression a one-statement block can be written as, or null when it cannot be.
      *
-     * <p>Only {@code return e;} where {@code e} is not a statement expression is safe without the
-     * lambda's target type. A lone statement expression, or a returned statement expression, can make
-     * the expression lambda compatible with an additional functional-interface shape.
+     * <p>That is the value of {@code return e;}, or the statement expression of {@code e;}.
      */
     private static GreenNode collapsible(GreenNode statement) {
         List<GreenNode> children = statement.children();
         if (statement.kind() == SyntaxKind.RETURN_STATEMENT && children.size() == 3) {
-            GreenNode expression = children.get(1);
-            return isStatementExpression(expression) ? null : expression;
+            return children.get(1);
+        }
+        if (statement.kind() == SyntaxKind.EXPRESSION_STATEMENT && children.size() == 2) {
+            return children.getFirst();
         }
         return null;
-    }
-
-    /** Whether Java permits this expression as a statement on its own (JLS 14.8). */
-    private static boolean isStatementExpression(GreenNode expression) {
-        return switch (expression.kind()) {
-            case ASSIGNMENT_EXPRESSION, METHOD_INVOCATION, OBJECT_CREATION, POSTFIX_EXPRESSION -> true;
-            case UNARY_EXPRESSION -> {
-                GreenNode first = expression.children().getFirst();
-                yield first instanceof GreenNode.Leaf leaf
-                        && (leaf.decodedLexeme().equals("++") || leaf.decodedLexeme().equals("--"));
-            }
-            default -> false;
-        };
     }
 
 }

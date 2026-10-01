@@ -3,11 +3,11 @@
 
 [indent]
 size = 4
-continuation = 8
+continuation = 4
 
 [wrapping]
 max-line-length = 120
-chained-calls = "break-all-if-multiline"
+chained-calls = "break-all-when-too-long"
 
 [imports]
 groups = ["java", "javax", "*"]

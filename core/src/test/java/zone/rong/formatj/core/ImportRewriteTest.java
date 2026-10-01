@@ -1,8 +1,10 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.UnaryOperator;
 
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
@@ -10,10 +12,9 @@ import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.StaticImportPlacement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.UnaryOperator;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** What the import rules reorder, what they delete, and what they refuse to touch. */
 class ImportRewriteTest {
@@ -27,11 +28,12 @@ class ImportRewriteTest {
     /** The import declarations of a formatted file, in order, blank lines shown as an empty string. */
     private static List<String> importsOf(String formatted) {
         List<String> lines = new ArrayList<>(
-                formatted.lines()
-                        .dropWhile(line -> !line.startsWith("import"))
-                        .takeWhile(line -> line.isBlank() || line.startsWith("import"))
-                        .map(String::strip)
-                        .toList());
+            formatted.lines()
+                .dropWhile(line -> !line.startsWith("import"))
+                .takeWhile(line -> line.isBlank() || line.startsWith("import"))
+                .map(String::strip)
+                .toList()
+        );
         while (!lines.isEmpty() && lines.getLast().isBlank()) {
             lines.removeLast();
         }
@@ -59,55 +61,64 @@ class ImportRewriteTest {
 
     @Test
     void preserveLeavesTheRunExactlyAsWritten() {
-        Formatter formatter = FormatJ.newFormatter().style(Style.defaults()).build();
+        Style preserve = Style.builder().set(ImportRules.ORDER, SortOrder.PRESERVE).build();
+        Formatter formatter = FormatJ.newFormatter().style(preserve).build();
         String formatted = formatter.format(FormatRequest.of(MIXED).withName("T.java")).text();
         assertEquals(
-                List.of(
-                        "import zone.rong.Thing;",
-                        "import java.util.Map;",
-                        "import static org.junit.Assertions.assertTrue;",
-                        "import javax.annotation.Nullable;",
-                        "import java.util.List;"),
-                importsOf(formatted));
+            List.of(
+                "import zone.rong.Thing;",
+                "import java.util.Map;",
+                "import static org.junit.Assertions.assertTrue;",
+                "import javax.annotation.Nullable;",
+                "import java.util.List;"
+            ),
+            importsOf(formatted)
+        );
     }
 
     @Test
     void ascendingSortsWithinGroupsAndSeparatesThem() {
         assertEquals(
-                List.of(
-                        "import java.util.List;",
-                        "import java.util.Map;",
-                        "",
-                        "import javax.annotation.Nullable;",
-                        "",
-                        "import zone.rong.Thing;",
-                        "",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(MIXED, style -> style)));
+            List.of(
+                "import java.util.List;",
+                "import java.util.Map;",
+                "",
+                "import javax.annotation.Nullable;",
+                "",
+                "import zone.rong.Thing;",
+                "",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(MIXED, style -> style))
+        );
     }
 
     @Test
     void descendingReversesWithinEachGroupButNotTheGroups() {
         assertEquals(
-                List.of(
-                        "import java.util.Map;",
-                        "import java.util.List;",
-                        "",
-                        "import javax.annotation.Nullable;",
-                        "",
-                        "import zone.rong.Thing;",
-                        "",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(MIXED, style -> style.set(ImportRules.ORDER, SortOrder.DESCENDING))));
+            List.of(
+                "import java.util.Map;",
+                "import java.util.List;",
+                "",
+                "import javax.annotation.Nullable;",
+                "",
+                "import zone.rong.Thing;",
+                "",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(MIXED, style -> style.set(ImportRules.ORDER, SortOrder.DESCENDING)))
+        );
     }
 
     @Test
     void staticImportsCanLeadInstead() {
         assertEquals(
-                "import static org.junit.Assertions.assertTrue;",
-                importsOf(format(
-                        MIXED,
-                        style -> style.set(ImportRules.STATIC_PLACEMENT, StaticImportPlacement.FIRST))).getFirst());
+            "import static org.junit.Assertions.assertTrue;",
+            importsOf(format(
+                MIXED,
+                style -> style.set(ImportRules.STATIC_PLACEMENT, StaticImportPlacement.FIRST)
+            )).getFirst()
+        );
     }
 
     @Test
@@ -127,74 +138,83 @@ class ImportRewriteTest {
                 }
                 """;
         assertEquals(
-                List.of(
-                        "import static java.util.Objects.requireNonNull;",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(source, style -> style)));
+            List.of(
+                "import static java.util.Objects.requireNonNull;",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(source, style -> style))
+        );
     }
 
     @Test
     void groupsAreConfigurable() {
         assertEquals(
-                List.of(
-                        "import zone.rong.Thing;",
-                        "",
-                        "import java.util.List;",
-                        "import java.util.Map;",
-                        "import javax.annotation.Nullable;",
-                        "",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(
-                        MIXED,
-                        style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("*"))))));
+            List.of(
+                "import zone.rong.Thing;",
+                "",
+                "import java.util.List;",
+                "import java.util.Map;",
+                "import javax.annotation.Nullable;",
+                "",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(
+                MIXED,
+                style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("*")))
+            ))
+        );
     }
 
     @Test
     void severalPrefixesCanShareOneGroup() {
         assertEquals(
-                List.of(
-                        "import zone.rong.Thing;",
-                        "",
-                        "import java.util.List;",
-                        "import java.util.Map;",
-                        "import javax.annotation.Nullable;",
-                        "",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(
-                        MIXED,
-                        style -> style.set(
-                                ImportRules.GROUPS,
-                                List.of(List.of("zone.rong"), List.of("java", "javax"))))));
+            List.of(
+                "import zone.rong.Thing;",
+                "",
+                "import java.util.List;",
+                "import java.util.Map;",
+                "import javax.annotation.Nullable;",
+                "",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(
+                MIXED,
+                style -> style.set(ImportRules.GROUPS, List.of(List.of("zone.rong"), List.of("java", "javax")))
+            ))
+        );
     }
 
     @Test
     void aLongerPrefixWinsOverAShorterOneInAnEarlierGroup() {
         assertEquals(
-                List.of(
-                        "import java.util.List;",
-                        "import java.util.Map;",
-                        "",
-                        "import javax.annotation.Nullable;",
-                        "import zone.rong.Thing;",
-                        "",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(
-                        MIXED,
-                        style -> style.set(
-                                ImportRules.GROUPS,
-                                List.of(List.of("java.util"), List.of("*", "zone.rong"))))));
+            List.of(
+                "import java.util.List;",
+                "import java.util.Map;",
+                "",
+                "import javax.annotation.Nullable;",
+                "import zone.rong.Thing;",
+                "",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(
+                MIXED,
+                style -> style.set(ImportRules.GROUPS, List.of(List.of("java.util"), List.of("*", "zone.rong")))
+            ))
+        );
     }
 
     @Test
     void theBlankLineBetweenGroupsCanBeTurnedOff() {
         assertEquals(
-                List.of(
-                        "import java.util.List;",
-                        "import java.util.Map;",
-                        "import javax.annotation.Nullable;",
-                        "import zone.rong.Thing;",
-                        "import static org.junit.Assertions.assertTrue;"),
-                importsOf(format(MIXED, style -> style.set(ImportRules.BLANK_LINE_BETWEEN_GROUPS, false))));
+            List.of(
+                "import java.util.List;",
+                "import java.util.Map;",
+                "import javax.annotation.Nullable;",
+                "import zone.rong.Thing;",
+                "import static org.junit.Assertions.assertTrue;"
+            ),
+            importsOf(format(MIXED, style -> style.set(ImportRules.BLANK_LINE_BETWEEN_GROUPS, false)))
+        );
     }
 
     @Test
@@ -253,7 +273,8 @@ class ImportRewriteTest {
     @Test
     void anImportMentionedOnlyInJavadocStays() {
         assertTrue(
-                format(UNUSED, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.Map;"));
+            format(UNUSED, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.Map;")
+        );
     }
 
     @Test
@@ -261,14 +282,17 @@ class ImportRewriteTest {
         String source = "import java.util.List;\nclass T { // \\" + "u004cist is used by generated code\n}\n";
 
         assertTrue(
-                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;"));
+            format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;")
+        );
     }
 
     @Test
     void anOnDemandImportStaysBecauseItsUseCannotBeSeen() {
         assertTrue(
-                format(UNUSED, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains(
-                        "import java.util.concurrent.*;"));
+            format(UNUSED, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains(
+                "import java.util.concurrent.*;"
+            )
+        );
     }
 
     @Test
@@ -297,7 +321,8 @@ class ImportRewriteTest {
                 """;
         String source = template.replace("ESCAPE", "\\" + "u004c");
         assertTrue(
-                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;"));
+            format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("import java.util.List;")
+        );
     }
 
     @Test
@@ -306,7 +331,8 @@ class ImportRewriteTest {
         String source = template.replace("ESCAPE", "\\" + "u004c");
 
         assertTrue(
-                format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("java.util.\\u004cist"));
+            format(source, style -> style.set(ImportRules.REMOVE_UNUSED, true)).contains("java.util.\\u004cist")
+        );
     }
 
     @Test
@@ -338,7 +364,7 @@ class ImportRewriteTest {
 
                 class T {
 
-                    void run() {}
+                    void run() { }
 
                 }
                 """;

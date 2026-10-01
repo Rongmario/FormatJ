@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Messy {
+
     private final List<String> items;
 
     private static final int LIMIT = 10;
@@ -23,4 +24,5 @@ public class Messy {
     public boolean isBig() {
         return total() > LIMIT && !items.isEmpty();
     }
+
 }
