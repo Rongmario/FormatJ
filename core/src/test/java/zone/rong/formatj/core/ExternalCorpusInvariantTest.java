@@ -25,12 +25,7 @@ import org.junit.jupiter.api.TestFactory;
 
 class ExternalCorpusInvariantTest {
 
-    private static final Set<String> EXPECTED_SAFE_FAILURES = Set.of(
-            "com/google/gson/internal/ConstructorConstructor.java",
-            "com/google/gson/internal/bind/ArrayTypeAdapter.java",
-            "com/google/gson/internal/bind/MapTypeAdapterFactory.java",
-            "com/google/gson/internal/bind/ReflectiveTypeAdapterFactory.java",
-            "com/google/gson/reflect/TypeToken.java");
+    private static final Set<String> EXPECTED_SAFE_FAILURES = Set.of();
 
     @Test
     void parserCompletelyCoversAtLeastNinetyPercentOfTheCorpus() throws IOException {
