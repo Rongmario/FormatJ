@@ -1,6 +1,7 @@
 package zone.rong.formatj.core.pipeline;
 
 import zone.rong.formatj.api.Option;
+import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
@@ -197,6 +198,9 @@ public final class RewriteVerification {
         }
         if (authority == ModifierRules.REMOVE_REDUNDANT) {
             return checkRedundantModifierLaw(edit);
+        }
+        if (authority == ArrayRules.C_STYLE_BRACKETS) {
+            return checkOnly(edit, "array brackets", "[", "]");
         }
         if (authority == LambdaRules.PARAMETER_STYLE) {
             return checkOnly(edit, "parentheses", "(", ")");

@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BracketStyle;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
@@ -596,6 +598,66 @@ class RewriteRulesTest {
     void redundantModifiersWithCommentsStay() {
         String source = "interface T {\n\n    public /* api */ void a();\n}\n";
         assertEquals(source, removeRedundant(source));
+    }
+
+    // ------------------------------------------------- arrays.c-style-brackets
+
+    private static String javaBrackets(String source) {
+        return format(source, ArrayRules.C_STYLE_BRACKETS, BracketStyle.JAVA);
+    }
+
+    @Test
+    void fieldsLocalsAndParametersTakeTheirBracketsOnTheType() {
+        String source = """
+                class T {
+
+                    int a[] = {1};
+
+                    void run(String args[], int[] ok, int m[][]) {
+                        long l[] = new long[1];
+                        for (int i[] = null;;) {}
+                    }
+                }
+                """;
+        assertEquals(
+                """
+                class T {
+
+                    int[] a = {1};
+
+                    void run(String[] args, int[] ok, int[][] m) {
+                        long[] l = new long[1];
+                        for (int[] i = null;;) {}
+                    }
+                }
+                """,
+                javaBrackets(source));
+    }
+
+    @Test
+    void declaratorsMoveTogetherOrNotAtAll() {
+        assertEquals("class T {\n\n    int[] a, b;\n}\n", javaBrackets("class T {\n\n    int a[], b[];\n}\n"));
+        String mixed = "class T {\n\n    int a[], b;\n}\n";
+        assertEquals(mixed, javaBrackets(mixed));
+    }
+
+    @Test
+    void annotatedCommentedAndVarargsBracketsStay() {
+        String source = """
+                class T {
+
+                    int a@A[];
+
+                    int b[/* c */];
+
+                    int m()[] {
+                        return null;
+                    }
+
+                    void v(String... a[]) {}
+                }
+                """;
+        assertEquals(source, javaBrackets(source));
     }
 
     // ---------------------------------------------------------- fixed point

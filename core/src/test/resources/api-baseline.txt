@@ -182,6 +182,7 @@ TYPE public final class zone.rong.formatj.api.StyleBuilder
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.alignment(java.util.function.Consumer<zone.rong.formatj.api.rules.AlignmentRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.annotations(java.util.function.Consumer<zone.rong.formatj.api.rules.AnnotationRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.apply(zone.rong.formatj.api.Style)
+  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.arrays(java.util.function.Consumer<zone.rong.formatj.api.rules.ArrayRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.blankLines(java.util.function.Consumer<zone.rong.formatj.api.rules.BlankLineRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.braces(java.util.function.Consumer<zone.rong.formatj.api.rules.BraceRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.comments(java.util.function.Consumer<zone.rong.formatj.api.rules.CommentRules$Builder>)
@@ -254,6 +255,11 @@ TYPE public static final class zone.rong.formatj.api.rules.AnnotationRules$Build
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.declarationPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.parameterPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
   METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.singleMarkerInline(boolean)
+TYPE public final class zone.rong.formatj.api.rules.ArrayRules
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracketStyle> zone.rong.formatj.api.rules.ArrayRules.C_STYLE_BRACKETS
+TYPE public static final class zone.rong.formatj.api.rules.ArrayRules$Builder
+  CTOR public zone.rong.formatj.api.rules.ArrayRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.ArrayRules$Builder zone.rong.formatj.api.rules.ArrayRules$Builder.cStyleBrackets(zone.rong.formatj.api.rules.BracketStyle)
 TYPE public final enum zone.rong.formatj.api.rules.AssignmentBreak
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.AssignmentBreak>
   ENUM AFTER_OPERATOR
@@ -342,6 +348,14 @@ TYPE public static final class zone.rong.formatj.api.rules.BraceRules$Builder
   METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.lambdaPlacement(zone.rong.formatj.api.rules.BracePlacement)
   METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.methodPlacement(zone.rong.formatj.api.rules.BracePlacement)
   METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.whileLoop(zone.rong.formatj.api.rules.BracePolicy)
+TYPE public final enum zone.rong.formatj.api.rules.BracketStyle
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.BracketStyle>
+  ENUM PRESERVE
+  ENUM JAVA
+  FIELD public static final zone.rong.formatj.api.rules.BracketStyle zone.rong.formatj.api.rules.BracketStyle.JAVA
+  FIELD public static final zone.rong.formatj.api.rules.BracketStyle zone.rong.formatj.api.rules.BracketStyle.PRESERVE
+  METHOD public static zone.rong.formatj.api.rules.BracketStyle zone.rong.formatj.api.rules.BracketStyle.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.BracketStyle[] zone.rong.formatj.api.rules.BracketStyle.values()
 TYPE public final enum zone.rong.formatj.api.rules.ChainPolicy
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ChainPolicy>
   ENUM PRESERVE

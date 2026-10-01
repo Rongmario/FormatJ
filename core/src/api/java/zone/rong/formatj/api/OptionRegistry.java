@@ -2,6 +2,7 @@ package zone.rong.formatj.api;
 
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationRules;
+import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.CommentRules;
@@ -64,7 +65,8 @@ public final class OptionRegistry {
             new Group("text-blocks", TextBlockRules.class),
             new Group("literals", LiteralRules.class),
             new Group("semicolons", SemicolonRules.class),
-            new Group("preservation", PreservationRules.class));
+            new Group("preservation", PreservationRules.class),
+            new Group("arrays", ArrayRules.class));
 
     static {
         for (Group group : GROUPS) {

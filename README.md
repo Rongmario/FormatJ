@@ -770,6 +770,16 @@ These are the rules that keep what the author wrote.
 | `preservation.respect-existing-chain-breaks`          | boolean | `true`  | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken                |
 | `preservation.never-join-lines`                       | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |
 
+### `arrays`
+
+`java` moves brackets from fields, locals and parameters onto the type. Method return brackets,
+varargs, annotated brackets and brackets with comments stay. A declaration with several declarators
+changes only when every declarator has the same brackets.
+
+| Key                        | Values              | Default    | Effect                                          | Example                                  |
+|----------------------------|---------------------|------------|-------------------------------------------------|------------------------------------------|
+| `arrays.c-style-brackets`  | `preserve`, `java`  | `preserve` | Placement of array brackets on declared variables | `java`: `int a[], b[]` becomes `int[] a, b` |
+
 ## Runtime
 
 Published artifacts — the core library, the CLI, the Gradle plugin, and the Maven plugin — target

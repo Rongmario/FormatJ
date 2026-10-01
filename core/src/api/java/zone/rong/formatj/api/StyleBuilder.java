@@ -2,6 +2,7 @@ package zone.rong.formatj.api;
 
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationRules;
+import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.CommentRules;
@@ -177,6 +178,11 @@ public final class StyleBuilder {
 
     public StyleBuilder preservation(Consumer<PreservationRules.Builder> rules) {
         rules.accept(new PreservationRules.Builder(this));
+        return this;
+    }
+
+    public StyleBuilder arrays(Consumer<ArrayRules.Builder> rules) {
+        rules.accept(new ArrayRules.Builder(this));
         return this;
     }
 
