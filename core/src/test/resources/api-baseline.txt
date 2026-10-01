@@ -190,6 +190,7 @@ TYPE public final class zone.rong.formatj.api.StyleBuilder
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.indent(java.util.function.Consumer<zone.rong.formatj.api.rules.IndentRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.javadoc(java.util.function.Consumer<zone.rong.formatj.api.rules.JavadocRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.lambdas(java.util.function.Consumer<zone.rong.formatj.api.rules.LambdaRules$Builder>)
+  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.literals(java.util.function.Consumer<zone.rong.formatj.api.rules.LiteralRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modifiers(java.util.function.Consumer<zone.rong.formatj.api.rules.ModifierRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modules(java.util.function.Consumer<zone.rong.formatj.api.rules.ModuleRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.patterns(java.util.function.Consumer<zone.rong.formatj.api.rules.PatternRules$Builder>)
@@ -531,6 +532,19 @@ TYPE public final enum zone.rong.formatj.api.rules.LineEnding
   FIELD public static final zone.rong.formatj.api.rules.LineEnding zone.rong.formatj.api.rules.LineEnding.SYSTEM
   METHOD public static zone.rong.formatj.api.rules.LineEnding zone.rong.formatj.api.rules.LineEnding.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.LineEnding[] zone.rong.formatj.api.rules.LineEnding.values()
+TYPE public final class zone.rong.formatj.api.rules.LiteralRules
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.LongSuffix> zone.rong.formatj.api.rules.LiteralRules.LONG_SUFFIX
+TYPE public static final class zone.rong.formatj.api.rules.LiteralRules$Builder
+  CTOR public zone.rong.formatj.api.rules.LiteralRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.LiteralRules$Builder zone.rong.formatj.api.rules.LiteralRules$Builder.longSuffix(zone.rong.formatj.api.rules.LongSuffix)
+TYPE public final enum zone.rong.formatj.api.rules.LongSuffix
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.LongSuffix>
+  ENUM PRESERVE
+  ENUM UPPER
+  FIELD public static final zone.rong.formatj.api.rules.LongSuffix zone.rong.formatj.api.rules.LongSuffix.PRESERVE
+  FIELD public static final zone.rong.formatj.api.rules.LongSuffix zone.rong.formatj.api.rules.LongSuffix.UPPER
+  METHOD public static zone.rong.formatj.api.rules.LongSuffix zone.rong.formatj.api.rules.LongSuffix.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.LongSuffix[] zone.rong.formatj.api.rules.LongSuffix.values()
 TYPE public final enum zone.rong.formatj.api.rules.ModifierOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ModifierOrder>
   ENUM PRESERVE

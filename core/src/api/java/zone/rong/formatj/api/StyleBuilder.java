@@ -10,6 +10,7 @@ import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.PatternRules;
@@ -160,6 +161,11 @@ public final class StyleBuilder {
 
     public StyleBuilder textBlocks(Consumer<TextBlockRules.Builder> rules) {
         rules.accept(new TextBlockRules.Builder(this));
+        return this;
+    }
+
+    public StyleBuilder literals(Consumer<LiteralRules.Builder> rules) {
+        rules.accept(new LiteralRules.Builder(this));
         return this;
     }
 

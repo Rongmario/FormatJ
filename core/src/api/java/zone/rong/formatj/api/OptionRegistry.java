@@ -10,6 +10,7 @@ import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.PatternRules;
@@ -60,6 +61,7 @@ public final class OptionRegistry {
             new Group("sealed", SealedRules.class),
             new Group("lambdas", LambdaRules.class),
             new Group("text-blocks", TextBlockRules.class),
+            new Group("literals", LiteralRules.class),
             new Group("preservation", PreservationRules.class));
 
     static {

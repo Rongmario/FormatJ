@@ -713,6 +713,15 @@ that line rather than along the one they look like they should.
 | `text-blocks.closing-delimiter-on-own-line` | boolean                                    | `false`    | Put the closing delimiter on its own line              | `true`: the value gains the trailing newline that implies                 |
 | `text-blocks.escape-trailing-spaces`        | boolean                                    | `false`    | Make trailing spaces significant by escaping with `\s` | `true`: `text··` becomes `text·\s`                                        |
 
+### `literals`
+
+Both rules change only the case of characters in a numeric literal's text, never its value. A literal
+written with a Unicode escape is left alone.
+
+| Key                    | Values               | Default    | Effect                              | Example                          |
+|------------------------|----------------------|------------|-------------------------------------|----------------------------------|
+| `literals.long-suffix` | `preserve`, `upper`  | `preserve` | Case of the suffix on long literals | `upper`: `10l` becomes `10L`     |
+
 ### `preservation`
 
 These are the rules that keep what the author wrote.

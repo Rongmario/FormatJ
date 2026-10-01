@@ -44,6 +44,7 @@ public final class RewriteStage {
             new SwitchRewrite(),
             new LambdaRewrite(),
             new BraceRewrite(),
+            new LiteralRewrite(),
             new TextBlockRewrite());
 
     private RewriteStage() {}

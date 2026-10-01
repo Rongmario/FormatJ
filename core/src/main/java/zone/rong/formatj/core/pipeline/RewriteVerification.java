@@ -4,6 +4,7 @@ import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
@@ -207,6 +208,30 @@ public final class RewriteVerification {
         if (authority == TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE
                 || authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
             return checkTextBlockLaw(edit);
+        }
+        if (authority == LiteralRules.LONG_SUFFIX) {
+            return checkLiteralLaw(edit);
+        }
+        return null;
+    }
+
+    /** A literal rule may change the case of one literal's characters, and only the ones it owns. */
+    private static String checkLiteralLaw(TokenEdit edit) {
+        if (edit.removed().size() != 1 || edit.inserted().size() != 1) {
+            return edit.authority().key() + " may only rewrite one literal";
+        }
+        String before = edit.removed().getFirst();
+        String after = edit.inserted().getFirst();
+        if (before.length() != after.length()) {
+            return edit.authority().key() + " changed the length of " + before;
+        }
+        for (int i = 0; i < before.length(); i++) {
+            char was = before.charAt(i);
+            char now = after.charAt(i);
+            boolean suffix = i == before.length() - 1 && was == 'l' && now == 'L';
+            if (was != now && !suffix) {
+                return edit.authority().key() + " changed '" + was + "' in " + before;
+            }
         }
         return null;
     }
