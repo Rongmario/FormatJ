@@ -17,6 +17,7 @@ import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
@@ -166,6 +167,11 @@ public final class StyleBuilder {
 
     public StyleBuilder literals(Consumer<LiteralRules.Builder> rules) {
         rules.accept(new LiteralRules.Builder(this));
+        return this;
+    }
+
+    public StyleBuilder semicolons(Consumer<SemicolonRules.Builder> rules) {
+        rules.accept(new SemicolonRules.Builder(this));
         return this;
     }
 

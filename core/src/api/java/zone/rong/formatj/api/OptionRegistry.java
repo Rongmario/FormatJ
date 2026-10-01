@@ -17,6 +17,7 @@ import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
@@ -62,6 +63,7 @@ public final class OptionRegistry {
             new Group("lambdas", LambdaRules.class),
             new Group("text-blocks", TextBlockRules.class),
             new Group("literals", LiteralRules.class),
+            new Group("semicolons", SemicolonRules.class),
             new Group("preservation", PreservationRules.class));
 
     static {

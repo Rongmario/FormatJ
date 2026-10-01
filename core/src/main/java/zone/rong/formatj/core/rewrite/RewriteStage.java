@@ -45,6 +45,7 @@ public final class RewriteStage {
             new LambdaRewrite(),
             new BraceRewrite(),
             new LiteralRewrite(),
+            new SemicolonRewrite(),
             new TextBlockRewrite());
 
     private RewriteStage() {}

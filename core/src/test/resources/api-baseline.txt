@@ -197,6 +197,7 @@ TYPE public final class zone.rong.formatj.api.StyleBuilder
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.preservation(java.util.function.Consumer<zone.rong.formatj.api.rules.PreservationRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.records(java.util.function.Consumer<zone.rong.formatj.api.rules.RecordRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.sealedTypes(java.util.function.Consumer<zone.rong.formatj.api.rules.SealedRules$Builder>)
+  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.semicolons(java.util.function.Consumer<zone.rong.formatj.api.rules.SemicolonRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.setRaw(java.lang.String,java.lang.String)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.spacing(java.util.function.Consumer<zone.rong.formatj.api.rules.SpacingRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.switches(java.util.function.Consumer<zone.rong.formatj.api.rules.SwitchRules$Builder>)
@@ -657,6 +658,11 @@ TYPE public static final class zone.rong.formatj.api.rules.SealedRules$Builder
   METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsOnNewLine(boolean)
   METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsOrder(zone.rong.formatj.api.rules.SortOrder)
   METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsWrapping(zone.rong.formatj.api.rules.WrapPolicy)
+TYPE public final class zone.rong.formatj.api.rules.SemicolonRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SemicolonRules.REMOVE_REDUNDANT
+TYPE public static final class zone.rong.formatj.api.rules.SemicolonRules$Builder
+  CTOR public zone.rong.formatj.api.rules.SemicolonRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.SemicolonRules$Builder zone.rong.formatj.api.rules.SemicolonRules$Builder.removeRedundant(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.SortOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.SortOrder>
   ENUM PRESERVE

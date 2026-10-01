@@ -7,6 +7,7 @@ import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -213,7 +214,35 @@ public final class RewriteVerification {
         if (authority == LiteralRules.LONG_SUFFIX || authority == LiteralRules.HEX_DIGITS) {
             return checkLiteralLaw(edit);
         }
+        if (authority == SemicolonRules.REMOVE_REDUNDANT) {
+            return checkSemicolonLaw(edit, before);
+        }
         return null;
+    }
+
+    /** The semicolon rule may delete one {@code ;} that the original tree reads as an empty declaration. */
+    private static String checkSemicolonLaw(TokenEdit edit, GreenNode before) {
+        if (edit.removed().equals(List.of(";"))
+                && edit.inserted().isEmpty()
+                && isEmptyDeclaration(before, edit.position(), ProgramTokens.positions(before))) {
+            return null;
+        }
+        return edit.authority().key() + " may only delete a stray semicolon between members or after a type";
+    }
+
+    private static boolean isEmptyDeclaration(GreenNode node, int position, Map<GreenNode.Leaf, Integer> positions) {
+        boolean container = node.kind() == SyntaxKind.CLASS_BODY || node.kind() == SyntaxKind.COMPILATION_UNIT;
+        for (GreenNode child : node.children()) {
+            if (container
+                    && child.kind() == SyntaxKind.EMPTY_STATEMENT
+                    && positions.get(ProgramTokens.leaves(child).getFirst()) == position) {
+                return true;
+            }
+            if (isEmptyDeclaration(child, position, positions)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -724,6 +724,17 @@ integer and hex floating literals. It leaves the `0x` prefix, the `p` exponent a
 | `literals.long-suffix` | `preserve`, `upper`          | `preserve` | Case of the suffix on long literals            | `upper`: `10l` becomes `10L`     |
 | `literals.hex-digits`  | `preserve`, `upper`, `lower` | `preserve` | Case of the digits `a` to `f` in hex literals  | `upper`: `0xcafe` becomes `0xCAFE` |
 
+### `semicolons`
+
+`remove-redundant` deletes a stray `;` that is an empty declaration, either between the members of a
+type body or after a top-level type. Empty statements in a method body, the `;` that ends an enum's
+constants, `for (;;)`, and a semicolon with a comment attached are left alone. An enum whose only
+members after the constants are stray semicolons keeps them.
+
+| Key                           | Values  | Default | Effect                                                 | Example                                  |
+|-------------------------------|---------|---------|--------------------------------------------------------|------------------------------------------|
+| `semicolons.remove-redundant` | boolean | `false` | Remove stray semicolons between members and after a type | `true`: `int a;;` becomes `int a;`       |
+
 ### `preservation`
 
 These are the rules that keep what the author wrote.
