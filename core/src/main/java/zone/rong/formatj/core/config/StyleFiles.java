@@ -93,7 +93,8 @@ public final class StyleFiles {
         if (body.startsWith("[") && body.endsWith("]")) {
             body = body.substring(1, body.length() - 1);
         }
-        return TomlReader.splitTopLevel(body, ',').stream()
+        return TomlReader.splitTopLevel(body, ',')
+                .stream()
                 .map(String::trim)
                 .filter(element -> !element.isEmpty())
                 .map(element -> TomlReader.unquote(element, 0))
