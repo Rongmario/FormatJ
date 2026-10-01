@@ -381,7 +381,16 @@ public final class CommentFormatter {
             return parts;
         }
         List<String> paragraph = new ArrayList<>();
+        // A blank line inside a <pre> or {@code} region is part of the sample, not a paragraph break.
+        List<int[]> verbatim = Prose.verbatimRanges(String.join("\n", lines));
+        int offset = 0;
         for (String line : lines) {
+            boolean insideVerbatim = Prose.isInside(verbatim, offset - 1);
+            offset += line.length() + 1;
+            if (insideVerbatim) {
+                paragraph.add(line);
+                continue;
+            }
             boolean marker = isMarkerLine(line);
             if (line.isBlank() || marker) {
                 parts.addAll(paragraphDocs(paragraph));
@@ -433,10 +442,17 @@ public final class CommentFormatter {
     private List<String> describe(Javadoc parsed) {
         List<String> lines = new ArrayList<>(parsed.description());
         if (rule(JavadocRules.ADD_PARAGRAPH_TAGS)) {
+            List<int[]> verbatim = Prose.verbatimRanges(String.join("\n", lines));
+            int offset = 0;
             for (int i = 0; i < lines.size(); i++) {
-                if (lines.get(i).isBlank()) {
+                // A blank line in a code sample is part of the sample, and a block element such as
+                // <pre> or <ul> is a paragraph of its own already.
+                if (lines.get(i).isBlank() && !Prose.isInside(verbatim, offset) && !opensBlock(lines, i + 1)) {
+                    offset += lines.get(i).length() + 1;
                     lines.set(i, " <p>");
+                    continue;
                 }
+                offset += lines.get(i).length() + 1;
             }
         }
         if (rule(JavadocRules.CLOSING_TAG_FORM) == JavadocClosingTagForm.SLASH_FIRST) {
@@ -446,6 +462,19 @@ public final class CommentFormatter {
             lines = normalisePosition(lines, rule(JavadocRules.OPENING_TAG_POSITION));
         }
         return List.copyOf(lines);
+    }
+
+    private static final Pattern BLOCK_ELEMENT =
+            Pattern.compile("<(pre|ul|ol|dl|table|blockquote|div|h[1-6]|hr|p)\\b.*", Pattern.CASE_INSENSITIVE);
+
+    private static boolean opensBlock(List<String> lines, int from) {
+        for (int i = from; i < lines.size(); i++) {
+            String stripped = lines.get(i).strip();
+            if (!stripped.isEmpty()) {
+                return BLOCK_ELEMENT.matcher(stripped).matches();
+            }
+        }
+        return true;
     }
 
     // ------------------------------------------------- paragraph markers (<p> family)
@@ -690,7 +719,7 @@ public final class CommentFormatter {
             words.add(atom.text());
         }
         // The head and, where there is one, the name it documents are part of the tag, not its prose.
-        int consumed = head.split(" ").length;
+        int consumed = head.split("\\s+").length;
         List<String> body = words.subList(Math.min(consumed, words.size()), words.size());
         String indent = " * " + " ".repeat(Math.max(0, rule(JavadocRules.TAG_CONTINUATION_INDENT)));
         parts.add(Doc.hardLine());

@@ -21,7 +21,7 @@ class Documented {
 
     /**
      * Holds a sample.
-     * <p>
+     *
      * <pre>
      *     int x =   1;
      * </pre>

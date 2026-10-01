@@ -73,6 +73,21 @@ class CommentProseRulesTest {
     // --------------------------------------------------------- comments.reflow
 
     @Test
+    void wrappingKeepsTheWordsAfterASpacedParamName() {
+        String body = "    /**\n     * Runs.\n     *\n     * @param   s   the detail message.\n     */\n    void f(String s) { }\n";
+        String formatted = format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true)), body);
+        assertTrue(formatted.contains("@param   s the detail message."), formatted);
+    }
+
+    @Test
+    void paragraphTagsStayOutOfCodeSamples() {
+        String body = "    /**\n     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n     * </pre>\n     */\n    void f() { }\n";
+        String formatted =
+                format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true).addParagraphTags(true)), body);
+        assertTrue(formatted.contains("     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n"), formatted);
+    }
+
+    @Test
     void reflowIsOffByDefault() {
         String body = "    // one two three four five six seven eight nine ten eleven twelve\n    void f() { }\n";
         assertTrue(
