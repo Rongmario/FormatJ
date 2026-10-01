@@ -195,6 +195,13 @@ Fairly complex project aimed at fixing an existing issue and also testing out fr
   already produced, because where a run of lines should share a column is not known until they have
   all been printed. Nothing they do can move a line break.
 
+## Output stability
+
+- Within 1.x, the output for a given style changes only to fix a bug, where the previous output was wrong or unstable.
+- New rules default to preserve or off.
+- Changing a default waits for 2.0.
+- Every release diffs the formatted output of a fixed corpus against golden files.
+
 ## Configuration
 
 `formatj.toml` is discovered by walking up from each file, by the CLI, Gradle, Maven and IntelliJ alike.
