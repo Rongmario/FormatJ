@@ -184,7 +184,7 @@ public abstract class FormatJTask extends DefaultTask {
 
     private static void write(Path file, String text, Charset charset) {
         try {
-            Files.writeString(file, text, charset);
+            SourceFiles.writeAtomic(file, text, charset);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot write " + file, e);
         }

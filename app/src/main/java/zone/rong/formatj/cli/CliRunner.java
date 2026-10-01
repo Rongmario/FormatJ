@@ -180,7 +180,7 @@ final class CliRunner {
         switch (options.mode()) {
             case WRITE -> {
                 try {
-                    Files.writeString(file, result.text(), charset);
+                    SourceFiles.writeAtomic(file, result.text(), charset);
                     out.println("formatted " + file);
                 } catch (IOException e) {
                     err.println("formatj: cannot write " + file + ": " + e.getMessage());

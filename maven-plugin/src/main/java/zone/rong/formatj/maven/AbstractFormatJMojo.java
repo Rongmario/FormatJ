@@ -136,7 +136,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
                 continue;
             }
             try {
-                Files.writeString(file, result.text(), charset);
+                SourceFiles.writeAtomic(file, result.text(), charset);
             } catch (IOException e) {
                 throw new MojoExecutionException("Cannot write " + file, e);
             }
