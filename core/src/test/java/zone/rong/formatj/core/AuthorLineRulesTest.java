@@ -192,6 +192,15 @@ class AuthorLineRulesTest {
                         "int x = 1;\n        \n        int y"));
     }
 
+    @Test
+    void anArrayInitializerKeepsItsRows() {
+        String rows = "class A {\n    int[] a = {1, 2, 3,\n        4, 5};\n}\n";
+        assertTrue(format(rows, style -> { }).contains("    int[] a = {\n        1, 2, 3,\n        4, 5\n    };"));
+
+        String oneRow = "class A {\n    int[] a = {\n        1, 2, 3\n    };\n}\n";
+        assertTrue(format(oneRow, style -> { }).contains("int[] a = {1, 2, 3};"));
+    }
+
     private static String format(String source, Consumer<StyleBuilder> configure) {
         StyleBuilder builder = Style.builder();
         configure.accept(builder);

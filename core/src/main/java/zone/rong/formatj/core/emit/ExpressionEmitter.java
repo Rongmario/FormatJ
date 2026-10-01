@@ -72,6 +72,17 @@ abstract class ExpressionEmitter extends EmitSupport {
             int indentColumns,
             boolean spaceInside,
             Doc.GroupKind groupKind) {
+        return delimitedList(node, policy, indentColumns, spaceInside, groupKind, false);
+    }
+
+    /** @param keepRows whether elements keep the lines the author put them on, several to a row */
+    protected Doc delimitedList(
+            GreenNode node,
+            WrapPolicy policy,
+            int indentColumns,
+            boolean spaceInside,
+            Doc.GroupKind groupKind,
+            boolean keepRows) {
         List<GreenNode> children = node.children();
         if (children.size() < 2) {
             return Doc.concat(children.stream().map(this::emit).toList());
@@ -84,8 +95,12 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
 
         List<Doc> elements = new ArrayList<>();
+        List<Boolean> startsRow = new ArrayList<>();
         List<Doc> current = new ArrayList<>();
         for (GreenNode child : middle) {
+            if (current.isEmpty()) {
+                startsRow.add(authorBrokeBefore(child));
+            }
             if (current.isEmpty() && hasLeadingComments(child)) {
                 // A comment above an element ends its own line, not one inside the element.
                 HoistedLeading hoisted = hoistLeadingTrivia(child);
@@ -104,10 +119,21 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
 
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
-        Doc inner =
-                policy == WrapPolicy.WRAP_IF_LONG && mayJoin(node)
-                ? Doc.fill(interleave(elements, separator))
-                : Doc.join(separator, elements);
+        Doc inner;
+        if (keepRows) {
+            List<Doc> rows = new ArrayList<>();
+            for (int i = 0; i < elements.size(); i++) {
+                if (i > 0) {
+                    rows.add(startsRow.get(i) ? Doc.hardLine() : spaceIf(rule(SpacingRules.AFTER_COMMA)));
+                }
+                rows.add(elements.get(i));
+            }
+            inner = Doc.concat(rows);
+        } else if (policy == WrapPolicy.WRAP_IF_LONG && mayJoin(node)) {
+            inner = Doc.fill(interleave(elements, separator));
+        } else {
+            inner = Doc.join(separator, elements);
+        }
         Doc edge = spaceInside ? Doc.line() : Doc.softLine();
         // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
         boolean ownLine = is(close, "}")
@@ -131,6 +157,9 @@ abstract class ExpressionEmitter extends EmitSupport {
         boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN)
                 && AuthorLines.brokeAfterFirstToken(node);
 
+        if (keepRows) {
+            return Doc.breakingGroup(content);
+        }
         return switch (policy) {
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
@@ -684,15 +713,18 @@ abstract class ExpressionEmitter extends EmitSupport {
     }
 
     protected Doc emitArrayInitializer(GreenNode node) {
-        WrapPolicy policy = rule(WrappingRules.ARRAY_INITIALIZERS);
-        if (rule(PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT) && authorBrokeInside(node)) {
-            policy = WrapPolicy.CHOP_DOWN_ALWAYS;
-        }
+        List<GreenNode> children = node.children();
+        // Breaks just inside the braces say nothing about rows; a break between two elements does.
+        boolean keepRows = rule(PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT)
+                && children.size() > 3
+                && authorBrokeInside(children.subList(1, children.size() - 1));
         return delimitedList(
                 node,
-                policy,
+                rule(WrappingRules.ARRAY_INITIALIZERS),
                 rule(IndentRules.ARRAY_INITIALIZER),
-                rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES));
+                rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES),
+                Doc.GroupKind.IF_NEEDED,
+                keepRows);
     }
 
     /** Whether the author spread this node over more than one line. */
