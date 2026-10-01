@@ -2,6 +2,7 @@ package zone.rong.formatj.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.FormatRequest;
@@ -694,11 +695,18 @@ class LayoutOptionTest {
     @Test
     void theCharsetRuleResolvesToACharset() {
         Style utf16 = Style.builder().file(file -> file.charset("UTF-16")).build();
-        Style nonsense = Style.builder().file(file -> file.charset("not-a-charset")).build();
 
         assertEquals(java.nio.charset.StandardCharsets.UTF_16, FileRules.charset(utf16));
         assertEquals(java.nio.charset.StandardCharsets.UTF_8, FileRules.charset(Style.builder().build()));
-        assertEquals(java.nio.charset.StandardCharsets.UTF_8, FileRules.charset(nonsense));
+    }
+
+    @Test
+    void anUnknownCharsetNamesTheKeyAndValueRatherThanFallingBackSilently() {
+        Style nonsense = Style.builder().file(file -> file.charset("not-a-charset")).build();
+
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> FileRules.charset(nonsense));
+        assertTrue(thrown.getMessage().contains("file.charset"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("not-a-charset"), thrown.getMessage());
     }
 
     @Test

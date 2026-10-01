@@ -7,7 +7,7 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class WrappingRules {
 
     public static final Option<Integer> MAX_LINE_LENGTH =
-            Option.ofInt("wrapping.max-line-length", 120, "Maximum columns before a line is wrapped");
+            Option.ofInt("wrapping.max-line-length", 120, 1, "Maximum columns before a line is wrapped");
 
     public static final Option<WrapPolicy> METHOD_PARAMETERS =
             Option.ofEnum(

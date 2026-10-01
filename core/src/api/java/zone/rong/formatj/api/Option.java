@@ -35,18 +35,32 @@ public final class Option<T> {
     private final Class<T> type;
     private final Class<?> valueType;
     private final T defaultValue;
+    private final int minValue;
     private final String description;
 
     private Option(String key, Kind kind, Class<T> type, T defaultValue, String description) {
-        this(key, kind, type, type, defaultValue, description);
+        this(key, kind, type, type, defaultValue, Integer.MIN_VALUE, description);
     }
 
     private Option(String key, Kind kind, Class<T> type, Class<?> valueType, T defaultValue, String description) {
+        this(key, kind, type, valueType, defaultValue, Integer.MIN_VALUE, description);
+    }
+
+    /** {@code minValue} only matters for {@link Kind#INTEGER} and {@link Kind#INHERITABLE_INTEGER}. */
+    private Option(
+            String key,
+            Kind kind,
+            Class<T> type,
+            Class<?> valueType,
+            T defaultValue,
+            int minValue,
+            String description) {
         this.key = Objects.requireNonNull(key, "key");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.type = Objects.requireNonNull(type, "type");
         this.valueType = Objects.requireNonNull(valueType, "valueType");
         this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue");
+        this.minValue = minValue;
         this.description = Objects.requireNonNull(description, "description");
         OptionRegistry.register(this);
     }
@@ -56,7 +70,12 @@ public final class Option<T> {
     }
 
     public static Option<Integer> ofInt(String key, int defaultValue, String description) {
-        return new Option<>(key, Kind.INTEGER, Integer.class, defaultValue, description);
+        return ofInt(key, defaultValue, 0, description);
+    }
+
+    /** An integer option that rejects a value below {@code minValue}. */
+    public static Option<Integer> ofInt(String key, int defaultValue, int minValue, String description) {
+        return new Option<>(key, Kind.INTEGER, Integer.class, Integer.class, defaultValue, minValue, description);
     }
 
     public static Option<String> ofString(String key, String defaultValue, String description) {
@@ -71,7 +90,7 @@ public final class Option<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static Option<Inheritable<Integer>> ofInheritableInt(String key, String description) {
         Class<Inheritable<Integer>> type = (Class) Inheritable.class;
-        return new Option<>(key, Kind.INHERITABLE_INTEGER, type, Integer.class, Inheritable.inherit(), description);
+        return new Option<>(key, Kind.INHERITABLE_INTEGER, type, Integer.class, Inheritable.inherit(), 0, description);
     }
 
     /** An enum option whose {@code inherit} value defers to another rule. */
@@ -158,11 +177,17 @@ public final class Option<T> {
                         key + " expects an inherited " + valueType.getSimpleName() + ", got "
                                 + override.getClass().getSimpleName());
             }
+            if (kind == Kind.INHERITABLE_INTEGER && override != null) {
+                requireMin((Integer) override);
+            }
             return type.cast(value);
         }
         if (!type.isInstance(value)) {
             throw new IllegalArgumentException(
                     key + " expects " + type.getSimpleName() + ", got " + value.getClass().getSimpleName());
+        }
+        if (kind == Kind.INTEGER) {
+            requireMin((Integer) value);
         }
         return type.cast(value);
     }
@@ -228,11 +253,22 @@ public final class Option<T> {
     }
 
     private Integer parseInt(String raw) {
+        // TOML allows '_' as a digit group separator, e.g. 1_000.
+        String digits = raw.indexOf('_') >= 0 ? raw.replace("_", "") : raw;
+        int value;
         try {
-            return Integer.valueOf(raw);
+            value = Integer.parseInt(digits);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(key + " expects an integer, got '" + raw + "'", e);
         }
+        return requireMin(value);
+    }
+
+    private int requireMin(int value) {
+        if (value < minValue) {
+            throw new IllegalArgumentException(key + " must be at least " + minValue + ", got " + value);
+        }
+        return value;
     }
 
     private Object parseEnum(String raw) {

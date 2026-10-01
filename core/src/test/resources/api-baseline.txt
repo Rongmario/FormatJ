@@ -108,6 +108,7 @@ TYPE public final class zone.rong.formatj.api.Option<T>
   METHOD public static <E extends java.lang.Enum<E>> zone.rong.formatj.api.Option<E> zone.rong.formatj.api.Option.ofEnum(java.lang.String,E,java.lang.String)
   METHOD public static <E extends java.lang.Enum<E>> zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<E>> zone.rong.formatj.api.Option.ofInheritableEnum(java.lang.String,java.lang.Class<E>,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.Option.ofBoolean(java.lang.String,boolean,java.lang.String)
+  METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,int,int,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,int,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.Option.ofString(java.lang.String,java.lang.String,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.Option.ofStringGroups(java.lang.String,java.util.List<java.util.List<java.lang.String>>,java.lang.String)
