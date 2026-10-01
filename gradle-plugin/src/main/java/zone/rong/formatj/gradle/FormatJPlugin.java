@@ -39,10 +39,12 @@ public class FormatJPlugin implements Plugin<Project> {
         // Neither styleFile nor preset was set explicitly: fall back to the nearest formatj.toml
         // above the project directory, the same discovery the CLI does. A Provider keeps this an
         // input the task can declare, so the build cache invalidates when that file changes.
-        Provider<RegularFile> discoveredStyleFile =
-                project.getLayout().file(project.provider(() -> extension.getPreset().isPresent()
-                        ? null
-                        : StyleFiles.discover(project.getProjectDir().toPath()).map(Path::toFile).orElse(null)));
+        Provider<RegularFile> discoveredStyleFile = project.getLayout().file(
+                project.provider(() -> extension.getPreset().isPresent()
+                                       ? null
+                                       : StyleFiles.discover(project.getProjectDir().toPath())
+                                               .map(Path::toFile)
+                                               .orElse(null)));
         Provider<RegularFile> resolvedStyleFile = extension.getStyleFile().orElse(discoveredStyleFile);
         Provider<FileCollection> sources = project.provider(() -> javaSources(project, extension, resolvedStyleFile));
 
@@ -91,7 +93,9 @@ public class FormatJPlugin implements Plugin<Project> {
     }
 
     private static FileCollection javaSources(
-            Project project, FormatJExtension extension, Provider<RegularFile> resolvedStyleFile) {
+            Project project,
+            FormatJExtension extension,
+            Provider<RegularFile> resolvedStyleFile) {
         JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
         if (java == null) {
             return project.files();
@@ -102,10 +106,9 @@ public class FormatJPlugin implements Plugin<Project> {
         List<String> selected = extension.getSourceSets().getOrElse(List.of());
         // The style file's own [files] table, relative to its directory; applies on top of the
         // extension's own include/exclude, which Gradle already matches relative to each source set.
-        FileSelection tomlSelection =
-                resolvedStyleFile
-                        .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
-                        .getOrElse(FileSelection.NONE);
+        FileSelection tomlSelection = resolvedStyleFile
+                .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
+                .getOrElse(FileSelection.NONE);
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
             if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
@@ -114,9 +117,8 @@ public class FormatJPlugin implements Plugin<Project> {
                                 sourceSet.getAllJava()
                                         .matching(patterns -> patterns.include(extension.getIncludes().get()).exclude(
                                                 extension.getExcludes().get()))
-                                        .filter(
-                                                file -> file.getName().endsWith(".java")
-                                                        && tomlSelection.matches(file.toPath())));
+                                        .filter(file -> file.getName().endsWith(".java")
+                                                && tomlSelection.matches(file.toPath())));
             }
         }
         return files;

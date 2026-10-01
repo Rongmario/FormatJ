@@ -115,7 +115,7 @@ final class CliRunner {
         }
         if (files.isEmpty()) {
             err.println("formatj: no Java sources matched");
-            return SUCCESS;
+            return ERROR;
         }
 
         AtomicInteger changed = new AtomicInteger();
@@ -229,11 +229,10 @@ final class CliRunner {
             }
             List<Path> found = new ArrayList<>();
             Files.walkFileTree(path, new SimpleFileVisitor<>() {
+
                 @Override
                 public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attrs) {
-                    return !directory.equals(path) && isSkippedDirectory(directory)
-                            ? FileVisitResult.SKIP_SUBTREE
-                            : FileVisitResult.CONTINUE;
+                    return !directory.equals(path) && isSkippedDirectory(directory) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
                 }
 
                 @Override
@@ -243,6 +242,7 @@ final class CliRunner {
                     }
                     return FileVisitResult.CONTINUE;
                 }
+
             });
             found.sort(null);
             files.addAll(found);

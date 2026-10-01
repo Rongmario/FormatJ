@@ -37,7 +37,9 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root) throws IOException, MojoExecutionException {
+    void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root)
+            throws IOException,
+            MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Path kept = Files.createDirectories(sourceRoot.resolve("kept"));
         Path skipped = Files.createDirectories(sourceRoot.resolve("skipped"));
@@ -54,7 +56,9 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root) throws IOException, MojoExecutionException {
+    void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root)
+            throws IOException,
+            MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");
         Path generated = Files.createDirectories(sourceRoot.resolve("generated"));
@@ -70,7 +74,9 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root) throws IOException, MojoExecutionException {
+    void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root)
+            throws IOException,
+            MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");
         Path generatedRoot = Files.createDirectories(root.resolve("target/generated-sources/annotations"));

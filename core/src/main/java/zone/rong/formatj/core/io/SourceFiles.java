@@ -33,10 +33,9 @@ public final class SourceFiles {
      * the same way whether it came from a file or from standard input.
      */
     public static String decode(byte[] bytes, Charset charset) throws IOException {
-        CharsetDecoder decoder =
-                charset.newDecoder()
-                        .onMalformedInput(CodingErrorAction.REPORT)
-                        .onUnmappableCharacter(CodingErrorAction.REPORT);
+        CharsetDecoder decoder = charset.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
         ByteBuffer input = ByteBuffer.wrap(bytes);
         CharBuffer output = CharBuffer.allocate((int) (bytes.length * decoder.maxCharsPerByte()) + 1);
         CoderResult result = decoder.decode(input, output, true);

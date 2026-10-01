@@ -74,7 +74,10 @@ public final class StyleFiles {
             throw new UncheckedIOException("Cannot read style file " + file, e);
         }
         Path base = file.toAbsolutePath().getParent();
-        return new FileSelection(base, globArray(entries.get(FILES_INCLUDE_KEY)), globArray(entries.get(FILES_EXCLUDE_KEY)));
+        return new FileSelection(
+                base,
+                globArray(entries.get(FILES_INCLUDE_KEY)),
+                globArray(entries.get(FILES_EXCLUDE_KEY)));
     }
 
     /** The file selection of the nearest style file to {@code start}, or none when there is none. */
@@ -103,8 +106,8 @@ public final class StyleFiles {
 
     private static String unquote(String value) {
         return value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")
-                ? value.substring(1, value.length() - 1)
-                : value;
+               ? value.substring(1, value.length() - 1)
+               : value;
     }
 
     /** Writes a style out as a commented TOML document. */

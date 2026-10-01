@@ -172,7 +172,9 @@ class CliRunnerTest {
 
         Run result = run("", "--check", "--exclude", "**/generated/**", "--verbose", root.toString());
 
-        assertEquals(0, result.exitCode());
+        // No Java source survived the exclude: a build that relies on this must not see it as a
+        // silent pass (B12), so an empty match is an error, not success.
+        assertEquals(2, result.exitCode());
         assertTrue(result.err().contains("no Java sources matched"), result.err());
     }
 
