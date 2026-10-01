@@ -832,6 +832,16 @@ class LayoutOptionTest {
         assertTrue(formatted.contains("    private static final int Z = 2;"), formatted);
     }
 
+    @Test
+    void blankLinesJustInsideBracesCanBeStripped() {
+        String source = "class A {\n\n    void f() {\n\n        g();\n\n        h();\n\n    }\n\n}\n";
+
+        assertEquals(source, format(source, style -> {}));
+        assertEquals(
+                "class A {\n    void f() {\n        g();\n\n        h();\n    }\n}\n",
+                format(source, style -> style.blankLines(blank -> blank.stripAtBraceEdges(true))));
+    }
+
     private static String format(String source, Consumer<StyleBuilder> configure) {
         StyleBuilder builder = Style.builder();
         configure.accept(builder);

@@ -269,6 +269,7 @@ TYPE public final enum zone.rong.formatj.api.rules.AssignmentBreak
   METHOD public static zone.rong.formatj.api.rules.AssignmentBreak zone.rong.formatj.api.rules.AssignmentBreak.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.AssignmentBreak[] zone.rong.formatj.api.rules.AssignmentBreak.values()
 TYPE public final class zone.rong.formatj.api.rules.BlankLineRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.BlankLineRules.STRIP_AT_BRACE_EDGES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_CLASS_OPENING_BRACE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_ENUM_CONSTANTS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_IMPORTS
@@ -297,6 +298,7 @@ TYPE public static final class zone.rong.formatj.api.rules.BlankLineRules$Builde
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeRecordCompactConstructor(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.betweenSwitchCases(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.maxConsecutive(int)
+  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.stripAtBraceEdges(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.BracePlacement
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.BracePlacement>
   ENUM END_OF_LINE

@@ -46,6 +46,11 @@ public final class BlankLineRules {
             0,
             "Blank lines just before a type body closes");
 
+    public static final Option<Boolean> STRIP_AT_BRACE_EDGES = Option.ofBoolean(
+            "blank-lines.strip-at-brace-edges",
+            false,
+            "Drop blank lines the author left just inside the braces of a body");
+
     public static final Option<Integer> AROUND_INITIALIZER_BLOCK = Option.ofInt(
             "blank-lines.around-initializer-block",
             1,
@@ -119,6 +124,11 @@ public final class BlankLineRules {
 
         public Builder beforeClassClosingBrace(int value) {
             style.set(BEFORE_CLASS_CLOSING_BRACE, value);
+            return this;
+        }
+
+        public Builder stripAtBraceEdges(boolean value) {
+            style.set(STRIP_AT_BRACE_EDGES, value);
             return this;
         }
 

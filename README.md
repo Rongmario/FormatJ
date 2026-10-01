@@ -414,6 +414,7 @@ placement rule only chooses the side of a break and does not force one.
 | `blank-lines.before-field`                      | `0`     | Blank lines before a field declaration                     | `0`: consecutive fields stay packed                     |
 | `blank-lines.after-class-opening-brace`         | `0`     | Blank lines just inside a type body                        | `1`: `class A {`<br>``<br>`····int x;`                  |
 | `blank-lines.before-class-closing-brace`        | `0`     | Blank lines just before a type body closes                 | `1`: `····}`<br>``<br>`}`                               |
+| `blank-lines.strip-at-brace-edges`              | `false` | Drop blank lines the author left just inside the braces of a body | `true`: `class A {`<br>``<br>`····int x;` becomes `class A {`<br>`····int x;` |
 | `blank-lines.around-initializer-block`          | `1`     | Blank lines around an instance or static initializer       | `1`: `static { }` is separated from its neighbours      |
 | `blank-lines.before-record-compact-constructor` | `1`     | Blank lines before a compact canonical constructor         | `1`: one blank line before `R {` inside `record R(...)` |
 | `blank-lines.after-enum-constants`              | `0`     | Blank lines between the constants and the body of an enum  | `1`: blank line after `A, B;`                           |

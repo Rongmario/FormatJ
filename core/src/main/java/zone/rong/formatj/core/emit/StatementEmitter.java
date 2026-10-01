@@ -78,6 +78,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
      * @param blankLinesAfterOpen minimum blank lines just inside the opening brace
      * @param blankLinesBeforeClose minimum blank lines just before the closing brace
      */
+    /** Blank lines just inside a brace: the rule's own count, plus the author's unless those are stripped. */
+    private int edgeBlankLines(GreenNode node, int minimum) {
+        return rule(BlankLineRules.STRIP_AT_BRACE_EDGES) ? minimum : blankLinesBefore(node, minimum);
+    }
+
     protected Doc emitBracedBody(
             GreenNode node,
             EmptyBodyStyle emptyStyle,
@@ -126,7 +131,9 @@ abstract class StatementEmitter extends ExpressionEmitter {
             int minimum = i == 0
                     ? minimumAfterOpen(statement, blankLinesAfterOpen)
                     : minimumBetween(body.get(i - 1), statement);
-            parts.add(optional(separatorBefore(statement, minimum), inline));
+            parts.add(optional(
+                    i == 0 ? lineBreaks(edgeBlankLines(statement, minimum)) : separatorBefore(statement, minimum),
+                    inline));
             int off = formatterOffIndex(statement);
             if (off >= 0) {
                 int end = i + 1;
@@ -144,14 +151,14 @@ abstract class StatementEmitter extends ExpressionEmitter {
         }
         if (hasLeadingComments(close)) {
             // A comment on the closing line belongs to the body, indented with it, not to the brace.
-            parts.add(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)));
+            parts.add(lineBreaks(edgeBlankLines(close, blankLinesBeforeClose)));
             parts.add(commentsBefore(close));
             Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
             return Doc.concat(emit(open), contents, Doc.hardLine(), closeBrace(close));
         }
         Doc contents = Doc.indent(indentSize(), Doc.concat(parts));
         Doc closing = Doc.concat(
-                optional(lineBreaks(blankLinesBefore(close, blankLinesBeforeClose)), inline),
+                optional(lineBreaks(edgeBlankLines(close, blankLinesBeforeClose)), inline),
                 emit(close));
         Doc braced = Doc.concat(emit(open), contents, closing);
         return inline ? Doc.group(braced) : braced;
