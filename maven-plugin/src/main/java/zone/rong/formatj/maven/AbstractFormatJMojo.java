@@ -107,7 +107,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         // An explicit <encoding> wins; otherwise the style's own file.charset decides.
         Charset charset = encoding == null || encoding.isBlank()
                 ? FileRules.charset(formatter.style())
-                : Charset.forName(encoding);
+                : charset(encoding);
         List<String> wouldChange = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         int formatted = 0;
@@ -153,6 +153,14 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
                             + String.join("\n", wouldChange));
         }
         getLog().info("FormatJ checked " + files.size() + " file(s), formatted " + formatted);
+    }
+
+    private static Charset charset(String name) throws MojoExecutionException {
+        try {
+            return Charset.forName(name);
+        } catch (IllegalArgumentException e) {
+            throw new MojoExecutionException("Unknown <encoding> '" + name + "'", e);
+        }
     }
 
     /**

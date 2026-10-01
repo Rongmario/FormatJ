@@ -2,6 +2,7 @@ package zone.rong.formatj.maven;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.rules.IndentRules;
 import java.io.IOException;
@@ -101,6 +102,21 @@ class AbstractFormatJMojoTest {
         mojo.preset = "nope";
 
         assertThrows(MojoExecutionException.class, mojo::style);
+    }
+
+    @Test
+    void anUnknownEncodingNamesTheValue(@TempDir Path root) throws IOException {
+        Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
+        Files.writeString(sourceRoot.resolve("A.java"), "");
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        mojo.project.setFile(root.resolve("pom.xml").toFile());
+        mojo.project.addCompileSourceRoot(sourceRoot.toString());
+        mojo.includeTestSources = false;
+        mojo.encoding = "no-such-charset";
+
+        MojoExecutionException failure = assertThrows(MojoExecutionException.class, mojo::execute);
+        assertTrue(failure.getMessage().contains("no-such-charset"), failure.getMessage());
     }
 
 }
