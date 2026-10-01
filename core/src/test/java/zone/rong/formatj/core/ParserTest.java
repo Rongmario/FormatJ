@@ -57,6 +57,7 @@ class ParserTest {
     @ParameterizedTest
     @ValueSource(
             strings = {
+                "\uFEFFclass A {}\n",
                 "package a.b.c;\n",
                 "import java.util.List;\n",
                 "import static java.util.Objects.requireNonNull;\n",

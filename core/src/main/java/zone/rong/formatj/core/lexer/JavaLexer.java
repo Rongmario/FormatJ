@@ -164,6 +164,11 @@ public final class JavaLexer {
 
     private Token nextToken() {
         char first = input.charAt(offset);
+        if (offset == 0 && first == '\uFEFF') {
+            // A UTF-8 BOM only ever appears as the file's first character; treat it as trivia so
+            // it round-trips like any other leading whitespace instead of becoming an error token.
+            return emit(TokenKind.WHITESPACE, offset + 1);
+        }
         if (isWhitespace(first)) {
             return whitespace();
         }
