@@ -71,6 +71,11 @@ public final class BlankLineRules {
             0,
             "Blank lines between an enum's brace and its first constant");
 
+    public static final Option<Integer> BETWEEN_MEMBER_GROUPS = Option.ofInt(
+            "blank-lines.between-member-groups",
+            1,
+            "Blank lines between neighbouring members of different kinds");
+
     public static final Option<Integer> BETWEEN_SWITCH_CASES = Option.ofInt(
             "blank-lines.between-switch-cases",
             0,
@@ -149,6 +154,11 @@ public final class BlankLineRules {
 
         public Builder beforeFirstEnumConstant(int value) {
             style.set(BEFORE_FIRST_ENUM_CONSTANT, value);
+            return this;
+        }
+
+        public Builder betweenMemberGroups(int value) {
+            style.set(BETWEEN_MEMBER_GROUPS, value);
             return this;
         }
 

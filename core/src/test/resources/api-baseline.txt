@@ -281,6 +281,7 @@ TYPE public final class zone.rong.formatj.api.rules.BlankLineRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_FIRST_ENUM_CONSTANT
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_METHOD
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_RECORD_COMPACT_CONSTRUCTOR
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BETWEEN_MEMBER_GROUPS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BETWEEN_SWITCH_CASES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.MAX_CONSECUTIVE
 TYPE public static final class zone.rong.formatj.api.rules.BlankLineRules$Builder
@@ -296,6 +297,7 @@ TYPE public static final class zone.rong.formatj.api.rules.BlankLineRules$Builde
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeFirstEnumConstant(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeMethod(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeRecordCompactConstructor(int)
+  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.betweenMemberGroups(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.betweenSwitchCases(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.maxConsecutive(int)
   METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.stripAtBraceEdges(boolean)

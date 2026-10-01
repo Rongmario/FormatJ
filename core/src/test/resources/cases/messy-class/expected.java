@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class Messy {
     private final List<String> items;
+
     private static final int LIMIT = 10;
 
     public Messy(List<String> items) {

@@ -12,6 +12,7 @@ import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.MemberGroup;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.imports.ImportEntry;
@@ -31,6 +32,9 @@ import java.util.List;
  * should have braces — only how to lay out the shape it was handed.
  */
 public final class DocEmitter extends StatementEmitter {
+
+    /** Whether the type body being emitted belongs to an interface, which changes how its members are grouped. */
+    private boolean inInterfaceBody;
 
     public DocEmitter(Style style) {
         super(style);
@@ -65,7 +69,7 @@ public final class DocEmitter extends StatementEmitter {
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, ANNOTATION_TYPE_DECLARATION ->
                     emitTypeDeclaration(node);
             case RECORD_DECLARATION -> emitTypeDeclaration(node);
-            case CLASS_BODY -> emitClassBody(node);
+            case CLASS_BODY -> emitClassBody(node, false);
             case ENUM_CONSTANTS -> emitEnumConstants(node, null);
             case ENUM_CONSTANT -> emitEnumConstant(node);
             case RECORD_HEADER ->
@@ -151,7 +155,7 @@ public final class DocEmitter extends StatementEmitter {
             case PARENTHESIZED_EXPRESSION -> emitParenthesized(node);
             case OBJECT_CREATION, ARRAY_CREATION -> emitObjectCreation(node);
             case ARRAY_INITIALIZER -> emitArrayInitializer(node);
-            case ANONYMOUS_CLASS_BODY -> emitClassBody(node);
+            case ANONYMOUS_CLASS_BODY -> emitClassBody(node, false);
             case WITH_EXPRESSION -> emitWithExpression(node);
 
             case TYPE_PATTERN -> emitTypePattern(node);
@@ -260,7 +264,12 @@ public final class DocEmitter extends StatementEmitter {
             GreenNode child = children.get(i);
             if (child.kind() == SyntaxKind.CLASS_BODY) {
                 parts.add(braceLead(rule(BraceRules.CLASS_PLACEMENT)));
-                parts.add(node.kind() == SyntaxKind.RECORD_DECLARATION ? emitRecordBody(child) : emit(child));
+                boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION
+                        || node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+                parts.add(
+                        node.kind() == SyntaxKind.RECORD_DECLARATION
+                                ? emitRecordBody(child)
+                                : emitClassBody(child, interfaceBody));
                 continue;
             }
             if (i > 0) {
@@ -310,13 +319,19 @@ public final class DocEmitter extends StatementEmitter {
                 && node.children().getLast().kind() == SyntaxKind.ANNOTATION;
     }
 
-    private Doc emitClassBody(GreenNode node) {
-        return emitBracedBody(
-                node,
-                rule(BraceRules.EMPTY_CLASS_BODY),
-                rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
-                rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE),
-                keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE));
+    private Doc emitClassBody(GreenNode node, boolean interfaceBody) {
+        boolean outer = inInterfaceBody;
+        inInterfaceBody = interfaceBody;
+        try {
+            return emitBracedBody(
+                    node,
+                    rule(BraceRules.EMPTY_CLASS_BODY),
+                    rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
+                    rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE),
+                    keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE));
+        } finally {
+            inInterfaceBody = outer;
+        }
     }
 
     /** A record body, whose empty form has a rule of its own. */
@@ -325,7 +340,7 @@ public final class DocEmitter extends StatementEmitter {
         if (empty && rule(RecordRules.SINGLE_LINE_EMPTY_BODY)) {
             return emitBracedBody(node, EmptyBodyStyle.COMPACT, 0, 0);
         }
-        return emitClassBody(node);
+        return emitClassBody(node, false);
     }
 
     // ------------------------------------------------------------------ modules
@@ -445,6 +460,15 @@ public final class DocEmitter extends StatementEmitter {
 
     @Override
     protected int minimumBetween(GreenNode previous, GreenNode next) {
+        int previousGroup = MemberGroup.of(previous, inInterfaceBody);
+        int nextGroup = MemberGroup.of(next, inInterfaceBody);
+        int groupGap = previousGroup != nextGroup && previousGroup != MemberGroup.NONE && nextGroup != MemberGroup.NONE
+                ? rule(BlankLineRules.BETWEEN_MEMBER_GROUPS)
+                : 0;
+        return Math.max(ruleBetween(previous, next), groupGap);
+    }
+
+    private int ruleBetween(GreenNode previous, GreenNode next) {
         if (isModuleDirective(previous) && isModuleDirective(next) && previous.kind() != next.kind()) {
             return rule(ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS);
         }
