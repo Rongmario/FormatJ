@@ -33,6 +33,18 @@ cat Foo.java | formatj --stdin --stdin-name Foo.java
 - Exit codes: 0 success, 1 files would change (`--check`, `--diff`), 2 error. Matching no Java files is an error.
 - `--stdin-name` also picks which `formatj.toml` applies, so give it the real path.
 
+For [pre-commit](https://pre-commit.com), put `formatj` on `PATH` and reference this repository's hooks, `formatj` (`--write`) or `formatj-check` (`--check`):
+
+```yaml
+repos:
+  - repo: https://github.com/Rongmario/FormatJ
+    rev: <tag>
+    hooks:
+      - id: formatj
+```
+
+pre-commit passes the changed files by name, and a file named explicitly bypasses the directory skipping above.
+
 ### Gradle Plugin
 
 Published to the [Gradle Plugin Portal](https://plugins.gradle.org/plugin/zone.rong.formatj).

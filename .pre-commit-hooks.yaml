@@ -1,0 +1,13 @@
+- id: formatj
+  name: formatj
+  description: Formats Java sources with FormatJ.
+  entry: formatj --write
+  language: system
+  types: [java]
+
+- id: formatj-check
+  name: formatj (check)
+  description: Fails if Java sources are not formatted with FormatJ.
+  entry: formatj --check
+  language: system
+  types: [java]
