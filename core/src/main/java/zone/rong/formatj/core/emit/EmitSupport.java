@@ -26,6 +26,7 @@ import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.text.TextBlocks;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Shared machinery for the emitter: token and comment rendering, blank line policy, and the small
@@ -260,8 +261,9 @@ abstract class EmitSupport {
                     : Doc.EMPTY;
             Doc alignMark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
             first = false;
-            // A line comment ends its line, which the printer reads from the break it forces.
-            Doc end = comment.kind() == TokenKind.LINE_COMMENT ? Doc.breakParent() : Doc.EMPTY;
+            // A trailing comment ends its line, which the printer reads from the break it forces. A
+            // block comment the author followed with code on the same line leads that code instead.
+            Doc end = Doc.breakParent();
             parts.add(
                     Doc.lineSuffix(
                             Doc.concat(trailingSpacing(), columnMark, alignMark, comments.trailing(comment), end)));
@@ -344,6 +346,8 @@ abstract class EmitSupport {
         return token != null && !token.leadingComments().isEmpty();
     }
 
+    private static final Set<String> CLOSERS = Set.of(",", ")", "]", ";");
+
     /** Comments that come before a token, each followed by whatever separated it from what follows. */
     private Doc leadingTrivia(SyntaxToken token) {
         List<Token> leading = token.leading();
@@ -368,9 +372,12 @@ abstract class EmitSupport {
             }
             int newlines = newlinesAfter(leading, last);
             if (newlines == 0 && leading.get(last).kind() != TokenKind.LINE_COMMENT) {
-                // A block comment the author kept inline stays inline.
+                // A block comment the author kept inline stays inline, spaced from the code as it was.
+                // Only a closing token has no space of its own in front for the comment to use.
+                boolean spacedBefore = i > 0 && !leading.get(i - 1).hasLineTerminator();
+                parts.add(spaceIf(spacedBefore && CLOSERS.contains(token.token().text())));
                 parts.add(comments.ownLine(run));
-                parts.add(Doc.text(" "));
+                parts.add(spaceIf(last + 1 < leading.size()));
             } else {
                 parts.add(placedOwnLine(run, leading, i));
                 int cap =

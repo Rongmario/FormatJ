@@ -99,14 +99,14 @@ class AuthorLineRulesTest {
     }
 
     @Test
-    void aCommentTheAuthorKeptInlineStaysOnThatLine() {
-        // A block comment is part of the line the author wrote, and stays on it. It is emitted as a
-        // line suffix, so on a body that does stay on one line it ends up after the closing brace.
+    void aCommentTheAuthorKeptInlineStaysAfterItsStatement() {
+        // A trailing block comment ends its line like a line comment, so the block can no longer stay
+        // on one line.
         String source = "class A {\n\n    void f() {\n        if (x) { g(); /* done */ }\n    }\n\n}\n";
 
         String formatted = format(source, style -> { });
 
-        assertTrue(formatted.contains("if (x) { g(); } /* done */"), formatted);
+        assertTrue(formatted.contains("    g(); /* done */\n        }"), formatted);
     }
 
     @Test

@@ -21,6 +21,7 @@ import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
+import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,11 +106,18 @@ abstract class ExpressionEmitter extends EmitSupport {
         boolean ownLine = is(close, "}")
                 || is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
         Doc closingEdge = ownLine ? edge : spaceIf(spaceInside);
+        // An inline comment in front of the closing delimiter stays with the last element, even when the
+        // delimiter takes a line of its own.
+        HoistedLeading closing =
+                inlineCommentsOnly(close) ? hoistLeadingTrivia(close) : new HoistedLeading(Doc.EMPTY, close);
         // This indentation belongs to the list breaking. A first-line group can stay flat around hard
         // breaks brought by its last child, and those lines must not receive an indent the list did not
         // take. For every ordinary group, IndentIfBreak prints identically to Indent.
-        Doc body = Doc.concat(Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner)), closingEdge);
-        Doc content = Doc.concat(emit(open), body, emit(close));
+        Doc body =
+                Doc.concat(
+                        Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner, closing.leading())),
+                        closingEdge);
+        Doc content = Doc.concat(emit(open), body, emit(closing.node()));
 
         // The author's break after the opening delimiter is the one this rule is named for; it is the
         // same break the PRESERVE policy reads, so a list under either policy keeps it.
@@ -123,6 +131,13 @@ abstract class ExpressionEmitter extends EmitSupport {
                     authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content, groupKind);
             default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
+    }
+
+    private static boolean inlineCommentsOnly(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null
+                && !token.leadingComments().isEmpty()
+                && token.leading().stream().noneMatch(Token::hasLineTerminator);
     }
 
     private static List<Doc> interleave(List<Doc> elements, Doc separator) {

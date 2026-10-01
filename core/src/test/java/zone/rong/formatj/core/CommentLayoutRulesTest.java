@@ -292,6 +292,15 @@ class CommentLayoutRulesTest {
         assertTrue(formatted.contains("return a && // first\n                b;"), formatted);
     }
 
+    @Test
+    void anInlineBlockCommentStaysWhereTheAuthorPutIt() {
+        String source = "class A {\n    void m() {\n        f(a, /*b*/ true, c /*d*/);\n    }\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("f(a, /*b*/ true, c /*d*/);"), formatted);
+    }
+
     private static int commentColumn(String source, String needle) {
         int found = source.indexOf(needle);
         assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);

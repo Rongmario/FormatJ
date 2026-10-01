@@ -229,6 +229,11 @@ abstract class ParserBase {
             if (!token.kind().isComment()) {
                 break;
             }
+            if (token.kind() != TokenKind.LINE_COMMENT && codeFollowsOnLine(index + 1)) {
+                // An inline block comment belongs to the code after it. Trailing, it would be held to
+                // the end of the line like any other trailing comment.
+                break;
+            }
             trailing.addAll(pending);
             pending.clear();
             trailing.add(token);
@@ -240,6 +245,23 @@ abstract class ParserBase {
         }
         index = committed;
         return trailing;
+    }
+
+    private boolean codeFollowsOnLine(int from) {
+        for (int i = from; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
+            if (token.kind() == TokenKind.WHITESPACE) {
+                if (token.hasLineTerminator()) {
+                    return false;
+                }
+            } else if (token.kind() == TokenKind.LINE_COMMENT) {
+                return false;
+            } else if (!token.kind().isComment()) {
+                // A closing brace starts its own line, so a comment in front of it stays trailing.
+                return token.kind() != TokenKind.END_OF_FILE && !token.is("}");
+            }
+        }
+        return false;
     }
 
     // ------------------------------------------------------------- recovery
