@@ -28,10 +28,18 @@ public final class StyleFiles {
 
     /** Reads a style file. */
     public static Style load(Path file) {
+        String document;
         try {
-            return parse(Files.readString(file, StandardCharsets.UTF_8));
+            document = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read style file " + file, e);
+        }
+        try {
+            return parse(document);
+        } catch (TomlReader.TomlException e) {
+            throw e.forFile(file);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(file + ": " + e.getMessage(), e);
         }
     }
 

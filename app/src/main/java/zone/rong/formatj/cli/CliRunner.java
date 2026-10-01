@@ -7,6 +7,7 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.TomlReader;
 import zone.rong.formatj.core.config.TomlWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,7 +47,13 @@ final class CliRunner {
     }
 
     int run() {
-        StyleResolver styles = new StyleResolver(options);
+        StyleResolver styles;
+        try {
+            styles = new StyleResolver(options);
+        } catch (TomlReader.TomlException | IllegalArgumentException e) {
+            err.println("formatj: " + e.getMessage());
+            return ERROR;
+        }
         return switch (options.mode()) {
             case HELP -> {
                 out.print(CliOptions.usage());

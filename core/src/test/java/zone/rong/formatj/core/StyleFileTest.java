@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.ModuleRules;
@@ -122,6 +123,115 @@ class StyleFileTest {
                 assertThrows(TomlReader.TomlException.class, () -> TomlReader.read("[indent\nsize = 4\n"));
         assertEquals(1, failure.line());
         assertTrue(failure.getMessage().contains("line 1"));
+    }
+
+    @Test
+    void loadingAMalformedStyleFileNamesTheFileAndLine(@TempDir Path root) throws IOException {
+        Path file = root.resolve("formatj.toml");
+        Files.writeString(file, "[indent\nsize = 4\n");
+
+        TomlReader.TomlException failure = assertThrows(TomlReader.TomlException.class, () -> StyleFiles.load(file));
+        assertTrue(failure.getMessage().contains(file.toString()), failure.getMessage());
+        assertTrue(failure.getMessage().contains("line 1"), failure.getMessage());
+    }
+
+    @Test
+    void literalStringsKeepAHashAndDropOnlyTheirQuotes() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                        [comments]
+                        off-marker = '#stop'
+                        """);
+        assertEquals("#stop", style.get(CommentRules.OFF_MARKER));
+    }
+
+    @Test
+    void anEscapedBackslashBeforeAClosingQuoteDoesNotEatTheQuote() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                        [comments]
+                        off-marker = "a\\\\" # trailing comment
+                        """);
+        assertEquals("a\\", style.get(CommentRules.OFF_MARKER));
+    }
+
+    @Test
+    void basicStringsDecodeShortAndLongUnicodeEscapes() {
+        String shortForm = "\\" + "u0041";
+        String longForm = "\\" + "U00000041";
+        Style style = StyleFiles.parse("[comments]\noff-marker = \"" + shortForm + longForm + "\"\n");
+        assertEquals("AA", style.get(CommentRules.OFF_MARKER));
+    }
+
+    @Test
+    void duplicateTableHeadersAreRejected() {
+        TomlReader.TomlException failure =
+                assertThrows(
+                        TomlReader.TomlException.class,
+                        () -> TomlReader.read("[indent]\nsize = 4\n[indent]\nsize = 5\n"));
+        assertTrue(failure.getMessage().contains("indent"), failure.getMessage());
+    }
+
+    @Test
+    void aLeadingUtf8BomIsIgnored() {
+        Map<String, String> values = TomlReader.read("﻿[indent]\nsize = 4\n");
+        assertEquals("4", values.get("indent.size"));
+    }
+
+    @Test
+    void integerValuesAcceptDigitGroupingUnderscores() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                        [wrapping]
+                        max-line-length = 1_000
+                        """);
+        assertEquals(1000, style.get(WrappingRules.MAX_LINE_LENGTH));
+    }
+
+    @Test
+    void quotedKeysAreAccepted() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                        [indent]
+                        "size" = 6
+                        """);
+        assertEquals(6, style.get(IndentRules.SIZE));
+    }
+
+    @Test
+    void inlineTablesExpandToDottedKeys() {
+        Style style = StyleFiles.parse("indent = { size = 6 }\n");
+        assertEquals(6, style.get(IndentRules.SIZE));
+    }
+
+    @Test
+    void aLineLengthBelowOneNamesTheOption() {
+        IllegalArgumentException failure =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> StyleFiles.parse(
+                                """
+                                [wrapping]
+                                max-line-length = 0
+                                """));
+        assertTrue(failure.getMessage().contains("wrapping.max-line-length"), failure.getMessage());
+    }
+
+    @Test
+    void aNegativeCountNamesTheOption() {
+        IllegalArgumentException failure =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> StyleFiles.parse(
+                                """
+                                [blank-lines]
+                                max-consecutive = -1
+                                """));
+        assertTrue(failure.getMessage().contains("blank-lines.max-consecutive"), failure.getMessage());
     }
 
     @Test

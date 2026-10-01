@@ -1,6 +1,7 @@
 package zone.rong.formatj.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -168,6 +169,18 @@ class CliRunnerTest {
         assertEquals(1, result.exitCode());
         assertTrue(result.out().contains("+class A { }"), result.out());
         assertEquals(before, Files.readString(file));
+    }
+
+    @Test
+    void aMalformedStyleFilePrintsCleanlyAndExitsWithError(@TempDir Path root) throws IOException {
+        Path style = root.resolve("bad.toml");
+        Files.writeString(style, "[indent\nsize = 4\n");
+
+        Run result = run("", "--dump-config", "--style", style.toString());
+
+        assertEquals(2, result.exitCode());
+        assertTrue(result.err().contains(style.toString()), result.err());
+        assertFalse(result.err().contains("unexpected failure"), result.err());
     }
 
     @Test
