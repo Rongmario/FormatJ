@@ -121,8 +121,7 @@ class CorpusInvariantTest {
                             once.diagnostics()
                                     .stream()
                                     .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                            () -> "rewrites were dropped: "
-                                    + once.diagnostics());
+                            () -> "rewrites were dropped: " + once.diagnostics());
 
                     FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
                     assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
@@ -154,8 +153,7 @@ class CorpusInvariantTest {
                             once.diagnostics()
                                     .stream()
                                     .noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
-                            () -> "rewrites were dropped: "
-                                    + once.diagnostics());
+                            () -> "rewrites were dropped: " + once.diagnostics());
 
                     FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
                     assertEquals(once.text(), twice.text(), "formatting must be a fixed point");

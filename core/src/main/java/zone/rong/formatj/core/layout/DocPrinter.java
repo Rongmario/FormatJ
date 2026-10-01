@@ -359,8 +359,10 @@ public final class DocPrinter {
                 case Doc.Break lineBreak -> {
                     if (mode == Mode.BREAK
                             || lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT) {
-                        // The line ends here, so everything measured so far did fit.
-                        return mode == Mode.BREAK || stopAtHardBreak;
+                        // The line ends here. Past the document that is simply where the measuring stops; inside
+                        // it, a break the document was always going to take counts only for a first-line
+                        // measurement.
+                        return measuringRest || stopAtHardBreak;
                     }
                     if (lineBreak.kind() == Doc.BreakKind.LINE) {
                         left--;
