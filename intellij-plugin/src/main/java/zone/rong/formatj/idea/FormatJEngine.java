@@ -11,9 +11,15 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.StyleFiles;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -59,7 +65,22 @@ public final class FormatJEngine {
     private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) { }
 
     private final Settings settings;
-    private final ConcurrentHashMap<CacheKey, Formatter> formatters = new ConcurrentHashMap<>();
+
+    private record LoadedStyle(FileTime lastModified, Style style) { }
+
+    private static final int MAX_FORMATTERS = 8;
+
+    // Bounded: every edit of formatj.toml yields a new Style and so a new key.
+    private final Map<CacheKey, Formatter> formatters =
+            Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true) {
+
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<CacheKey, Formatter> eldest) {
+                    return size() > MAX_FORMATTERS;
+                }
+
+            });
+    private final ConcurrentHashMap<Path, LoadedStyle> styleFiles = new ConcurrentHashMap<>();
 
     public FormatJEngine(Settings settings) {
         this.settings = Objects.requireNonNull(settings, "settings");
@@ -82,12 +103,29 @@ public final class FormatJEngine {
                 builder.apply(settings.preset().style());
             }
             if (settings.styleFile() != null) {
-                builder.apply(StyleFiles.load(settings.styleFile()));
+                builder.apply(load(settings.styleFile()));
             }
             return builder.build();
         }
         Path start = path != null ? path : Path.of("").toAbsolutePath();
-        return StyleFiles.discoverOrDefault(start);
+        return StyleFiles.discover(start).map(this::load).orElseGet(Style::defaults);
+    }
+
+    /** Re-reads a style file only when its modification time changes. */
+    private Style load(Path file) {
+        FileTime modified;
+        try {
+            modified = Files.getLastModifiedTime(file);
+        } catch (IOException e) {
+            return StyleFiles.load(file);
+        }
+        LoadedStyle cached = styleFiles.get(file);
+        if (cached != null && cached.lastModified().equals(modified)) {
+            return cached.style();
+        }
+        Style style = StyleFiles.load(file);
+        styleFiles.put(file, new LoadedStyle(modified, style));
+        return style;
     }
 
     /** A one-line description of which style would apply, for the settings page. */

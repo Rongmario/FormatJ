@@ -2,6 +2,7 @@ package zone.rong.formatj.idea;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import zone.rong.formatj.api.LanguageLevel;
@@ -14,6 +15,7 @@ import zone.rong.formatj.core.FormatJ;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,6 +30,20 @@ class FormatJEngineTest {
 
         assertEquals(6, engine.styleFor(nested.resolve("Foo.java")).get(IndentRules.SIZE));
         assertTrue(engine.describeStyle(nested).contains(root.resolve("formatj.toml").toString()));
+    }
+
+    @Test
+    void anUnchangedStyleFileIsNotReparsedAndAnEditIsPickedUp(@TempDir Path root) throws IOException {
+        Path toml = root.resolve("formatj.toml");
+        Files.writeString(toml, "[indent]\nsize = 6\n");
+        FormatJEngine engine = new FormatJEngine(FormatJEngine.Settings.discover());
+        Path file = root.resolve("Foo.java");
+
+        assertSame(engine.styleFor(file), engine.styleFor(file));
+
+        Files.writeString(toml, "[indent]\nsize = 3\n");
+        Files.setLastModifiedTime(toml, FileTime.fromMillis(System.currentTimeMillis() + 5000));
+        assertEquals(3, engine.styleFor(file).get(IndentRules.SIZE));
     }
 
     @Test
