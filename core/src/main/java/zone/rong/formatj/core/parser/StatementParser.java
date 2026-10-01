@@ -108,18 +108,24 @@ abstract class StatementParser extends ExpressionParser {
     private boolean atLocalTypeDeclaration() {
         int start = mark();
         try {
-            while (at("final") || at("static") || at("abstract") || at("@")) {
+            while (true) {
                 if (at("@")) {
                     parseAnnotation();
-                } else {
+                } else if (at("final") || at("static") || at("abstract") || atContextual("sealed")) {
                     advance();
+                } else if (atContextual("non") && peek(1).is("-") && peek(2).is("sealed")) {
+                    // non-sealed lexes as three tokens; it is one modifier.
+                    advance();
+                    advance();
+                    advance();
+                } else {
+                    break;
                 }
             }
             return at("class")
                     || at("interface")
                     || at("enum")
-                    || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)
-                    || (atContextual("sealed") || atContextual("non"));
+                    || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER);
         } catch (ParseFailure failure) {
             return false;
         } finally {

@@ -66,6 +66,7 @@ class ParserTest {
                 "final class A extends B implements C, D {}\n",
                 "sealed interface Shape permits Circle, Square {}\n",
                 "non-sealed class Sub extends Shape {}\n",
+                "class A { void f() { Object sealed; sealed = null; sealed.toString(); Object non; non = sealed; } }\n",
                 "record Point(int x, int y) {}\n",
                 "record Point(int x, int y) { Point { if (x < 0) { throw new IllegalArgumentException(); } } }\n",
                 "enum Color { RED, GREEN, BLUE }\n",
