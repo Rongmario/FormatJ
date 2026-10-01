@@ -1,11 +1,12 @@
 package zone.rong.formatj.idea;
 
+import java.util.List;
+
 import com.intellij.lang.ImportOptimizer;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
-import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -19,7 +20,8 @@ public final class FormatJImportOptimizer implements ImportOptimizer {
     }
 
     @Override
-    public @NotNull Runnable processFile(@NotNull PsiFile file) {
+    public @NotNull
+    Runnable processFile(@NotNull PsiFile file) {
         Project project = file.getProject();
         PsiDocumentManager documents = PsiDocumentManager.getInstance(project);
         Document document = documents.getDocument(file);
@@ -28,15 +30,16 @@ public final class FormatJImportOptimizer implements ImportOptimizer {
         }
         String original = document.getText();
         FormatJEngine.Outcome outcome = FormatJSettings.getInstance(project)
-                .engine()
-                .format(new FormatJEngine.Request(
-                        original,
-                        file.getName(),
-                        FormatJFiles.path(file),
-                        List.of(),
-                        FormatJFiles.languageLevel(file),
-                        FormatJFiles.previewFeatures(file),
-                        true));
+            .engine()
+            .format(new FormatJEngine.Request(
+                original,
+                file.getName(),
+                FormatJFiles.path(file),
+                List.of(),
+                FormatJFiles.languageLevel(file),
+                FormatJFiles.previewFeatures(file),
+                true
+            ));
         if (outcome.hasErrors() || outcome.unchanged()) {
             return EmptyAction.INSTANCE;
         }
@@ -57,7 +60,7 @@ public final class FormatJImportOptimizer implements ImportOptimizer {
         INSTANCE;
 
         @Override
-        public void run() {}
+        public void run() { }
 
     }
 

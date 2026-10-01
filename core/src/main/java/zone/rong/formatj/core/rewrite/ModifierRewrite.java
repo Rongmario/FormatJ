@@ -1,72 +1,79 @@
 package zone.rong.formatj.core.rewrite;
 
-import zone.rong.formatj.api.rules.ModifierOrder;
-import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.core.cst.GreenNode;
-import zone.rong.formatj.core.cst.ProgramTokens;
-import zone.rong.formatj.core.cst.SyntaxKind;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.ProgramTokens;
+import zone.rong.formatj.core.cst.SyntaxKind;
+
 /** Puts declaration modifiers in their declaration-specific canonical order. */
 public final class ModifierRewrite implements Rewrite {
 
     private static final List<String> CLASS_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "abstract",
-            "static",
-            "sealed",
-            "non-sealed",
-            "final",
-            "strictfp");
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "static",
+        "sealed",
+        "non-sealed",
+        "final",
+        "strictfp"
+    );
     private static final List<String> INTERFACE_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "abstract",
-            "static",
-            "sealed",
-            "non-sealed",
-            "strictfp");
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "static",
+        "sealed",
+        "non-sealed",
+        "strictfp"
+    );
     private static final List<String> ENUM_ORDER = List.of("public", "protected", "private", "static", "strictfp");
     private static final List<String> RECORD_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "static",
-            "final",
-            "strictfp");
+        "public",
+        "protected",
+        "private",
+        "static",
+        "final",
+        "strictfp"
+    );
     private static final List<String> ANNOTATION_TYPE_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "abstract",
-            "static",
-            "strictfp");
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "static",
+        "strictfp"
+    );
     private static final List<String> FIELD_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "static",
-            "final",
-            "transient",
-            "volatile");
+        "public",
+        "protected",
+        "private",
+        "static",
+        "final",
+        "transient",
+        "volatile"
+    );
     private static final List<String> METHOD_ORDER = List.of(
-            "public",
-            "protected",
-            "private",
-            "abstract",
-            "default",
-            "static",
-            "final",
-            "synchronized",
-            "native",
-            "strictfp");
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "default",
+        "static",
+        "final",
+        "synchronized",
+        "native",
+        "strictfp"
+    );
     private static final List<String> CONSTRUCTOR_ORDER = List.of("public", "protected", "private");
 
     @Override
@@ -130,12 +137,13 @@ public final class ModifierRewrite implements Rewrite {
             return node;
         }
         context.record(new TokenEdit(
-                ModifierRules.ORDER,
-                "declaration modifiers reordered",
-                position,
-                ProgramTokens.lexemes(modifiers),
-                ProgramTokens.lexemes(rewrittenModifiers),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            ModifierRules.ORDER,
+            "declaration modifiers reordered",
+            position,
+            ProgramTokens.lexemes(modifiers),
+            ProgramTokens.lexemes(rewrittenModifiers),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
 
         List<GreenNode> declaration = new ArrayList<>(node.children());
         declaration.set(0, rewrittenModifiers);
@@ -154,10 +162,10 @@ public final class ModifierRewrite implements Rewrite {
             if (!(child instanceof GreenNode.Leaf leaf)) {
                 return null;
             }
-            if (leaf.decodedLexeme().equals("non")
-                    && i + 2 < children.size()
-                    && decoded(children.get(i + 1)).equals("-")
-                    && decoded(children.get(i + 2)).equals("sealed")) {
+            if (leaf.decodedLexeme().equals("non") &&
+                i + 2 < children.size() &&
+                decoded(children.get(i + 1)).equals("-") &&
+                decoded(children.get(i + 2)).equals("sealed")) {
                 parts.add(new Part(List.of(child, children.get(i + 1), children.get(i + 2)), "non-sealed"));
                 i += 2;
                 continue;

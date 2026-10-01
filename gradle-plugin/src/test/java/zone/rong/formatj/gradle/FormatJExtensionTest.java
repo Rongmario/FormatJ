@@ -1,19 +1,20 @@
 package zone.rong.formatj.gradle;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Map;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FormatJExtensionTest {
 
@@ -41,8 +42,9 @@ class FormatJExtensionTest {
         extension.rules(Map.of("wrapping.max-line-length", 100));
 
         assertEquals(
-                Map.of("indent.size", "2", "modifiers.order", "canonical", "wrapping.max-line-length", "100"),
-                extension.getRules().get());
+            Map.of("indent.size", "2", "modifiers.order", "canonical", "wrapping.max-line-length", "100"),
+            extension.getRules().get()
+        );
         assertThrows(IllegalArgumentException.class, () -> extension.rule("indent.siz", 2));
         assertThrows(IllegalArgumentException.class, () -> extension.rule("indent.size", "wide"));
     }

@@ -1,5 +1,13 @@
 package zone.rong.formatj.core.pipeline;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BraceRules;
@@ -23,13 +31,6 @@ import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.UnicodeEscapes;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import zone.rong.formatj.core.text.TextBlocks;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Checks the output of a run that was allowed to change the program.
@@ -52,7 +53,7 @@ import java.util.Set;
  */
 public final class RewriteVerification {
 
-    private RewriteVerification() {}
+    private RewriteVerification() { }
 
     /**
      * Verifies the tree the rewrite stage produced, before it is laid out.
@@ -103,16 +104,19 @@ public final class RewriteVerification {
                 int index = edit.position() + i;
                 if (index >= original.size()) {
                     throw new IllegalStateException(
-                            edit.authority().key() + " claims to delete past the end of the file");
+                        edit.authority().key() + " claims to delete past the end of the file"
+                    );
                 }
                 if (!original.get(index).equals(edit.removed().get(i))) {
                     throw new IllegalStateException(
-                            edit.authority().key() + " claims to delete '" + edit.removed().get(i) + "' at token "
-                                    + index + " but the source has '" + original.get(index) + "'");
+                        edit.authority().key() + " claims to delete '" + edit.removed().get(i) + "' at token " + index +
+                            " but the source has '" + original.get(index) + "'"
+                    );
                 }
                 if (deleted[index]) {
                     throw new IllegalStateException(
-                            "two edits both delete token " + index + " ('" + original.get(index) + "')");
+                        "two edits both delete token " + index + " ('" + original.get(index) + "')"
+                    );
                 }
                 deleted[index] = true;
             }
@@ -124,7 +128,8 @@ public final class RewriteVerification {
             if (!edit.inserted().isEmpty()) {
                 if (edit.position() > original.size()) {
                     throw new IllegalStateException(
-                            edit.authority().key() + " claims to insert past the end of the file");
+                        edit.authority().key() + " claims to insert past the end of the file"
+                    );
                 }
                 insertions.add(new Sequenced(edit, i));
             }
@@ -160,16 +165,16 @@ public final class RewriteVerification {
      */
     private static void reorder(List<List<String>> slots, List<TokenEdit> edits) {
         List<TokenEdit> moves = edits.stream()
-                .filter(edit -> !edit.order().isEmpty())
-                .sorted(Comparator.comparingInt(RewriteVerification::runLength))
-                .toList();
+            .filter(edit -> !edit.order().isEmpty())
+            .sorted(Comparator.comparingInt(RewriteVerification::runLength))
+            .toList();
         for (TokenEdit move : moves) {
             int start = move.position();
             int end = start + runLength(move);
             List<TokenEdit.Span> sorted = move.order()
-                    .stream()
-                    .sorted(Comparator.comparingInt(TokenEdit.Span::start))
-                    .toList();
+                .stream()
+                .sorted(Comparator.comparingInt(TokenEdit.Span::start))
+                .toList();
             for (int i = 1; i < sorted.size(); i++) {
                 if (sorted.get(i).start() < sorted.get(i - 1).end()) {
                     throw new IllegalStateException(move.authority().key() + " reordered overlapping stretches");
@@ -196,7 +201,7 @@ public final class RewriteVerification {
     }
 
     /** An edit and where it sat in the ledger, which is the tiebreak for edits at one position. */
-    private record Sequenced(TokenEdit edit, int sequence) {}
+    private record Sequenced(TokenEdit edit, int sequence) { }
 
     /**
      * Position first; then, for edits landing on the same token, the bias each edit declared.
@@ -206,11 +211,11 @@ public final class RewriteVerification {
      * exists.
      */
     private static final Comparator<Sequenced> ORDER = Comparator
-            .comparingInt((Sequenced entry) -> entry.edit().position())
-            .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
-            .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
-                    ? -entry.sequence()
-                    : entry.sequence());
+        .comparingInt((Sequenced entry) -> entry.edit().position())
+        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
+        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
+            ? -entry.sequence()
+            : entry.sequence());
 
     // -------------------------------------------------------------- edit laws
 
@@ -234,10 +239,10 @@ public final class RewriteVerification {
     /** The law of the one rule this edit claims to be. */
     private static String checkEditLaw(TokenEdit edit, GreenNode before, GreenNode formatted) {
         Option<?> authority = edit.authority();
-        if (authority == BraceRules.IF_ELSE
-                || authority == BraceRules.FOR_LOOP
-                || authority == BraceRules.WHILE_LOOP
-                || authority == SwitchRules.ARROW_CASE_BRACES) {
+        if (authority == BraceRules.IF_ELSE ||
+            authority == BraceRules.FOR_LOOP ||
+            authority == BraceRules.WHILE_LOOP ||
+            authority == SwitchRules.ARROW_CASE_BRACES) {
             return checkBraceLaw(edit);
         }
         if (authority == ImportRules.ORDER) {
@@ -267,8 +272,8 @@ public final class RewriteVerification {
         if (authority == SwitchRules.CASE_STYLE) {
             return checkCaseStyleLaw(edit);
         }
-        if (authority == TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE
-                || authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
+        if (authority == TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE ||
+            authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
             return checkTextBlockLaw(edit);
         }
         if (authority == LiteralRules.LONG_SUFFIX || authority == LiteralRules.HEX_DIGITS) {
@@ -307,8 +312,9 @@ public final class RewriteVerification {
         for (GreenNode member : body.members()) {
             List<GreenNode.Leaf> leaves = ProgramTokens.leaves(member);
             originalIndex.put(
-                    new TokenEdit.Span(positions.get(leaves.getFirst()), positions.get(leaves.getLast()) + 1),
-                    originalIndex.size());
+                new TokenEdit.Span(positions.get(leaves.getFirst()), positions.get(leaves.getLast()) + 1),
+                originalIndex.size()
+            );
         }
         if (edit.order().size() != originalIndex.size() || !originalIndex.keySet().containsAll(edit.order())) {
             return problem;
@@ -339,22 +345,22 @@ public final class RewriteVerification {
     }
 
     /** The orderable members of a type body, and whether that body belongs to an interface. */
-    private record MemberBody(List<GreenNode> members, boolean interfaceBody) {}
+    private record MemberBody(List<GreenNode> members, boolean interfaceBody) { }
 
     /** The body whose first orderable member starts at {@code position}, or null. */
     private static MemberBody bodyAt(GreenNode node, int position, Map<GreenNode.Leaf, Integer> positions) {
-        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION
-                || node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION ||
+            node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
         for (GreenNode child : node.children()) {
             if (child.kind() == SyntaxKind.CLASS_BODY) {
                 List<GreenNode> members = child.children()
-                        .subList(1, child.children().size() - 1)
-                        .stream()
-                        .filter(member -> member.kind() != SyntaxKind.ENUM_CONSTANTS
-                                && member.kind() != SyntaxKind.EMPTY_STATEMENT)
-                        .toList();
-                if (!members.isEmpty()
-                        && positions.get(ProgramTokens.leaves(members.getFirst()).getFirst()) == position) {
+                    .subList(1, child.children().size() - 1)
+                    .stream()
+                    .filter(member -> member.kind() != SyntaxKind.ENUM_CONSTANTS &&
+                        member.kind() != SyntaxKind.EMPTY_STATEMENT)
+                    .toList();
+                if (!members.isEmpty() &&
+                    positions.get(ProgramTokens.leaves(members.getFirst()).getFirst()) == position) {
                     return new MemberBody(members, interfaceBody);
                 }
             }
@@ -368,9 +374,9 @@ public final class RewriteVerification {
 
     /** The semicolon rule may delete one {@code ;} that the original tree reads as an empty declaration. */
     private static String checkSemicolonLaw(TokenEdit edit, GreenNode before) {
-        if (edit.removed().equals(List.of(";"))
-                && edit.inserted().isEmpty()
-                && isEmptyDeclaration(before, edit.position(), ProgramTokens.positions(before))) {
+        if (edit.removed().equals(List.of(";")) &&
+            edit.inserted().isEmpty() &&
+            isEmptyDeclaration(before, edit.position(), ProgramTokens.positions(before))) {
             return null;
         }
         return edit.authority().key() + " may only delete a stray semicolon between members or after a type";
@@ -379,9 +385,9 @@ public final class RewriteVerification {
     private static boolean isEmptyDeclaration(GreenNode node, int position, Map<GreenNode.Leaf, Integer> positions) {
         boolean container = node.kind() == SyntaxKind.CLASS_BODY || node.kind() == SyntaxKind.COMPILATION_UNIT;
         for (GreenNode child : node.children()) {
-            if (container
-                    && child.kind() == SyntaxKind.EMPTY_STATEMENT
-                    && positions.get(ProgramTokens.leaves(child).getFirst()) == position) {
+            if (container &&
+                child.kind() == SyntaxKind.EMPTY_STATEMENT &&
+                positions.get(ProgramTokens.leaves(child).getFirst()) == position) {
                 return true;
             }
             if (isEmptyDeclaration(child, position, positions)) {
@@ -407,16 +413,16 @@ public final class RewriteVerification {
         for (int i = 0; i < before.length(); i++) {
             char was = before.charAt(i);
             char now = after.charAt(i);
-            boolean suffix = edit.authority() == LiteralRules.LONG_SUFFIX
-                    && i == before.length() - 1
-                    && was == 'l'
-                    && now == 'L';
-            boolean digit = before.regionMatches(true, 0, "0x", 0, 2)
-                    && i >= 2
-                    && before.substring(0, i).toLowerCase(Locale.ROOT).indexOf('p') < 0
-                    && Character.toLowerCase(was) == Character.toLowerCase(now)
-                    && Character.toLowerCase(was) >= 'a'
-                    && Character.toLowerCase(was) <= 'f';
+            boolean suffix = edit.authority() == LiteralRules.LONG_SUFFIX &&
+                i == before.length() - 1 &&
+                was == 'l' &&
+                now == 'L';
+            boolean digit = before.regionMatches(true, 0, "0x", 0, 2) &&
+                i >= 2 &&
+                before.substring(0, i).toLowerCase(Locale.ROOT).indexOf('p') < 0 &&
+                Character.toLowerCase(was) == Character.toLowerCase(now) &&
+                Character.toLowerCase(was) >= 'a' &&
+                Character.toLowerCase(was) <= 'f';
             if (was != now && !suffix && !digit) {
                 return edit.authority().key() + " changed '" + was + "' in " + before;
             }
@@ -440,10 +446,10 @@ public final class RewriteVerification {
      * latitude the other would not also have had.
      */
     private static String checkTextBlockLaw(TokenEdit edit) {
-        if (edit.removed().size() != 1
-                || edit.inserted().size() != 1
-                || !TextBlocks.isTextBlock(edit.removed().getFirst())
-                || !TextBlocks.isTextBlock(edit.inserted().getFirst())) {
+        if (edit.removed().size() != 1 ||
+            edit.inserted().size() != 1 ||
+            !TextBlocks.isTextBlock(edit.removed().getFirst()) ||
+            !TextBlocks.isTextBlock(edit.inserted().getFirst())) {
             return edit.authority().key() + " may only rewrite one whole text block";
         }
         String before = endings(TextBlocks.value(edit.removed().getFirst()));
@@ -463,10 +469,10 @@ public final class RewriteVerification {
                 out.append('\n');
             }
             int end = lines[i].length();
-            while (end > 0
-                    && (lines[i].charAt(end - 1) == ' '
-                            || lines[i].charAt(end - 1) == '\t'
-                            || lines[i].charAt(end - 1) == '\f')) {
+            while (end > 0 &&
+                (lines[i].charAt(end - 1) == ' ' ||
+                    lines[i].charAt(end - 1) == '\t' ||
+                    lines[i].charAt(end - 1) == '\f')) {
                 end--;
             }
             out.append(lines[i], 0, end);
@@ -521,10 +527,10 @@ public final class RewriteVerification {
         if (!entry.isRemovable()) {
             return ImportRules.ORDER.key() + " removed an import whose use cannot be seen: " + entry.text();
         }
-        if (ImportUsage.namesMentioned(formatted).contains(entry.simpleName())
-                || ImportUsage.mentionedInComments(formatted, entry.simpleName())) {
-            return ImportRules.ORDER.key() + " removed " + entry.text() + " but the file still mentions "
-                    + entry.simpleName();
+        if (ImportUsage.namesMentioned(formatted).contains(entry.simpleName()) ||
+            ImportUsage.mentionedInComments(formatted, entry.simpleName())) {
+            return ImportRules.ORDER.key() + " removed " + entry.text() + " but the file still mentions " +
+                entry.simpleName();
         }
         return null;
     }
@@ -566,8 +572,8 @@ public final class RewriteVerification {
         }
         String difference = sameBag(before, after);
         return difference == null
-                ? null
-                : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
+            ? null
+            : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
     }
 
     /** A modifier rule may permute one declaration's modifiers and nothing else. */
@@ -601,8 +607,8 @@ public final class RewriteVerification {
 
         String difference = sameTokenBag(beforeModifiers, afterModifiers);
         return difference == null
-                ? null
-                : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
+            ? null
+            : ModifierRules.ORDER.key() + " did more than permute modifiers: " + difference;
     }
 
     /** The redundant-modifier rule may delete one modifier at a time and insert nothing. */
@@ -614,19 +620,20 @@ public final class RewriteVerification {
     }
 
     private static final Set<String> MODIFIERS = Set.of(
-            "public",
-            "protected",
-            "private",
-            "abstract",
-            "default",
-            "static",
-            "final",
-            "transient",
-            "volatile",
-            "synchronized",
-            "native",
-            "strictfp",
-            "sealed");
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "default",
+        "static",
+        "final",
+        "transient",
+        "volatile",
+        "synchronized",
+        "native",
+        "strictfp",
+        "sealed"
+    );
 
     private static boolean isDeclaredModifierSpan(GreenNode tree, TokenEdit edit) {
         Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(tree);
@@ -634,16 +641,17 @@ public final class RewriteVerification {
     }
 
     private static boolean containsModifierSpan(
-            GreenNode node,
-            TokenEdit edit,
-            Map<GreenNode.Leaf, Integer> positions) {
+        GreenNode node,
+        TokenEdit edit,
+        Map<GreenNode.Leaf, Integer> positions
+    ) {
         if (isModifierDeclaration(node.kind()) && !node.children().isEmpty()) {
             GreenNode modifiers = node.children().getFirst();
             List<GreenNode.Leaf> leaves = ProgramTokens.leaves(modifiers);
-            if (modifiers.kind() == SyntaxKind.MODIFIERS
-                    && !leaves.isEmpty()
-                    && positions.get(leaves.getFirst()) == edit.position()
-                    && ProgramTokens.lexemes(modifiers).equals(edit.removed())) {
+            if (modifiers.kind() == SyntaxKind.MODIFIERS &&
+                !leaves.isEmpty() &&
+                positions.get(leaves.getFirst()) == edit.position() &&
+                ProgramTokens.lexemes(modifiers).equals(edit.removed())) {
                 return true;
             }
         }
@@ -658,8 +666,8 @@ public final class RewriteVerification {
     private static boolean isModifierDeclaration(SyntaxKind kind) {
         return switch (kind) {
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
-                    ANNOTATION_TYPE_DECLARATION, FIELD_DECLARATION, METHOD_DECLARATION, CONSTRUCTOR_DECLARATION,
-                    COMPACT_CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> true;
+                ANNOTATION_TYPE_DECLARATION, FIELD_DECLARATION, METHOD_DECLARATION, CONSTRUCTOR_DECLARATION,
+                COMPACT_CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> true;
             default -> false;
         };
     }
@@ -678,10 +686,10 @@ public final class RewriteVerification {
                 i = end;
                 continue;
             }
-            if (token.equals("non")
-                    && i + 2 < tokens.size()
-                    && decoded(tokens.get(i + 1)).equals("-")
-                    && decoded(tokens.get(i + 2)).equals("sealed")) {
+            if (token.equals("non") &&
+                i + 2 < tokens.size() &&
+                decoded(tokens.get(i + 1)).equals("-") &&
+                decoded(tokens.get(i + 2)).equals("sealed")) {
                 elements.add(new ModifierElement(false, tokens.subList(i, i + 3)));
                 i += 3;
                 continue;
@@ -840,9 +848,9 @@ public final class RewriteVerification {
             return LambdaRules.BODY_BRACES.key() + " may only remove braces but inserted " + edit.inserted();
         }
         List<String> removed = edit.removed();
-        if (removed.equals(List.of("{"))
-                || removed.equals(List.of("{", "return"))
-                || removed.equals(List.of(";", "}"))) {
+        if (removed.equals(List.of("{")) ||
+            removed.equals(List.of("{", "return")) ||
+            removed.equals(List.of(";", "}"))) {
             return null;
         }
         return LambdaRules.BODY_BRACES.key() + " removed " + removed + ", which is not a lambda body's braces";
@@ -880,17 +888,18 @@ public final class RewriteVerification {
      */
     private static String checkCaseStyleLaw(TokenEdit edit) {
         return checkOnly(
-                edit,
-                "case labels and their terminators",
-                ":",
-                "->",
-                "case",
-                ",",
-                "break",
-                ";",
-                "yield",
-                "{",
-                "}");
+            edit,
+            "case labels and their terminators",
+            ":",
+            "->",
+            "case",
+            ",",
+            "break",
+            ";",
+            "yield",
+            "{",
+            "}"
+        );
     }
 
     /** A rule that may touch the named tokens and no others. */
@@ -935,8 +944,8 @@ public final class RewriteVerification {
             }
         }
         return opened == closed
-                ? null
-                : "braces were not balanced: " + opened + " opened against " + closed + " closed";
+            ? null
+            : "braces were not balanced: " + opened + " opened against " + closed + " closed";
     }
 
     // ------------------------------------------------------------- comments

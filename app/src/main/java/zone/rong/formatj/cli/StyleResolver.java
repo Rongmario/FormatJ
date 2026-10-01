@@ -1,13 +1,14 @@
 package zone.rong.formatj.cli;
 
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.StyleFiles;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Works out which rules apply to a file.

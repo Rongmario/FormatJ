@@ -1,5 +1,9 @@
 package zone.rong.formatj.api;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.ArrayRules;
@@ -13,8 +17,8 @@ import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.MemberRules;
-import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.RecordRules;
@@ -24,9 +28,6 @@ import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.api.rules.WrappingRules;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Mutable builder for a {@link Style}.

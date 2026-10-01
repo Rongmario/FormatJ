@@ -1,20 +1,21 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import zone.rong.formatj.api.FormatRequest;
-import zone.rong.formatj.api.Formatter;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.core.config.StyleFiles;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.core.config.StyleFiles;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * One test per directory under {@code src/test/resources/cases}.
@@ -32,18 +33,17 @@ class GoldenFileTest {
         assertTrue(Files.isDirectory(CASES), () -> "missing case directory: " + CASES.toAbsolutePath());
         try (Stream<Path> directories = Files.list(CASES)) {
             List<Path> cases = directories.filter(Files::isDirectory).sorted().toList();
-            return cases.stream()
-                    .map(directory -> DynamicTest.dynamicTest(directory.getFileName().toString(), () -> {
-                        String input = read(directory.resolve("input.java"));
-                        String expected = read(directory.resolve("expected.java"));
-                        Formatter formatter = FormatJ.newFormatter().style(styleFor(directory)).build();
+            return cases.stream().map(directory -> DynamicTest.dynamicTest(directory.getFileName().toString(), () -> {
+                String input = read(directory.resolve("input.java"));
+                String expected = read(directory.resolve("expected.java"));
+                Formatter formatter = FormatJ.newFormatter().style(styleFor(directory)).build();
 
-                        String formatted = formatter.format(FormatRequest.of(input).withName(directory + "/input.java")).text();
-                        assertEquals(expected, formatted);
+                String formatted = formatter.format(FormatRequest.of(input).withName(directory + "/input.java")).text();
+                assertEquals(expected, formatted);
 
-                        String again = formatter.format(FormatRequest.of(formatted)).text();
-                        assertEquals(formatted, again, "formatting must be a fixed point");
-                    }));
+                String again = formatter.format(FormatRequest.of(formatted)).text();
+                assertEquals(formatted, again, "formatting must be a fixed point");
+            }));
         }
     }
 

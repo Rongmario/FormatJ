@@ -21,7 +21,7 @@ import java.nio.file.attribute.PosixFileAttributeView;
  */
 public final class SourceFiles {
 
-    private SourceFiles() {}
+    private SourceFiles() { }
 
     /** Reads a whole file, decoding strictly: a byte the charset cannot read fails the read. */
     public static String readString(Path file, Charset charset) throws IOException {
@@ -34,8 +34,8 @@ public final class SourceFiles {
      */
     public static String decode(byte[] bytes, Charset charset) throws IOException {
         CharsetDecoder decoder = charset.newDecoder()
-                .onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT);
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT);
         ByteBuffer input = ByteBuffer.wrap(bytes);
         CharBuffer output = CharBuffer.allocate((int) (bytes.length * decoder.maxCharsPerByte()) + 1);
         CoderResult result = decoder.decode(input, output, true);
@@ -45,7 +45,8 @@ public final class SourceFiles {
         if (result.isError()) {
             // input.position() sits right before the bad byte; +1 to report it 1-based.
             throw new IOException(
-                    "not valid " + charset.name() + " (malformed input at byte " + (input.position() + 1) + ")");
+                "not valid " + charset.name() + " (malformed input at byte " + (input.position() + 1) + ")"
+            );
         }
         output.flip();
         return output.toString();

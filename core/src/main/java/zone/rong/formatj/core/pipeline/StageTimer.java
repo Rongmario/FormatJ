@@ -1,15 +1,5 @@
 package zone.rong.formatj.core.pipeline;
 
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.core.cst.GreenNode;
-import zone.rong.formatj.core.cst.SyntaxNode;
-import zone.rong.formatj.core.lexer.JavaLexer;
-import zone.rong.formatj.core.lexer.Token;
-import zone.rong.formatj.core.parser.JavaParser;
-import zone.rong.formatj.core.parser.ParseResult;
-import zone.rong.formatj.core.rewrite.RewriteResult;
-import zone.rong.formatj.core.rewrite.RewriteStage;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
@@ -22,6 +12,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.SyntaxNode;
+import zone.rong.formatj.core.lexer.JavaLexer;
+import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.parser.JavaParser;
+import zone.rong.formatj.core.parser.ParseResult;
+import zone.rong.formatj.core.rewrite.RewriteResult;
+import zone.rong.formatj.core.rewrite.RewriteStage;
+
 /**
  * Times the formatter pipeline stages separately over a set of sources.
  *
@@ -30,48 +31,50 @@ import java.util.stream.Stream;
  */
 public final class StageTimer {
 
-    private StageTimer() {}
+    private StageTimer() { }
 
     /** Nanoseconds spent in each named stage, summed over every file. */
     public record Times(
-            long lexNanos,
-            long parseNanos,
-            long rewriteNanos,
-            long layoutNanos,
-            long reparseNanos,
-            long verifyNanos,
-            long secondLayoutNanos,
-            int files) {
+        long lexNanos,
+        long parseNanos,
+        long rewriteNanos,
+        long layoutNanos,
+        long reparseNanos,
+        long verifyNanos,
+        long secondLayoutNanos,
+        int files
+    ) {
 
         public String report() {
-            return "lex: " + lexNanos + " ns\n" + "parse: " + parseNanos + " ns\n" + "rewrite: " + rewriteNanos
-                    + " ns\n" + "layout: " + layoutNanos + " ns\n" + "reparse: " + reparseNanos + " ns\n" + "verify: "
-                    + verifyNanos + " ns\n" + "second-layout: " + secondLayoutNanos + " ns\n" + "files: " + files
-                    + "\n";
+            return "lex: " + lexNanos + " ns\n" + "parse: " + parseNanos + " ns\n" + "rewrite: " + rewriteNanos +
+                " ns\n" + "layout: " + layoutNanos + " ns\n" + "reparse: " + reparseNanos + " ns\n" + "verify: " +
+                verifyNanos + " ns\n" + "second-layout: " + secondLayoutNanos + " ns\n" + "files: " + files + "\n";
         }
 
         Times plus(Times other) {
             return new Times(
-                    lexNanos + other.lexNanos,
-                    parseNanos + other.parseNanos,
-                    rewriteNanos + other.rewriteNanos,
-                    layoutNanos + other.layoutNanos,
-                    reparseNanos + other.reparseNanos,
-                    verifyNanos + other.verifyNanos,
-                    secondLayoutNanos + other.secondLayoutNanos,
-                    files + other.files);
+                lexNanos + other.lexNanos,
+                parseNanos + other.parseNanos,
+                rewriteNanos + other.rewriteNanos,
+                layoutNanos + other.layoutNanos,
+                reparseNanos + other.reparseNanos,
+                verifyNanos + other.verifyNanos,
+                secondLayoutNanos + other.secondLayoutNanos,
+                files + other.files
+            );
         }
 
         Times dividedBy(int divisor) {
             return new Times(
-                    lexNanos / divisor,
-                    parseNanos / divisor,
-                    rewriteNanos / divisor,
-                    layoutNanos / divisor,
-                    reparseNanos / divisor,
-                    verifyNanos / divisor,
-                    secondLayoutNanos / divisor,
-                    files / divisor);
+                lexNanos / divisor,
+                parseNanos / divisor,
+                rewriteNanos / divisor,
+                layoutNanos / divisor,
+                reparseNanos / divisor,
+                verifyNanos / divisor,
+                secondLayoutNanos / divisor,
+                files / divisor
+            );
         }
 
     }
@@ -132,15 +135,16 @@ public final class StageTimer {
         }
         boolean changed = !rewritten.unchanged() || rewritten.root() != original;
         String outputProblem = changed
-                ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
-                : TokenEquivalence.firstDifference(original, formattedTree.root().green());
+            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
+            : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (outputProblem != null) {
             throw new IllegalStateException(outputProblem);
         }
         String proseProblem = ProsePreservation.firstDifference(
-                rewritten.root(),
-                formattedTree.root().green(),
-                formatter.style());
+            rewritten.root(),
+            formattedTree.root().green(),
+            formatter.style()
+        );
         if (proseProblem != null) {
             throw new IllegalStateException(proseProblem);
         }
@@ -180,29 +184,24 @@ public final class StageTimer {
             matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
         }
         try (Stream<Path> files = Files.walk(root)) {
-            return files.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> {
-                        String relative = root.relativize(path).toString().replace('\\', '/');
-                        for (PathMatcher matcher : matchers) {
-                            if (matcher.matches(Path.of(relative)) || matcher.matches(path)) {
-                                return false;
-                            }
-                            if (relative.contains("/build/") || relative.contains("/src/test/resources/")) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    })
-                    .sorted()
-                    .map(path -> {
-                        try {
-                            return Files.readString(path, StandardCharsets.UTF_8);
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .toList();
+            return files.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".java")).filter(path -> {
+                String relative = root.relativize(path).toString().replace('\\', '/');
+                for (PathMatcher matcher : matchers) {
+                    if (matcher.matches(Path.of(relative)) || matcher.matches(path)) {
+                        return false;
+                    }
+                    if (relative.contains("/build/") || relative.contains("/src/test/resources/")) {
+                        return false;
+                    }
+                }
+                return true;
+            }).sorted().map(path -> {
+                try {
+                    return Files.readString(path, StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }).toList();
         }
     }
 

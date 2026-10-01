@@ -1,26 +1,27 @@
 package zone.rong.formatj.maven;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import zone.rong.formatj.api.rules.IndentRules;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import zone.rong.formatj.api.rules.IndentRules;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Style resolution shared by {@link FormatMojo} and {@link CheckMojo}. */
 class AbstractFormatJMojoTest {
 
     @Test
     void discoversTheNearestStyleFileWhenNeitherPresetNorStyleFileIsSet(@TempDir Path root)
-            throws IOException,
-            MojoExecutionException {
+        throws IOException,
+        MojoExecutionException {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
         FormatMojo mojo = new FormatMojo();
         mojo.project = new MavenProject();
@@ -42,8 +43,8 @@ class AbstractFormatJMojoTest {
 
     @Test
     void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root)
-            throws IOException,
-            MojoExecutionException {
+        throws IOException,
+        MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Path kept = Files.createDirectories(sourceRoot.resolve("kept"));
         Path skipped = Files.createDirectories(sourceRoot.resolve("skipped"));
@@ -61,8 +62,8 @@ class AbstractFormatJMojoTest {
 
     @Test
     void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root)
-            throws IOException,
-            MojoExecutionException {
+        throws IOException,
+        MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");
         Path generated = Files.createDirectories(sourceRoot.resolve("generated"));
@@ -79,8 +80,8 @@ class AbstractFormatJMojoTest {
 
     @Test
     void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root)
-            throws IOException,
-            MojoExecutionException {
+        throws IOException,
+        MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");
         Path generatedRoot = Files.createDirectories(root.resolve("target/generated-sources/annotations"));

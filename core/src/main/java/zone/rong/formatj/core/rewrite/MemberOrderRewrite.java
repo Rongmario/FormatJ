@@ -1,5 +1,11 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.MemberOrder;
 import zone.rong.formatj.api.rules.MemberRules;
@@ -8,11 +14,6 @@ import zone.rong.formatj.core.cst.MemberGroup;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.Token;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Sorts the members of each type body into IntelliJ IDEA's default arrangement order.
@@ -44,8 +45,8 @@ public final class MemberOrderRewrite implements Rewrite {
 
     @Override
     public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION
-                || node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION ||
+            node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
         List<GreenNode> rewritten = null;
         List<GreenNode> children = node.children();
         for (int i = 0; i < children.size(); i++) {
@@ -118,9 +119,9 @@ public final class MemberOrderRewrite implements Rewrite {
         String on = context.rule(CommentRules.ON_MARKER);
         for (GreenNode node : concat(members, close)) {
             for (Token trivia : ProgramTokens.leaves(node).getFirst().token().leading()) {
-                if (trivia.kind().isComment()
-                        && (!off.isBlank() && trivia.decodedText().contains(off)
-                                || !on.isBlank() && trivia.decodedText().contains(on))) {
+                if (trivia.kind().isComment() &&
+                    (!off.isBlank() && trivia.decodedText().contains(off) ||
+                        !on.isBlank() && trivia.decodedText().contains(on))) {
                     return true;
                 }
             }
@@ -155,9 +156,9 @@ public final class MemberOrderRewrite implements Rewrite {
                 continue;
             }
             for (int later = earlier + 1; later < members.size(); later++) {
-                if (newIndex[earlier] < newIndex[later]
-                        || groups.get(later) > INSTANCE_INITIALIZER
-                        || isStatic(groups.get(earlier)) != isStatic(groups.get(later))) {
+                if (newIndex[earlier] < newIndex[later] ||
+                    groups.get(later) > INSTANCE_INITIALIZER ||
+                    isStatic(groups.get(earlier)) != isStatic(groups.get(later))) {
                     continue;
                 }
                 GreenNode a = members.get(earlier);
@@ -184,10 +185,10 @@ public final class MemberOrderRewrite implements Rewrite {
         Set<String> namesA = declaredNames(a);
         Set<String> namesB = declaredNames(b);
         if (initializes(a) && initializes(b)) {
-            return a.kind() == SyntaxKind.FIELD_DECLARATION
-                    && b.kind() == SyntaxKind.FIELD_DECLARATION
-                    && constantLike(initializers(a), namesB)
-                    && constantLike(initializers(b), namesA);
+            return a.kind() == SyntaxKind.FIELD_DECLARATION &&
+                b.kind() == SyntaxKind.FIELD_DECLARATION &&
+                constantLike(initializers(a), namesB) &&
+                constantLike(initializers(b), namesA);
         }
         GreenNode initializing = initializes(a) ? a : b;
         Set<String> other = initializes(a) ? namesB : namesA;
@@ -246,23 +247,23 @@ public final class MemberOrderRewrite implements Rewrite {
             return switch (leaf.token().token().kind()) {
                 case IDENTIFIER -> !forbidden.contains(lexeme);
                 case KEYWORD ->
-                        !lexeme.equals("this")
-                                && !lexeme.equals("super")
-                                && !lexeme.equals("new")
-                                && !lexeme.equals("class");
+                    !lexeme.equals("this") &&
+                        !lexeme.equals("super") &&
+                        !lexeme.equals("new") &&
+                        !lexeme.equals("class");
                 case OPERATOR ->
-                        !lexeme.equals("++") && !lexeme.equals("--") && !lexeme.equals("->") && !lexeme.equals("::");
+                    !lexeme.equals("++") && !lexeme.equals("--") && !lexeme.equals("->") && !lexeme.equals("::");
                 default -> true;
             };
         }
         return switch (node.kind()) {
             case LITERAL, NAME, QUALIFIED_NAME, MEMBER_ACCESS, BINARY_EXPRESSION, UNARY_EXPRESSION,
-                    PARENTHESIZED_EXPRESSION, TERNARY_EXPRESSION, PRIMITIVE_TYPE ->
-                    node.children().stream().allMatch(child -> constantLike(child, forbidden));
+                PARENTHESIZED_EXPRESSION, TERNARY_EXPRESSION, PRIMITIVE_TYPE ->
+                node.children().stream().allMatch(child -> constantLike(child, forbidden));
             case CAST_EXPRESSION ->
-                    node.children().size() == 4
-                            && isConstantType(node.children().get(1))
-                            && constantLike(node.children().getLast(), forbidden);
+                node.children().size() == 4 &&
+                    isConstantType(node.children().get(1)) &&
+                    constantLike(node.children().getLast(), forbidden);
             default -> false;
         };
     }
@@ -279,10 +280,10 @@ public final class MemberOrderRewrite implements Rewrite {
     private static String name(GreenNode owner) {
         List<GreenNode> children = owner.children();
         for (int i = 0; i < children.size() - 1; i++) {
-            if (owner.kind().isTypeDeclaration()
-                    && children.get(i) instanceof GreenNode.Leaf keyword
-                    && Set.of("class", "interface", "enum", "record").contains(keyword.decodedLexeme())
-                    && children.get(i + 1) instanceof GreenNode.Leaf name) {
+            if (owner.kind().isTypeDeclaration() &&
+                children.get(i) instanceof GreenNode.Leaf keyword &&
+                Set.of("class", "interface", "enum", "record").contains(keyword.decodedLexeme()) &&
+                children.get(i + 1) instanceof GreenNode.Leaf name) {
                 return name.decodedLexeme();
             }
         }

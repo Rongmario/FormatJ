@@ -7,16 +7,18 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class LiteralRules {
 
     public static final Option<LongSuffix> LONG_SUFFIX = Option.ofEnum(
-            "literals.long-suffix",
-            LongSuffix.PRESERVE,
-            "Case of the suffix on long literals");
+        "literals.long-suffix",
+        LongSuffix.PRESERVE,
+        "Case of the suffix on long literals"
+    );
 
     public static final Option<HexDigitCase> HEX_DIGITS = Option.ofEnum(
-            "literals.hex-digits",
-            HexDigitCase.PRESERVE,
-            "Case of the digits a to f in hexadecimal literals");
+        "literals.hex-digits",
+        HexDigitCase.PRESERVE,
+        "Case of the digits a to f in hexadecimal literals"
+    );
 
-    private LiteralRules() {}
+    private LiteralRules() { }
 
     /** Fluent view of the {@code literals.*} rules. */
     public static final class Builder {

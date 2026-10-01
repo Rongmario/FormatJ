@@ -1,5 +1,23 @@
 package zone.rong.formatj.maven;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -13,23 +31,6 @@ import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.StyleFiles;
 import zone.rong.formatj.core.io.SourceFiles;
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 
 /**
  * Shared configuration and file walking for the FormatJ goals.
@@ -40,12 +41,10 @@ import org.apache.maven.project.MavenProject;
  */
 abstract class AbstractFormatJMojo extends AbstractMojo {
 
-    @Parameter(defaultValue = "${project}", readonly = true, required = true)
-    protected MavenProject project;
+    @Parameter(defaultValue = "${project}", readonly = true, required = true) protected MavenProject project;
 
     /** Style file to read rules from, usually {@code formatj.toml} in the project root. */
-    @Parameter(property = "formatj.styleFile")
-    protected File styleFile;
+    @Parameter(property = "formatj.styleFile") protected File styleFile;
 
     /**
      * Preset to start from: {@code formatj} or {@code google}.
@@ -53,40 +52,33 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
      * <p>Left unset, and with no {@link #styleFile} either, the nearest {@code formatj.toml} above
      * the project directory is discovered and used; failing that, the {@code formatj} preset.
      */
-    @Parameter(property = "formatj.preset")
-    protected String preset;
+    @Parameter(property = "formatj.preset") protected String preset;
 
     /** Individual rule overrides keyed by dotted option key, applied last. */
-    @Parameter
-    protected Map<String, String> rules = new LinkedHashMap<>();
+    @Parameter protected Map<String, String> rules = new LinkedHashMap<>();
 
     /** Globs limiting which files are formatted. Empty means every Java source. */
-    @Parameter
-    protected List<String> includes = new ArrayList<>();
+    @Parameter protected List<String> includes = new ArrayList<>();
 
     /** Globs excluding files from formatting. */
-    @Parameter
-    protected List<String> excludes = new ArrayList<>();
+    @Parameter protected List<String> excludes = new ArrayList<>();
 
     /** Whether to format test sources as well as main sources. */
-    @Parameter(property = "formatj.includeTestSources", defaultValue = "true")
-    protected boolean includeTestSources;
+    @Parameter(property = "formatj.includeTestSources", defaultValue = "true") protected boolean includeTestSources;
 
     /** Java syntax level to parse, e.g. 21. Defaults to the newest FormatJ knows. */
-    @Parameter(property = "formatj.languageLevel")
-    protected Integer languageLevel;
+    @Parameter(property = "formatj.languageLevel") protected Integer languageLevel;
 
     /** Whether preview syntax is accepted for that language level. */
-    @Parameter(property = "formatj.previewFeatures", defaultValue = "false")
-    protected boolean previewFeatures;
+    @Parameter(property = "formatj.previewFeatures", defaultValue = "false") protected boolean previewFeatures;
 
     /** Encoding of the source files. */
-    @Parameter(property = "formatj.encoding", defaultValue = "${project.build.sourceEncoding}")
-    protected String encoding;
+    @Parameter(
+        property = "formatj.encoding", defaultValue = "${project.build.sourceEncoding}"
+    ) protected String encoding;
 
     /** Skips the goal entirely. */
-    @Parameter(property = "formatj.skip", defaultValue = "false")
-    protected boolean skip;
+    @Parameter(property = "formatj.skip", defaultValue = "false") protected boolean skip;
 
     /** Whether a file that would change is rewritten, or merely reported. */
     protected abstract boolean checkOnly();
@@ -106,8 +98,8 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         Formatter formatter = formatter();
         // An explicit <encoding> wins; otherwise the style's own file.charset decides.
         Charset charset = encoding == null || encoding.isBlank()
-                ? FileRules.charset(formatter.style())
-                : charset(encoding);
+            ? FileRules.charset(formatter.style())
+            : charset(encoding);
         List<String> wouldChange = new ArrayList<>();
         List<String> failures = new ArrayList<>();
         int formatted = 0;
@@ -145,12 +137,14 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
 
         if (!failures.isEmpty()) {
             throw new MojoExecutionException(
-                    "FormatJ could not format " + failures.size() + " file(s):\n" + String.join("\n", failures));
+                "FormatJ could not format " + failures.size() + " file(s):\n" + String.join("\n", failures)
+            );
         }
         if (!wouldChange.isEmpty()) {
             throw new MojoFailureException(
-                    "FormatJ found " + wouldChange.size() + " file(s) that are not formatted. Run formatj:format.\n"
-                            + String.join("\n", wouldChange));
+                "FormatJ found " + wouldChange.size() + " file(s) that are not formatted. Run formatj:format.\n" +
+                    String.join("\n", wouldChange)
+            );
         }
         getLog().info("FormatJ checked " + files.size() + " file(s), formatted " + formatted);
     }
@@ -202,10 +196,10 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
 
     private Formatter formatter() throws MojoExecutionException {
         return FormatJ.newFormatter()
-                .style(style())
-                .languageLevel(languageLevel == null ? LanguageLevel.LATEST : LanguageLevel.ofRelease(languageLevel))
-                .previewFeatures(previewFeatures)
-                .build();
+            .style(style())
+            .languageLevel(languageLevel == null ? LanguageLevel.LATEST : LanguageLevel.ofRelease(languageLevel))
+            .previewFeatures(previewFeatures)
+            .build();
     }
 
     /** Every Java source of the project that the include and exclude globs allow. */
@@ -219,8 +213,8 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         FileSelection tomlSelection = styleFileInUse().map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
         String buildDirectoryProperty = project.getBuild() == null ? null : project.getBuild().getDirectory();
         Path buildDirectory = buildDirectoryProperty == null
-                ? null
-                : Path.of(buildDirectoryProperty).toAbsolutePath().normalize();
+            ? null
+            : Path.of(buildDirectoryProperty).toAbsolutePath().normalize();
         List<Path> files = new ArrayList<>();
         for (String root : roots) {
             Path directory = Path.of(root);
@@ -235,10 +229,10 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             FileSelection rootSelection = new FileSelection(directory, includes, excludes);
             try (Stream<Path> walk = Files.walk(directory)) {
                 walk.filter(Files::isRegularFile)
-                        .filter(path -> path.toString().endsWith(".java"))
-                        .filter(path -> rootSelection.matches(path) && tomlSelection.matches(path))
-                        .sorted()
-                        .forEach(files::add);
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> rootSelection.matches(path) && tomlSelection.matches(path))
+                    .sorted()
+                    .forEach(files::add);
             } catch (IOException | UncheckedIOException e) {
                 throw new MojoExecutionException("Cannot walk " + directory, e);
             }

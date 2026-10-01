@@ -1,13 +1,14 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * What a {@link Rewrite} is given: the style to obey, the ledger to declare its edits in, and a way

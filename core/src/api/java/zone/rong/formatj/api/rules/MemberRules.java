@@ -7,11 +7,12 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class MemberRules {
 
     public static final Option<MemberOrder> ORDER = Option.ofEnum(
-            "members.order",
-            MemberOrder.PRESERVE,
-            "Ordering of the members of a type body");
+        "members.order",
+        MemberOrder.PRESERVE,
+        "Ordering of the members of a type body"
+    );
 
-    private MemberRules() {}
+    private MemberRules() { }
 
     /** Fluent view of the {@code members.*} rules. */
     public static final class Builder {

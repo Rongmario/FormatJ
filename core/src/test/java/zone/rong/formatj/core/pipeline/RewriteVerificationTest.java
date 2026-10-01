@@ -1,11 +1,9 @@
 package zone.rong.formatj.core.pipeline;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -29,9 +27,12 @@ import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.rewrite.Rewrite;
 import zone.rong.formatj.core.rewrite.RewriteContext;
 import zone.rong.formatj.core.rewrite.TokenEdit;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The negative cases, which are the whole point of the verifier.
@@ -61,7 +62,8 @@ class RewriteVerificationTest {
 
     private static FormatResult format(Style style, Rewrite... rewrites) {
         return new DefaultFormatter(style, LanguageLevel.LATEST, false, true, List.of(rewrites)).format(
-                FormatRequest.of(SOURCE).withName("T.java"));
+            FormatRequest.of(SOURCE).withName("T.java")
+        );
     }
 
     private static String only(List<Diagnostic> diagnostics, Diagnostic.Severity severity) {
@@ -76,10 +78,12 @@ class RewriteVerificationTest {
     void aTruthfulLedgerVerifies() {
         List<String> original = List.of("if", "(", "a", ")", "b", "(", ")", ";");
         List<String> expected = RewriteVerification.replay(
-                original,
-                List.of(
-                        TokenEdit.insert(BraceRules.IF_ELSE, "wrap", 4, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
-                        TokenEdit.insert(BraceRules.IF_ELSE, "wrap", 8, TokenEdit.Bias.INNERMOST_FIRST, "}")));
+            original,
+            List.of(
+                TokenEdit.insert(BraceRules.IF_ELSE, "wrap", 4, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
+                TokenEdit.insert(BraceRules.IF_ELSE, "wrap", 8, TokenEdit.Bias.INNERMOST_FIRST, "}")
+            )
+        );
         assertEquals(List.of("if", "(", "a", ")", "{", "b", "(", ")", ";", "}"), expected);
     }
 
@@ -87,13 +91,15 @@ class RewriteVerificationTest {
     void nestedInsertionsAtOnePositionNestRatherThanCross() {
         List<String> original = List.of("x", ";");
         List<String> expected = RewriteVerification.replay(
-                original,
-                List.of(
-                        // Recorded innermost first, as the traversal does.
-                        TokenEdit.insert(BraceRules.IF_ELSE, "inner", 0, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
-                        TokenEdit.insert(BraceRules.IF_ELSE, "inner", 2, TokenEdit.Bias.INNERMOST_FIRST, "}"),
-                        TokenEdit.insert(BraceRules.IF_ELSE, "outer", 0, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
-                        TokenEdit.insert(BraceRules.IF_ELSE, "outer", 2, TokenEdit.Bias.INNERMOST_FIRST, "}")));
+            original,
+            List.of(
+                // Recorded innermost first, as the traversal does.
+                TokenEdit.insert(BraceRules.IF_ELSE, "inner", 0, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
+                TokenEdit.insert(BraceRules.IF_ELSE, "inner", 2, TokenEdit.Bias.INNERMOST_FIRST, "}"),
+                TokenEdit.insert(BraceRules.IF_ELSE, "outer", 0, TokenEdit.Bias.OUTERMOST_FIRST, "{"),
+                TokenEdit.insert(BraceRules.IF_ELSE, "outer", 2, TokenEdit.Bias.INNERMOST_FIRST, "}")
+            )
+        );
         assertEquals(List.of("{", "{", "x", ";", "}", "}"), expected);
     }
 
@@ -103,14 +109,16 @@ class RewriteVerificationTest {
     void anEditMayNotInsertSomethingItsRuleHasNoBusinessInserting() {
         GreenNode before = parse(SOURCE);
         String problem = RewriteVerification.verifyOutput(
-                before,
-                before,
-                List.of(TokenEdit.insert(
-                        BraceRules.IF_ELSE,
-                        "sneaking a call in",
-                        0,
-                        TokenEdit.Bias.INNERMOST_FIRST,
-                        "delete")));
+            before,
+            before,
+            List.of(TokenEdit.insert(
+                BraceRules.IF_ELSE,
+                "sneaking a call in",
+                0,
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "delete"
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("may only insert braces"), problem);
     }
@@ -119,9 +127,10 @@ class RewriteVerificationTest {
     void anUnclosedBraceIsRejected() {
         GreenNode before = parse(SOURCE);
         String problem = RewriteVerification.verifyOutput(
-                before,
-                before,
-                List.of(TokenEdit.insert(BraceRules.IF_ELSE, "half a wrap", 0, TokenEdit.Bias.INNERMOST_FIRST, "{")));
+            before,
+            before,
+            List.of(TokenEdit.insert(BraceRules.IF_ELSE, "half a wrap", 0, TokenEdit.Bias.INNERMOST_FIRST, "{"))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("not balanced"), problem);
     }
@@ -130,11 +139,13 @@ class RewriteVerificationTest {
     void anEditThatDeletesATokenWhichIsNotThereIsRejected() {
         GreenNode before = parse(SOURCE);
         String problem = RewriteVerification.verifyOutput(
-                before,
-                before,
-                List.of(
-                        TokenEdit.delete(BraceRules.IF_ELSE, "imagined braces", 0, "{"),
-                        TokenEdit.delete(BraceRules.IF_ELSE, "imagined braces", 1, "}")));
+            before,
+            before,
+            List.of(
+                TokenEdit.delete(BraceRules.IF_ELSE, "imagined braces", 0, "{"),
+                TokenEdit.delete(BraceRules.IF_ELSE, "imagined braces", 1, "}")
+            )
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("but the source has 'class'"), problem);
     }
@@ -160,52 +171,29 @@ class RewriteVerificationTest {
     void reorderingImportsIsPermitted() {
         GreenNode before = parse(IMPORTS);
         assertNull(RewriteVerification.verifyOutput(
+            before,
+            parse(IMPORTS.replace(
+                "import java.util.List;\nimport java.util.Map;",
+                "import java.util.Map;\nimport java.util.List;"
+            )),
+            List.of(importEdit(
                 before,
-                parse(IMPORTS.replace(
-                        "import java.util.List;\nimport java.util.Map;",
-                        "import java.util.Map;\nimport java.util.List;")),
-                List.of(importEdit(
-                        before,
-                        List.of(
-                                "import",
-                                "java",
-                                ".",
-                                "util",
-                                ".",
-                                "Map",
-                                ";",
-                                "import",
-                                "java",
-                                ".",
-                                "util",
-                                ".",
-                                "List",
-                                ";")))));
+                List.of("import", "java", ".", "util", ".", "Map", ";", "import", "java", ".", "util", ".", "List", ";")
+            ))
+        ));
     }
 
     @Test
     void anImportTheRunNeverHeldCannotAppear() {
         GreenNode before = parse(IMPORTS);
         String problem = RewriteVerification.verifyOutput(
+            before,
+            before,
+            List.of(importEdit(
                 before,
-                before,
-                List.of(importEdit(
-                        before,
-                        List.of(
-                                "import",
-                                "java",
-                                ".",
-                                "util",
-                                ".",
-                                "List",
-                                ";",
-                                "import",
-                                "java",
-                                ".",
-                                "util",
-                                ".",
-                                "Set",
-                                ";"))));
+                List.of("import", "java", ".", "util", ".", "List", ";", "import", "java", ".", "util", ".", "Set", ";")
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("was not there"), problem);
     }
@@ -214,9 +202,10 @@ class RewriteVerificationTest {
     void anImportTheFileStillUsesCannotBeDropped() {
         GreenNode before = parse(IMPORTS);
         String problem = RewriteVerification.verifyOutput(
-                before,
-                parse(IMPORTS.replace("import java.util.Map;\n", "")),
-                List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";"))));
+            before,
+            parse(IMPORTS.replace("import java.util.Map;\n", "")),
+            List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("still mentions Map"), problem);
     }
@@ -226,9 +215,10 @@ class RewriteVerificationTest {
         String wildcards = IMPORTS.replace("import java.util.Map;", "import java.util.concurrent.*;");
         GreenNode before = parse(wildcards);
         String problem = RewriteVerification.verifyOutput(
-                before,
-                parse(wildcards.replace("import java.util.concurrent.*;\n", "")),
-                List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";"))));
+            before,
+            parse(wildcards.replace("import java.util.concurrent.*;\n", "")),
+            List.of(importEdit(before, List.of("import", "java", ".", "util", ".", "List", ";")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("use cannot be seen"), problem);
     }
@@ -245,12 +235,13 @@ class RewriteVerificationTest {
             }
         }
         return new TokenEdit(
-                ImportRules.ORDER,
-                "reordered",
-                start,
-                List.copyOf(tokens.subList(start, end)),
-                inserted,
-                TokenEdit.Bias.INNERMOST_FIRST);
+            ImportRules.ORDER,
+            "reordered",
+            start,
+            List.copyOf(tokens.subList(start, end)),
+            inserted,
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
     }
 
     // ------------------------------------------------ the permits edit law
@@ -263,28 +254,31 @@ class RewriteVerificationTest {
     /** An edit replacing the run of permitted types with the given tokens. */
     private static TokenEdit permitsEdit(List<String> inserted) {
         return new TokenEdit(
-                SealedRules.PERMITS_ORDER,
-                "reordered",
-                4,
-                List.of("C", ",", "A", ",", "B"),
-                inserted,
-                TokenEdit.Bias.INNERMOST_FIRST);
+            SealedRules.PERMITS_ORDER,
+            "reordered",
+            4,
+            List.of("C", ",", "A", ",", "B"),
+            inserted,
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
     }
 
     @Test
     void reorderingPermittedTypesIsPermitted() {
         assertNull(RewriteVerification.verifyOutput(
-                parse(SEALED),
-                parse(SEALED.replace("permits C, A, B", "permits A, B, C")),
-                List.of(permitsEdit(List.of("A", ",", "B", ",", "C")))));
+            parse(SEALED),
+            parse(SEALED.replace("permits C, A, B", "permits A, B, C")),
+            List.of(permitsEdit(List.of("A", ",", "B", ",", "C")))
+        ));
     }
 
     @Test
     void aPermittedTypeTheClauseNeverHeldCannotAppear() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SEALED),
-                parse(SEALED),
-                List.of(permitsEdit(List.of("A", ",", "B", ",", "D"))));
+            parse(SEALED),
+            parse(SEALED),
+            List.of(permitsEdit(List.of("A", ",", "B", ",", "D")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("produced D, which was not there"), problem);
     }
@@ -292,9 +286,10 @@ class RewriteVerificationTest {
     @Test
     void aPermittedTypeCannotBeDroppedAtAll() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SEALED),
-                parse(SEALED),
-                List.of(permitsEdit(List.of("A", ",", "B"))));
+            parse(SEALED),
+            parse(SEALED),
+            List.of(permitsEdit(List.of("A", ",", "B")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("dropped C"), problem);
     }
@@ -302,9 +297,10 @@ class RewriteVerificationTest {
     @Test
     void somethingThatIsNotAListOfTypesIsNotAPermitsClause() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SEALED),
-                parse(SEALED),
-                List.of(permitsEdit(List.of("A", ",", ",", "B"))));
+            parse(SEALED),
+            parse(SEALED),
+            List.of(permitsEdit(List.of("A", ",", ",", "B")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
     }
@@ -320,9 +316,10 @@ class RewriteVerificationTest {
         String before = "static public final class T {\n}\n";
         String after = "public static final class T {\n}\n";
         assertNull(RewriteVerification.verifyOutput(
-                parse(before),
-                parse(after),
-                List.of(modifierEdit(List.of("static", "public", "final"), List.of("public", "static", "final")))));
+            parse(before),
+            parse(after),
+            List.of(modifierEdit(List.of("static", "public", "final"), List.of("public", "static", "final")))
+        ));
     }
 
     @Test
@@ -330,11 +327,10 @@ class RewriteVerificationTest {
         String before = "non-sealed public class T {\n}\n";
         String after = "public non-sealed class T {\n}\n";
         assertNull(RewriteVerification.verifyOutput(
-                parse(before),
-                parse(after),
-                List.of(modifierEdit(
-                        List.of("non", "-", "sealed", "public"),
-                        List.of("public", "non", "-", "sealed")))));
+            parse(before),
+            parse(after),
+            List.of(modifierEdit(List.of("non", "-", "sealed", "public"), List.of("public", "non", "-", "sealed")))
+        ));
     }
 
     @Test
@@ -342,18 +338,22 @@ class RewriteVerificationTest {
         String before = "static @A public final class T {\n}\n @interface A {\n}\n";
         String after = "public @A static final class T {\n}\n @interface A {\n}\n";
         assertNull(RewriteVerification.verifyOutput(
-                parse(before),
-                parse(after),
-                List.of(modifierEdit(
-                        List.of("static", "@", "A", "public", "final"),
-                        List.of("public", "@", "A", "static", "final")))));
+            parse(before),
+            parse(after),
+            List.of(modifierEdit(
+                List.of("static", "@", "A", "public", "final"),
+                List.of("public", "@", "A", "static", "final")
+            ))
+        ));
 
         String problem = RewriteVerification.verifyOutput(
-                parse("@A @B public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
-                parse("@B @A public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
-                List.of(modifierEdit(
-                        List.of("@", "A", "@", "B", "public", "static"),
-                        List.of("@", "B", "@", "A", "public", "static"))));
+            parse("@A @B public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
+            parse("@B @A public static class T {\n}\n @interface A {\n}\n @interface B {\n}\n"),
+            List.of(modifierEdit(
+                List.of("@", "A", "@", "B", "public", "static"),
+                List.of("@", "B", "@", "A", "public", "static")
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("changed or reordered annotations"), problem);
     }
@@ -361,13 +361,15 @@ class RewriteVerificationTest {
     @Test
     void modifiersCannotBeInsertedDeletedOrSubstituted() {
         for (List<String> inserted : List.of(
-                List.of("public", "static", "final"),
-                List.of("public"),
-                List.of("public", "abstract"))) {
+            List.of("public", "static", "final"),
+            List.of("public"),
+            List.of("public", "abstract")
+        )) {
             String problem = RewriteVerification.verifyOutput(
-                    parse("static public class T {\n}\n"),
-                    parse("static public class T {\n}\n"),
-                    List.of(modifierEdit(List.of("static", "public"), inserted)));
+                parse("static public class T {\n}\n"),
+                parse("static public class T {\n}\n"),
+                List.of(modifierEdit(List.of("static", "public"), inserted))
+            );
             assertNotNull(problem, inserted.toString());
         }
     }
@@ -375,9 +377,10 @@ class RewriteVerificationTest {
     @Test
     void aModifierEditCannotClaimTokensOutsideTheModifierSpan() {
         String problem = RewriteVerification.verifyOutput(
-                parse("static public class T {\n}\n"),
-                parse("static public class T {\n}\n"),
-                List.of(modifierEdit(List.of("static", "public", "class"), List.of("public", "static", "class"))));
+            parse("static public class T {\n}\n"),
+            parse("static public class T {\n}\n"),
+            List.of(modifierEdit(List.of("static", "public", "class"), List.of("public", "static", "class")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("declared modifier span"), problem);
     }
@@ -385,9 +388,10 @@ class RewriteVerificationTest {
     @Test
     void aModifierEditMustCoverTheWholeModifierSpan() {
         String problem = RewriteVerification.verifyOutput(
-                parse("static public final class T {\n}\n"),
-                parse("public static final class T {\n}\n"),
-                List.of(modifierEdit(List.of("static", "public"), List.of("public", "static"))));
+            parse("static public final class T {\n}\n"),
+            parse("public static final class T {\n}\n"),
+            List.of(modifierEdit(List.of("static", "public"), List.of("public", "static")))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("declared modifier span"), problem);
     }
@@ -401,15 +405,17 @@ class RewriteVerificationTest {
         int position = ProgramTokens.lexemes(before).indexOf(originalBlock);
 
         String problem = RewriteVerification.verifyOutput(
-                before,
-                after,
-                List.of(new TokenEdit(
-                        TextBlockRules.ESCAPE_TRAILING_SPACES,
-                        "dropped meaningful whitespace",
-                        position,
-                        List.of(originalBlock),
-                        List.of(changedBlock),
-                        TokenEdit.Bias.INNERMOST_FIRST)));
+            before,
+            after,
+            List.of(new TokenEdit(
+                TextBlockRules.ESCAPE_TRAILING_SPACES,
+                "dropped meaningful whitespace",
+                position,
+                List.of(originalBlock),
+                List.of(changedBlock),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ))
+        );
 
         assertNotNull(problem);
         assertTrue(problem.contains("changed what the text block says"), problem);
@@ -420,15 +426,17 @@ class RewriteVerificationTest {
     @Test
     void aLambdaBodyRuleMayNotPutBracesOn() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SOURCE),
-                parse(SOURCE),
-                List.of(TokenEdit.insert(
-                        LambdaRules.BODY_BRACES,
-                        "guessing at the target type",
-                        0,
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "{",
-                        "return")));
+            parse(SOURCE),
+            parse(SOURCE),
+            List.of(TokenEdit.insert(
+                LambdaRules.BODY_BRACES,
+                "guessing at the target type",
+                0,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{",
+                "return"
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("may only remove braces"), problem);
     }
@@ -436,9 +444,10 @@ class RewriteVerificationTest {
     @Test
     void aLambdaBodyRuleMayNotTakeTheStatementWithTheBraces() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SOURCE),
-                parse(SOURCE),
-                List.of(TokenEdit.delete(LambdaRules.BODY_BRACES, "too much", 0, "{", "log")));
+            parse(SOURCE),
+            parse(SOURCE),
+            List.of(TokenEdit.delete(LambdaRules.BODY_BRACES, "too much", 0, "{", "log"))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("not a lambda body's braces"), problem);
     }
@@ -446,14 +455,16 @@ class RewriteVerificationTest {
     @Test
     void aBraceWithoutItsYieldIsNotAYieldBlock() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SOURCE),
-                parse(SOURCE),
-                List.of(TokenEdit.insert(
-                        SwitchRules.YIELD_STYLE,
-                        "a block that produces nothing",
-                        0,
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "{")));
+            parse(SOURCE),
+            parse(SOURCE),
+            List.of(TokenEdit.insert(
+                SwitchRules.YIELD_STYLE,
+                "a block that produces nothing",
+                0,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("not a yield block"), problem);
     }
@@ -461,15 +472,17 @@ class RewriteVerificationTest {
     @Test
     void anArrowCaseRuleIsHeldToTheSameBraceLawAsTheControlRules() {
         String problem = RewriteVerification.verifyOutput(
-                parse(SOURCE),
-                parse(SOURCE),
-                List.of(TokenEdit.insert(
-                        SwitchRules.ARROW_CASE_BRACES,
-                        "sneaking a yield in",
-                        0,
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "{",
-                        "yield")));
+            parse(SOURCE),
+            parse(SOURCE),
+            List.of(TokenEdit.insert(
+                SwitchRules.ARROW_CASE_BRACES,
+                "sneaking a yield in",
+                0,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{",
+                "yield"
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("may only insert braces"), problem);
     }
@@ -481,11 +494,13 @@ class RewriteVerificationTest {
         FormatResult result = format(braces(BracePolicy.ALWAYS), new SilentBraceRewrite());
         assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
         assertTrue(
-                only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("skipped for this file"),
-                () -> "diagnostics: " + result.diagnostics());
+            only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("skipped for this file"),
+            () -> "diagnostics: " + result.diagnostics()
+        );
         assertFalse(
-                result.text().contains("{\n            log(n);"),
-                "the fallback formats the file, it just does not rewrite it");
+            result.text().contains("{\n            log(n);"),
+            "the fallback formats the file, it just does not rewrite it"
+        );
     }
 
     @Test
@@ -493,8 +508,9 @@ class RewriteVerificationTest {
         FormatResult result = format(braces(BracePolicy.ALWAYS), new BoastfulRewrite());
         assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
         assertTrue(
-                only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("skipped for this file"),
-                () -> "diagnostics: " + result.diagnostics());
+            only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("skipped for this file"),
+            () -> "diagnostics: " + result.diagnostics()
+        );
         assertFalse(result.text().contains("{\n            log(n);"));
     }
 
@@ -511,15 +527,17 @@ class RewriteVerificationTest {
                 }
                 """;
         FormatResult result = new DefaultFormatter(
-                braces(BracePolicy.ALWAYS),
-                LanguageLevel.LATEST,
-                false,
-                true,
-                List.of(new ForgetfulRewrite())).format(FormatRequest.of(commented).withName("T.java"));
+            braces(BracePolicy.ALWAYS),
+            LanguageLevel.LATEST,
+            false,
+            true,
+            List.of(new ForgetfulRewrite())
+        ).format(FormatRequest.of(commented).withName("T.java"));
         assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
         assertTrue(
-                only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("comment was lost"),
-                () -> "diagnostics: " + result.diagnostics());
+            only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("comment was lost"),
+            () -> "diagnostics: " + result.diagnostics()
+        );
         assertTrue(result.text().contains("// keep me"));
     }
 
@@ -528,8 +546,9 @@ class RewriteVerificationTest {
         FormatResult result = format(braces(BracePolicy.ALWAYS), new RestlessRewrite());
         assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
         assertTrue(
-                only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("did not settle"),
-                () -> "diagnostics: " + result.diagnostics());
+            only(result.diagnostics(), Diagnostic.Severity.WARNING).contains("did not settle"),
+            () -> "diagnostics: " + result.diagnostics()
+        );
     }
 
     // ------------------------------------------------------- faulty rewrites
@@ -586,17 +605,19 @@ class RewriteVerificationTest {
             }
             GreenNode body = node.children().get(4);
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "claimed",
-                    context.firstPosition(body),
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "{"));
+                BraceRules.IF_ELSE,
+                "claimed",
+                context.firstPosition(body),
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"
+            ));
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "claimed",
-                    context.endPosition(body),
-                    TokenEdit.Bias.INNERMOST_FIRST,
-                    "}"));
+                BraceRules.IF_ELSE,
+                "claimed",
+                context.endPosition(body),
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "}"
+            ));
             return node;
         }
 
@@ -615,17 +636,19 @@ class RewriteVerificationTest {
                 return node;
             }
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "wrap",
-                    context.firstPosition(node),
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "{"));
+                BraceRules.IF_ELSE,
+                "wrap",
+                context.firstPosition(node),
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"
+            ));
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "wrap",
-                    context.endPosition(node),
-                    TokenEdit.Bias.INNERMOST_FIRST,
-                    "}"));
+                BraceRules.IF_ELSE,
+                "wrap",
+                context.endPosition(node),
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "}"
+            ));
             return wrap(stripped);
         }
 
@@ -654,17 +677,19 @@ class RewriteVerificationTest {
                 return node;
             }
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "again",
-                    context.firstPosition(node),
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "{"));
+                BraceRules.IF_ELSE,
+                "again",
+                context.firstPosition(node),
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"
+            ));
             context.record(TokenEdit.insert(
-                    BraceRules.IF_ELSE,
-                    "again",
-                    context.endPosition(node),
-                    TokenEdit.Bias.INNERMOST_FIRST,
-                    "}"));
+                BraceRules.IF_ELSE,
+                "again",
+                context.endPosition(node),
+                TokenEdit.Bias.INNERMOST_FIRST,
+                "}"
+            ));
             return wrap(node);
         }
 

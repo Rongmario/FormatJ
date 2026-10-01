@@ -1,9 +1,11 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.LanguageLevel;
@@ -13,11 +15,10 @@ import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ParserTest {
 
@@ -33,8 +34,9 @@ class ParserTest {
         ParseResult result = parse(source);
         assertEquals(source, result.root().text(), "the tree must reproduce the source exactly");
         assertTrue(
-                result.complete(),
-                () -> "unparsed regions: " + unparsedText(result.root()) + " diagnostics: " + result.diagnostics());
+            result.complete(),
+            () -> "unparsed regions: " + unparsedText(result.root()) + " diagnostics: " + result.diagnostics()
+        );
         assertTrue(unparsedText(result.root()).isEmpty(), () -> "unparsed: " + unparsedText(result.root()));
     }
 
@@ -56,83 +58,84 @@ class ParserTest {
 
     @ParameterizedTest
     @ValueSource(
-            strings = {
-                "\uFEFFclass A {}\n",
-                "package a.b.c;\n",
-                "import java.util.List;\n",
-                "import static java.util.Objects.requireNonNull;\n",
-                "import java.util.*;\n",
-                "class A {}\n",
-                "final class A extends B implements C, D {}\n",
-                "sealed interface Shape permits Circle, Square {}\n",
-                "non-sealed class Sub extends Shape {}\n",
-                "class A { void f() { Object sealed; sealed = null; sealed.toString(); Object non; non = sealed; } }\n",
-                "record Point(int x, int y) {}\n",
-                "record Point(int x, int y) { Point { if (x < 0) { throw new IllegalArgumentException(); } } }\n",
-                "enum Color { RED, GREEN, BLUE }\n",
-                "enum Color { RED(1), GREEN(2); private final int code; Color(int code) { this.code = code; } }\n",
-                "@interface Marker { String value() default \"\"; }\n",
-                "class A { int x = 1, y = 2; }\n",
-                "class A { static { System.out.println(1); } }\n",
-                "class A { <T extends Comparable<T>> T max(T a, T b) { return a.compareTo(b) > 0 ? a : b; } }\n",
-                "class A { void f() throws IOException, RuntimeException {} }\n",
-                "class A { int[] a = new int[10]; int[][] b = {{1, 2}, {3}}; }\n",
-                "class A { void f() { for (int i = 0; i < 10; i++) { g(i); } } }\n",
-                "class A { void f() { for (String s : list) { g(s); } } }\n",
-                "class A { void f() { while (true) { break; } } }\n",
-                "class A { void f() { do { x++; } while (x < 3); } }\n",
-                "class A { void f() { try (var in = open(); var out = create()) { copy(); } catch (IOException | RuntimeException e) { log(e); } finally { close(); } } }\n",
-                "class A { void f() { synchronized (lock) { g(); } } }\n",
-                "class A { void f() { assert x > 0 : \"positive\"; } }\n",
-                "class A { void f() { label: for (;;) { continue label; } } }\n",
-                "class A { void f() { if (a) { b(); } else if (c) { d(); } else { e(); } } }\n",
-                "class A { void f() { switch (x) { case 1: g(); break; default: h(); } } }\n",
-                "class A { String f(Object o) { return switch (o) { case Integer i when i > 2 -> \"big\"; case String s -> s; case null, default -> \"other\"; }; } }\n",
-                "class A { int f(int t) { return switch (t) { case 1 -> { yield (t); } default -> { yield (int) (t - 1); } }; } }\n",
-                "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
-                "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
-                "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
-                "class A { String[] f(List<String> l) { return l.toArray(String[]::new); } }\n",
-                "class A { void f() { g(byte[]::new); g(Class<?>[]::new); g(int[][]::new); } }\n",
-                "class A { Class<?> c = String[][].class; }\n",
-                "class A { Function<Integer, Integer> g = _ -> 1; }\n",
-                "class A { Function<Integer, Integer> g = (_) -> 1; }\n",
-                "class A { BiFunction<Integer, Integer, Integer> g = (_, x) -> x; }\n",
-                "class A { IntPredicate p = (int _) -> true; }\n",
-                "class A { Function<Integer, Integer> g = (var _) -> 1; }\n",
-                "class A { IntBinaryOperator op = (int _, int y) -> y; }\n",
-                "class A { Function<Integer, Integer> g = (final int _) -> 1; }\n",
-                "class A { void f() { var _ = q.remove(); int _ = 1, y = 2; } }\n",
-                "class A { void f() { for (int i = 0, _ = sideEffect(); i < 10; i++) { g(i); } } }\n",
-                "class A { void f() { for (int _ : orderIDs) { total++; } } }\n",
-                "class A { void f() { for (final char _ : s.toCharArray()) { len++; } } }\n",
-                "class A { void f() { try (var _ = open(); var _ = create()) { work(); } } }\n",
-                "class A { void f() { try { parse(); } catch (NumberFormatException _) { log(); } catch (IOException | RuntimeException _) { log(); } } }\n",
-                "class A { String f(Object o) { return switch (o) { case Freelancer _, Intern _ -> \"other\"; case Salaried r -> r.name(); }; } }\n",
-                "class A { String f(Object o) { return switch (o) { case _ -> \"none\"; case Integer _ -> \"int\"; }; } }\n",
-                "class A { boolean f(Object o) { return o instanceof Point(_, int y) && y > 0; } }\n",
-                "class A { boolean f(Object o) { return o instanceof ColoredPoint(Point p, Color _) || o instanceof ColoredPoint(Point p, _); } }\n",
-                "class A { Runnable r = () -> {}; Function<Integer, Integer> g = (Integer x) -> x * 2; }\n",
-                "class A { Object o = new Object() { public String toString() { return \"anon\"; } }; }\n",
-                "class A { int x = (int) 3.5; Object y = (Runnable & Serializable) r; }\n",
-                "class A { Object o = (Class<Object>) int.class; }\n",
-                "class A { Class<?> c = String.class; Map<String, List<Integer>> m = new HashMap<>(); }\n",
-                "class A { int x = a >> 2; int y = b >>> 3; int z = c << 1; boolean t = a > b; }\n",
-                "class A { void f() { x >>= 2; y >>>= 1; z <<= 3; } }\n",
-                "class A { List<List<String>> nested = new ArrayList<>(); }\n",
-                "class A { void f(int... values) {} }\n",
-                "class A { void f(@Deprecated final String s) {} }\n",
-                "class A { String text = \"\"\"\n        hello\n        \"\"\"; }\n",
-                "class A { void f() { g(); } } // trailing comment\n",
-                "// leading comment\nclass A {}\n",
-                "/** javadoc */\nclass A { /* inner */ void f() {} }\n",
-                "class A { void f() { var x = 1; final var y = 2; } }\n",
-                "class Outer { class Inner {} static class Nested {} }\n",
-                "class A { void f() { class Local {} record R(int x) {} } }\n",
-                "interface I { default int f() { return 1; } static int g() { return 2; } int h(); }\n",
-                "class A { void f() { this.x = 1; super.g(); A.this.h(); } }\n",
-                "class A { A() { this(1); } A(int x) { super(); } }\n"
-            })
+        strings = {
+            "\uFEFFclass A {}\n",
+            "package a.b.c;\n",
+            "import java.util.List;\n",
+            "import static java.util.Objects.requireNonNull;\n",
+            "import java.util.*;\n",
+            "class A {}\n",
+            "final class A extends B implements C, D {}\n",
+            "sealed interface Shape permits Circle, Square {}\n",
+            "non-sealed class Sub extends Shape {}\n",
+            "class A { void f() { Object sealed; sealed = null; sealed.toString(); Object non; non = sealed; } }\n",
+            "record Point(int x, int y) {}\n",
+            "record Point(int x, int y) { Point { if (x < 0) { throw new IllegalArgumentException(); } } }\n",
+            "enum Color { RED, GREEN, BLUE }\n",
+            "enum Color { RED(1), GREEN(2); private final int code; Color(int code) { this.code = code; } }\n",
+            "@interface Marker { String value() default \"\"; }\n",
+            "class A { int x = 1, y = 2; }\n",
+            "class A { static { System.out.println(1); } }\n",
+            "class A { <T extends Comparable<T>> T max(T a, T b) { return a.compareTo(b) > 0 ? a : b; } }\n",
+            "class A { void f() throws IOException, RuntimeException {} }\n",
+            "class A { int[] a = new int[10]; int[][] b = {{1, 2}, {3}}; }\n",
+            "class A { void f() { for (int i = 0; i < 10; i++) { g(i); } } }\n",
+            "class A { void f() { for (String s : list) { g(s); } } }\n",
+            "class A { void f() { while (true) { break; } } }\n",
+            "class A { void f() { do { x++; } while (x < 3); } }\n",
+            "class A { void f() { try (var in = open(); var out = create()) { copy(); } catch (IOException | RuntimeException e) { log(e); } finally { close(); } } }\n",
+            "class A { void f() { synchronized (lock) { g(); } } }\n",
+            "class A { void f() { assert x > 0 : \"positive\"; } }\n",
+            "class A { void f() { label: for (;;) { continue label; } } }\n",
+            "class A { void f() { if (a) { b(); } else if (c) { d(); } else { e(); } } }\n",
+            "class A { void f() { switch (x) { case 1: g(); break; default: h(); } } }\n",
+            "class A { String f(Object o) { return switch (o) { case Integer i when i > 2 -> \"big\"; case String s -> s; case null, default -> \"other\"; }; } }\n",
+            "class A { int f(int t) { return switch (t) { case 1 -> { yield (t); } default -> { yield (int) (t - 1); } }; } }\n",
+            "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
+            "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
+            "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
+            "class A { String[] f(List<String> l) { return l.toArray(String[]::new); } }\n",
+            "class A { void f() { g(byte[]::new); g(Class<?>[]::new); g(int[][]::new); } }\n",
+            "class A { Class<?> c = String[][].class; }\n",
+            "class A { Function<Integer, Integer> g = _ -> 1; }\n",
+            "class A { Function<Integer, Integer> g = (_) -> 1; }\n",
+            "class A { BiFunction<Integer, Integer, Integer> g = (_, x) -> x; }\n",
+            "class A { IntPredicate p = (int _) -> true; }\n",
+            "class A { Function<Integer, Integer> g = (var _) -> 1; }\n",
+            "class A { IntBinaryOperator op = (int _, int y) -> y; }\n",
+            "class A { Function<Integer, Integer> g = (final int _) -> 1; }\n",
+            "class A { void f() { var _ = q.remove(); int _ = 1, y = 2; } }\n",
+            "class A { void f() { for (int i = 0, _ = sideEffect(); i < 10; i++) { g(i); } } }\n",
+            "class A { void f() { for (int _ : orderIDs) { total++; } } }\n",
+            "class A { void f() { for (final char _ : s.toCharArray()) { len++; } } }\n",
+            "class A { void f() { try (var _ = open(); var _ = create()) { work(); } } }\n",
+            "class A { void f() { try { parse(); } catch (NumberFormatException _) { log(); } catch (IOException | RuntimeException _) { log(); } } }\n",
+            "class A { String f(Object o) { return switch (o) { case Freelancer _, Intern _ -> \"other\"; case Salaried r -> r.name(); }; } }\n",
+            "class A { String f(Object o) { return switch (o) { case _ -> \"none\"; case Integer _ -> \"int\"; }; } }\n",
+            "class A { boolean f(Object o) { return o instanceof Point(_, int y) && y > 0; } }\n",
+            "class A { boolean f(Object o) { return o instanceof ColoredPoint(Point p, Color _) || o instanceof ColoredPoint(Point p, _); } }\n",
+            "class A { Runnable r = () -> {}; Function<Integer, Integer> g = (Integer x) -> x * 2; }\n",
+            "class A { Object o = new Object() { public String toString() { return \"anon\"; } }; }\n",
+            "class A { int x = (int) 3.5; Object y = (Runnable & Serializable) r; }\n",
+            "class A { Object o = (Class<Object>) int.class; }\n",
+            "class A { Class<?> c = String.class; Map<String, List<Integer>> m = new HashMap<>(); }\n",
+            "class A { int x = a >> 2; int y = b >>> 3; int z = c << 1; boolean t = a > b; }\n",
+            "class A { void f() { x >>= 2; y >>>= 1; z <<= 3; } }\n",
+            "class A { List<List<String>> nested = new ArrayList<>(); }\n",
+            "class A { void f(int... values) {} }\n",
+            "class A { void f(@Deprecated final String s) {} }\n",
+            "class A { String text = \"\"\"\n        hello\n        \"\"\"; }\n",
+            "class A { void f() { g(); } } // trailing comment\n",
+            "// leading comment\nclass A {}\n",
+            "/** javadoc */\nclass A { /* inner */ void f() {} }\n",
+            "class A { void f() { var x = 1; final var y = 2; } }\n",
+            "class Outer { class Inner {} static class Nested {} }\n",
+            "class A { void f() { class Local {} record R(int x) {} } }\n",
+            "interface I { default int f() { return 1; } static int g() { return 2; } int h(); }\n",
+            "class A { void f() { this.x = 1; super.g(); A.this.h(); } }\n",
+            "class A { A() { this(1); } A(int x) { super(); } }\n"
+        }
+    )
     void parsesEveryConstructWithoutFallingBack(String source) {
         assertParses(source);
     }
@@ -144,9 +147,10 @@ class ParserTest {
         GreenNode parameters = lambda.children().getFirst();
         assertEquals(SyntaxKind.LAMBDA_PARAMETERS, parameters.kind());
         assertTrue(
-                parameters.children().getFirst() instanceof GreenNode.Leaf leaf
-                        && leaf.lexeme().equals("_")
-                        && leaf.token().token().kind() == TokenKind.KEYWORD);
+            parameters.children().getFirst() instanceof GreenNode.Leaf leaf &&
+                leaf.lexeme().equals("_") &&
+                leaf.token().token().kind() == TokenKind.KEYWORD
+        );
     }
 
     @Test
@@ -170,14 +174,17 @@ class ParserTest {
     void unnamedVariablesAreNotFieldsOrMethodParameters() {
         assertFalse(unparsedText(parse("class A { int _ = 1; }\n").root()).isEmpty(), "fields cannot be unnamed");
         assertFalse(
-                unparsedText(parse("class A { int x = 1, _ = 2; }\n").root()).isEmpty(),
-                "later field declarators cannot be unnamed");
+            unparsedText(parse("class A { int x = 1, _ = 2; }\n").root()).isEmpty(),
+            "later field declarators cannot be unnamed"
+        );
         assertFalse(
-                unparsedText(parse("class A { void f(int _) {} }\n").root()).isEmpty(),
-                "method parameters cannot be unnamed");
+            unparsedText(parse("class A { void f(int _) {} }\n").root()).isEmpty(),
+            "method parameters cannot be unnamed"
+        );
         assertFalse(
-                unparsedText(parse("record Point(int _) {}\n").root()).isEmpty(),
-                "record components cannot be unnamed");
+            unparsedText(parse("record Point(int _) {}\n").root()).isEmpty(),
+            "record components cannot be unnamed"
+        );
     }
 
     @Test
@@ -193,12 +200,13 @@ class ParserTest {
 
     @ParameterizedTest
     @ValueSource(
-            strings = {
-                "int broken = = 1; class kept {}\n",
-                "class A { int broken = = 1; int kept = 2; }\n",
-                "class A { void f() { int broken = = 1; int kept = 2; } }\n",
-                "module example { requires ; uses kept.Service; }\n"
-            })
+        strings = {
+            "int broken = = 1; class kept {}\n",
+            "class A { int broken = = 1; int kept = 2; }\n",
+            "class A { void f() { int broken = = 1; int kept = 2; } }\n",
+            "module example { requires ; uses kept.Service; }\n"
+        }
+    )
     void aBrokenConstructBecomesAnUnparsedRegionAndTheNextConstructStillParses(String source) {
         ParseResult result = parse(source);
 
@@ -240,13 +248,15 @@ class ParserTest {
         assertEquals(SyntaxKind.ENUM_CONSTANTS, constants.kind());
         assertTrue(constants.children().getLast() instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";"));
         assertTrue(
-                body.children()
-                        .stream()
-                        .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")),
-                "the body must not hold the terminator as a sibling of the constant list");
+            body.children()
+                .stream()
+                .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")),
+            "the body must not hold the terminator as a sibling of the constant list"
+        );
         assertTrue(
-                body.children().stream().anyMatch(child -> child.kind() == SyntaxKind.FIELD_DECLARATION),
-                "members after the terminator stay in the body");
+            body.children().stream().anyMatch(child -> child.kind() == SyntaxKind.FIELD_DECLARATION),
+            "members after the terminator stay in the body"
+        );
     }
 
     @Test
@@ -254,9 +264,10 @@ class ParserTest {
         ParseResult result = parse("enum Color { RED, GREEN, BLUE }\n");
         GreenNode constants = find(result.root().green(), SyntaxKind.ENUM_CONSTANTS);
         assertTrue(
-                constants.children()
-                        .stream()
-                        .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";")));
+            constants.children()
+                .stream()
+                .noneMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.lexeme().equals(";"))
+        );
     }
 
     @Test
@@ -285,9 +296,9 @@ class ParserTest {
 
     @Test
     void escapedSyntaxAndCommentBoundariesParseThroughTheTranslatedStream() {
-        String source = escape("u0063") + "lass A " + escape("u007b") + " /" + escape("u002a") + " hidden *"
-                + escape("u002f") + " String value " + escape("u003d") + " " + escape("u0022") + "ok" + escape("u0022")
-                + escape("u003b") + " " + escape("u007d") + "\n";
+        String source = escape("u0063") + "lass A " + escape("u007b") + " /" + escape("u002a") + " hidden *" +
+            escape("u002f") + " String value " + escape("u003d") + " " + escape("u0022") + "ok" + escape("u0022") +
+            escape("u003b") + " " + escape("u007d") + "\n";
 
         assertParses(source);
         FormatResult formatted = FormatJ.defaultFormatter().format(FormatRequest.of(source));
@@ -344,7 +355,8 @@ class ParserTest {
     @Test
     void requiresKeywordsRemainValidModuleNamesWhenUnambiguous() {
         assertParses(
-                "module example { requires transitive; requires static transitive.dep; requires transitive static dep; }\n");
+            "module example { requires transitive; requires static transitive.dep; requires transitive static dep; }\n"
+        );
     }
 
     private static GreenNode find(GreenNode node, SyntaxKind kind) {

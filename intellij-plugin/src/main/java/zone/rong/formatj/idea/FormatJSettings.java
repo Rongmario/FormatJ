@@ -1,14 +1,15 @@
 package zone.rong.formatj.idea;
 
-import zone.rong.formatj.api.Preset;
+import java.nio.file.Path;
+
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
-import java.nio.file.Path;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import zone.rong.formatj.api.Preset;
 
 /**
  * Project-level FormatJ settings, stored in {@code .idea/formatj.xml}.
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public final class FormatJSettings implements PersistentStateComponent<FormatJSettings.State> {
 
     private final Project project;
+
     private State state = new State();
     private volatile FormatJEngine engine;
 
@@ -90,7 +92,8 @@ public final class FormatJSettings implements PersistentStateComponent<FormatJSe
     }
 
     @Override
-    public @Nullable State getState() {
+    public @Nullable
+    State getState() {
         return state;
     }
 

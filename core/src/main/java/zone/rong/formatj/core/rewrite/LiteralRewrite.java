@@ -1,5 +1,9 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.HexDigitCase;
 import zone.rong.formatj.api.rules.LiteralRules;
@@ -8,9 +12,6 @@ import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Respells numeric literals. The value never changes, only the case of some of its characters.
@@ -28,8 +29,8 @@ public final class LiteralRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(LiteralRules.LONG_SUFFIX) == LongSuffix.UPPER
-                || context.rule(LiteralRules.HEX_DIGITS) != HexDigitCase.PRESERVE;
+        return context.rule(LiteralRules.LONG_SUFFIX) == LongSuffix.UPPER ||
+            context.rule(LiteralRules.HEX_DIGITS) != HexDigitCase.PRESERVE;
     }
 
     @Override
@@ -74,16 +75,18 @@ public final class LiteralRewrite implements Rewrite {
         }
 
         context.record(new TokenEdit(
-                authority,
-                "a numeric literal spelled the way the literal rules ask for",
-                position,
-                List.of(original),
-                List.of(rewritten),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            authority,
+            "a numeric literal spelled the way the literal rules ask for",
+            position,
+            List.of(original),
+            List.of(rewritten),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
         return GreenNode.leaf(new SyntaxToken(
-                syntax.leading(),
-                Token.synthetic(TokenKind.NUMBER_LITERAL, rewritten),
-                syntax.trailing()));
+            syntax.leading(),
+            Token.synthetic(TokenKind.NUMBER_LITERAL, rewritten),
+            syntax.trailing()
+        ));
     }
 
     /**

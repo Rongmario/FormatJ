@@ -1,9 +1,6 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
@@ -13,7 +10,10 @@ import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.rewrite.RewriteResult;
 import zone.rong.formatj.core.rewrite.RewriteStage;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** What the brace rules do, and the cases where they decline to do it. */
 class BraceRewriteTest {
@@ -24,10 +24,10 @@ class BraceRewriteTest {
     private static RewriteResult rewrite(String body, BracePolicy policy) {
         GreenNode root = JavaParser.parse(HEAD + body + TAIL, LanguageLevel.LATEST, false).root().green();
         Style style = Style.builder()
-                .set(BraceRules.IF_ELSE, policy)
-                .set(BraceRules.FOR_LOOP, policy)
-                .set(BraceRules.WHILE_LOOP, policy)
-                .build();
+            .set(BraceRules.IF_ELSE, policy)
+            .set(BraceRules.FOR_LOOP, policy)
+            .set(BraceRules.WHILE_LOOP, policy)
+            .build();
         return RewriteStage.apply(root, style);
     }
 
@@ -44,23 +44,27 @@ class BraceRewriteTest {
     @Test
     void alwaysBracesEveryKindOfBody() {
         assertTrue(
-                tokensAfter("        if (n > 0) log(n);", BracePolicy.ALWAYS).contains("if ( n > 0 ) { log ( n ) ; }"));
+            tokensAfter("        if (n > 0) log(n);", BracePolicy.ALWAYS).contains("if ( n > 0 ) { log ( n ) ; }")
+        );
         assertTrue(
-                tokensAfter("        while (n > 0) n--;", BracePolicy.ALWAYS).contains("while ( n > 0 ) { n -- ; }"));
+            tokensAfter("        while (n > 0) n--;", BracePolicy.ALWAYS).contains("while ( n > 0 ) { n -- ; }")
+        );
         assertTrue(
-                tokensAfter("        for (int i = 0; i < n; i++) log(i);", BracePolicy.ALWAYS).contains(
-                        ") { log ( i ) ; }"));
+            tokensAfter("        for (int i = 0; i < n; i++) log(i);", BracePolicy.ALWAYS).contains(") { log ( i ) ; }")
+        );
         assertTrue(
-                tokensAfter("        for (String s : all()) log(s);", BracePolicy.ALWAYS).contains(
-                        ") { log ( s ) ; }"));
+            tokensAfter("        for (String s : all()) log(s);", BracePolicy.ALWAYS).contains(") { log ( s ) ; }")
+        );
         assertTrue(tokensAfter("        do n--; while (n > 0);", BracePolicy.ALWAYS).contains("do { n -- ; } while"));
     }
 
     @Test
     void alwaysBracesBothArmsOfAnIfElse() {
         assertTrue(
-                tokensAfter("        if (n > 0) log(n); else log(0);", BracePolicy.ALWAYS).contains(
-                        "if ( n > 0 ) { log ( n ) ; } else { log ( 0 ) ; }"));
+            tokensAfter("        if (n > 0) log(n); else log(0);", BracePolicy.ALWAYS).contains(
+                "if ( n > 0 ) { log ( n ) ; } else { log ( 0 ) ; }"
+            )
+        );
     }
 
     @Test
@@ -72,14 +76,17 @@ class BraceRewriteTest {
     @Test
     void nestedBodiesAreBracedFromTheInsideOut() {
         assertTrue(
-                tokensAfter("        if (n > 0) if (n > 1) log(n);", BracePolicy.ALWAYS).contains(
-                        "if ( n > 0 ) { if ( n > 1 ) { log ( n ) ; } }"));
+            tokensAfter("        if (n > 0) if (n > 1) log(n);", BracePolicy.ALWAYS).contains(
+                "if ( n > 0 ) { if ( n > 1 ) { log ( n ) ; } }"
+            )
+        );
     }
 
     @Test
     void neverRemovesBracesFromASingleStatementBody() {
         assertTrue(
-                tokensAfter("        if (n > 0) { log(n); }", BracePolicy.NEVER).contains("if ( n > 0 ) log ( n ) ;"));
+            tokensAfter("        if (n > 0) { log(n); }", BracePolicy.NEVER).contains("if ( n > 0 ) log ( n ) ;")
+        );
     }
 
     @Test
@@ -102,26 +109,32 @@ class BraceRewriteTest {
         assertTrue(rewrite("        if (n > 0) { if (n > 1) log(n); } else log(0);", BracePolicy.NEVER).unchanged());
         assertTrue(rewrite("        if (n > 0) { l: if (n > 1) log(n); } else log(0);", BracePolicy.NEVER).unchanged());
         String loop = tokensAfter(
-                "        if (n > 0) { for (;;) { if (n > 1) log(n); } } else log(0);",
-                BracePolicy.NEVER);
+            "        if (n > 0) { for (;;) { if (n > 1) log(n); } } else log(0);",
+            BracePolicy.NEVER
+        );
         assertTrue(loop.contains("if ( n > 0 ) { for ( ; ; ) if ( n > 1 ) log ( n ) ; } else"), loop);
     }
 
     @Test
     void bracesCarryingCommentsAreLeftAlone() {
         assertTrue(
-                rewrite("        if (n > 0) { // why\n            log(n);\n        }", BracePolicy.NEVER).unchanged());
+            rewrite("        if (n > 0) { // why\n            log(n);\n        }", BracePolicy.NEVER).unchanged()
+        );
         assertTrue(
-                rewrite(
-                        "        if (n > 0) {\n            log(n);\n            // why\n        }",
-                        BracePolicy.NEVER).unchanged());
+            rewrite(
+                "        if (n > 0) {\n            log(n);\n            // why\n        }",
+                BracePolicy.NEVER
+            ).unchanged()
+        );
     }
 
     @Test
     void whenMultiStatementBracesOnlyWhatNeedsIt() {
         assertTrue(
-                tokensAfter("        if (n > 0) { log(n); }", BracePolicy.WHEN_MULTI_STATEMENT).contains(
-                        "if ( n > 0 ) log ( n ) ;"));
+            tokensAfter("        if (n > 0) { log(n); }", BracePolicy.WHEN_MULTI_STATEMENT).contains(
+                "if ( n > 0 ) log ( n ) ;"
+            )
+        );
         assertTrue(rewrite("        if (n > 0) { log(n); log(n); }", BracePolicy.WHEN_MULTI_STATEMENT).unchanged());
         assertTrue(rewrite("        if (n > 0) log(n);", BracePolicy.WHEN_MULTI_STATEMENT).unchanged());
     }
@@ -143,14 +156,15 @@ class BraceRewriteTest {
                             do n--; while (n > 0);
                     """;
             Style style = Style.builder()
-                    .set(BraceRules.IF_ELSE, policy)
-                    .set(BraceRules.FOR_LOOP, policy)
-                    .set(BraceRules.WHILE_LOOP, policy)
-                    .build();
+                .set(BraceRules.IF_ELSE, policy)
+                .set(BraceRules.FOR_LOOP, policy)
+                .set(BraceRules.WHILE_LOOP, policy)
+                .build();
             GreenNode once = rewrite(body, policy).root();
             assertTrue(
-                    RewriteStage.apply(once, style).unchanged(),
-                    () -> "a second pass of " + policy + " still had something to say");
+                RewriteStage.apply(once, style).unchanged(),
+                () -> "a second pass of " + policy + " still had something to say"
+            );
         }
     }
 

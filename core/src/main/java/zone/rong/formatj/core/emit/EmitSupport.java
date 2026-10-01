@@ -1,13 +1,17 @@
 package zone.rong.formatj.core.emit;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AlignmentPolicy;
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
-import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BlankLineRules;
+import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -24,9 +28,6 @@ import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.text.TextBlocks;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Shared machinery for the emitter: token and comment rendering, blank line policy, and the small
@@ -255,19 +256,20 @@ abstract class EmitSupport {
             // or to pad out to comments.trailing-comment-column. Marks sit at the start of the comment
             // so that column is the column the comment actually starts at.
             Doc columnMark = first && rule(CommentRules.TRAILING_COMMENT_COLUMN) > 0
-                    ? Doc.mark(AlignmentSite.TRAILING_COMMENT_COLUMN)
-                    : Doc.EMPTY;
+                ? Doc.mark(AlignmentSite.TRAILING_COMMENT_COLUMN)
+                : Doc.EMPTY;
             Doc alignMark = first ? alignmentMark(AlignmentSite.TRAILING_COMMENT) : Doc.EMPTY;
             first = false;
             // A trailing comment ends its line, which the printer reads from the break it forces. A
             // block comment the author followed with code on the same line leads that code instead.
             Doc end = Doc.breakParent();
             parts.add(Doc.lineSuffix(Doc.concat(
-                    trailingSpacing(),
-                    columnMark,
-                    alignMark,
-                    comments.trailing(comment),
-                    end)));
+                trailingSpacing(),
+                columnMark,
+                alignMark,
+                comments.trailing(comment),
+                end
+            )));
         }
         return Doc.concat(parts);
     }
@@ -325,7 +327,7 @@ abstract class EmitSupport {
     }
 
     /** A node paired with the leading trivia lifted out of its first token. */
-    protected record HoistedLeading(Doc leading, GreenNode node) {}
+    protected record HoistedLeading(Doc leading, GreenNode node) { }
 
     /** Copies the path to the first token and removes that token's leading trivia. */
     private static GreenNode withoutLeadingTrivia(GreenNode node) {
@@ -387,8 +389,9 @@ abstract class EmitSupport {
                 }
                 parts.add(placedOwnLine(run, leading, i));
                 int cap = Math.min(
-                        rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
-                        rule(BlankLineRules.MAX_CONSECUTIVE));
+                    rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
+                    rule(BlankLineRules.MAX_CONSECUTIVE)
+                );
                 parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
             }
             i = last;
@@ -485,10 +488,10 @@ abstract class EmitSupport {
     /** Token text; multi-line tokens such as text blocks are emitted exactly as written. */
     protected Doc tokenText(Token token) {
         String text = token.text();
-        if (token.kind() == TokenKind.TEXT_BLOCK
-                && !token.hasUnicodeEscape()
-                && rule(TextBlockRules.INDENT_POLICY) != TextBlockIndentPolicy.PRESERVE
-                && TextBlocks.isTextBlock(text)) {
+        if (token.kind() == TokenKind.TEXT_BLOCK &&
+            !token.hasUnicodeEscape() &&
+            rule(TextBlockRules.INDENT_POLICY) != TextBlockIndentPolicy.PRESERVE &&
+            TextBlocks.isTextBlock(text)) {
             return textBlock(text);
         }
         if (!token.hasLineTerminator()) {

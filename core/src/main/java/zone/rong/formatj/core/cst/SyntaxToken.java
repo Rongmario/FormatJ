@@ -1,7 +1,8 @@
 package zone.rong.formatj.core.cst;
 
-import zone.rong.formatj.core.lexer.Token;
 import java.util.List;
+
+import zone.rong.formatj.core.lexer.Token;
 
 /**
  * A significant token together with the trivia attached to it.

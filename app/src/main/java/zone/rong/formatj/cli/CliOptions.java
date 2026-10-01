@@ -1,13 +1,14 @@
 package zone.rong.formatj.cli;
 
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Preset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.api.Preset;
 
 /**
  * The parsed command line.
@@ -17,21 +18,22 @@ import java.util.Optional;
  * build is the kind of friction this project exists to remove.
  */
 public record CliOptions(
-        Mode mode,
-        List<Path> paths,
-        Optional<Path> styleFile,
-        Optional<Preset> preset,
-        Map<String, String> overrides,
-        List<String> includes,
-        List<String> excludes,
-        LanguageLevel languageLevel,
-        boolean previewFeatures,
-        boolean verify,
-        boolean readStdin,
-        String stdinName,
-        int parallelism,
-        boolean verbose,
-        List<int[]> lines) {
+    Mode mode,
+    List<Path> paths,
+    Optional<Path> styleFile,
+    Optional<Preset> preset,
+    Map<String, String> overrides,
+    List<String> includes,
+    List<String> excludes,
+    LanguageLevel languageLevel,
+    boolean previewFeatures,
+    boolean verify,
+    boolean readStdin,
+    String stdinName,
+    int parallelism,
+    boolean verbose,
+    List<int[]> lines
+) {
 
     /** What the CLI was asked to do. */
     public enum Mode {
@@ -121,7 +123,7 @@ public record CliOptions(
                 case "--include" -> includes.add(value(arguments, ++i, "--include"));
                 case "--exclude" -> excludes.add(value(arguments, ++i, "--exclude"));
                 case "--language-level" ->
-                        languageLevel = LanguageLevel.ofRelease(intValue(arguments, ++i, "--language-level"));
+                    languageLevel = LanguageLevel.ofRelease(intValue(arguments, ++i, "--language-level"));
                 case "--preview" -> previewFeatures = true;
                 case "--no-verify" -> verify = false;
                 case "--stdin" -> readStdin = true;
@@ -143,21 +145,22 @@ public record CliOptions(
 
         if (mode == Mode.DUMP_CONFIG) {
             return new CliOptions(
-                    mode,
-                    List.of(),
-                    Optional.ofNullable(styleFile),
-                    Optional.ofNullable(preset),
-                    overrides,
-                    includes,
-                    excludes,
-                    languageLevel,
-                    previewFeatures,
-                    verify,
-                    false,
-                    stdinName,
-                    parallelism,
-                    verbose,
-                    List.of());
+                mode,
+                List.of(),
+                Optional.ofNullable(styleFile),
+                Optional.ofNullable(preset),
+                overrides,
+                includes,
+                excludes,
+                languageLevel,
+                previewFeatures,
+                verify,
+                false,
+                stdinName,
+                parallelism,
+                verbose,
+                List.of()
+            );
         }
         if (paths.isEmpty() && !readStdin) {
             throw new CliException("Nothing to format. Pass one or more paths, or --stdin. Try --help.");
@@ -170,40 +173,42 @@ public record CliOptions(
             mode = Mode.WRITE;
         }
         return new CliOptions(
-                mode,
-                List.copyOf(paths),
-                Optional.ofNullable(styleFile),
-                Optional.ofNullable(preset),
-                Map.copyOf(overrides),
-                List.copyOf(includes),
-                List.copyOf(excludes),
-                languageLevel,
-                previewFeatures,
-                verify,
-                readStdin,
-                stdinName,
-                parallelism,
-                verbose,
-                List.copyOf(lines));
+            mode,
+            List.copyOf(paths),
+            Optional.ofNullable(styleFile),
+            Optional.ofNullable(preset),
+            Map.copyOf(overrides),
+            List.copyOf(includes),
+            List.copyOf(excludes),
+            languageLevel,
+            previewFeatures,
+            verify,
+            readStdin,
+            stdinName,
+            parallelism,
+            verbose,
+            List.copyOf(lines)
+        );
     }
 
     private static CliOptions helpOptions(Mode mode) {
         return new CliOptions(
-                mode,
-                List.of(),
-                Optional.empty(),
-                Optional.empty(),
-                Map.of(),
-                List.of(),
-                List.of(),
-                LanguageLevel.LATEST,
-                false,
-                true,
-                false,
-                "<stdin>",
-                1,
-                false,
-                List.of());
+            mode,
+            List.of(),
+            Optional.empty(),
+            Optional.empty(),
+            Map.of(),
+            List.of(),
+            List.of(),
+            LanguageLevel.LATEST,
+            false,
+            true,
+            false,
+            "<stdin>",
+            1,
+            false,
+            List.of()
+        );
     }
 
     private static String value(String[] arguments, int index, String option) {
@@ -219,7 +224,7 @@ public record CliOptions(
             int start = Integer.parseInt(parts[0]);
             int end = Integer.parseInt(parts[1]);
             if (parts.length == 2 && start >= 1 && end >= start) {
-                return new int[] {start, end};
+                return new int[] { start, end };
             }
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
             // falls through to the error below

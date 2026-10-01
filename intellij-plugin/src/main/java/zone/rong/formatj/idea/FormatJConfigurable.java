@@ -1,5 +1,12 @@
 package zone.rong.formatj.idea;
 
+import java.awt.BorderLayout;
+
+import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -7,11 +14,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.util.ui.FormBuilder;
-import java.awt.BorderLayout;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +28,7 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
     private static final String PRESET_GOOGLE = "google";
 
     private final Project project;
+
     private JCheckBox enabled;
     private TextFieldWithBrowseButton styleFile;
     private ComboBox<PresetItem> preset;
@@ -37,40 +40,46 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
     }
 
     @Override
-    public @NotNull String getId() {
+    public @NotNull
+    String getId() {
         return "zone.rong.formatj.settings";
     }
 
     @Override
-    public @Nls String getDisplayName() {
+    public @Nls
+    String getDisplayName() {
         return "FormatJ";
     }
 
     @Override
-    public @Nullable JComponent createComponent() {
+    public @Nullable
+    JComponent createComponent() {
         if (panel == null) {
             enabled = new JCheckBox("Enable FormatJ as the Java formatter");
             styleFile = new TextFieldWithBrowseButton();
             styleFile.addBrowseFolderListener(
-                    project,
-                    FileChooserDescriptorFactory.createSingleFileDescriptor("toml").withTitle("FormatJ style file"));
+                project,
+                FileChooserDescriptorFactory.createSingleFileDescriptor("toml").withTitle("FormatJ style file")
+            );
             preset = new ComboBox<>(
-                    new PresetItem[] {
-                        new PresetItem(PRESET_NONE, "None (discover formatj.toml)"),
-                        new PresetItem(PRESET_FORMATJ, "formatj"),
-                        new PresetItem(PRESET_GOOGLE, "google")
-                    });
+                new PresetItem[] {
+                    new PresetItem(PRESET_NONE, "None (discover formatj.toml)"),
+                    new PresetItem(PRESET_FORMATJ, "formatj"),
+                    new PresetItem(PRESET_GOOGLE, "google")
+                }
+            );
             discovered = new JLabel();
             panel = new JPanel(new BorderLayout());
             panel.add(
-                    FormBuilder.createFormBuilder()
-                            .addComponent(enabled)
-                            .addLabeledComponent("Style file:", styleFile)
-                            .addLabeledComponent("Preset:", preset)
-                            .addComponent(discovered)
-                            .addComponentFillVertically(new JPanel(), 0)
-                            .getPanel(),
-                    BorderLayout.CENTER);
+                FormBuilder.createFormBuilder()
+                    .addComponent(enabled)
+                    .addLabeledComponent("Style file:", styleFile)
+                    .addLabeledComponent("Preset:", preset)
+                    .addComponent(discovered)
+                    .addComponentFillVertically(new JPanel(), 0)
+                    .getPanel(),
+                BorderLayout.CENTER
+            );
         }
         return panel;
     }
@@ -78,9 +87,9 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
     @Override
     public boolean isModified() {
         FormatJSettings settings = FormatJSettings.getInstance(project);
-        return enabled.isSelected() != settings.isEnabled()
-                || !styleFile.getText().trim().equals(nullToEmpty(settings.styleFile()))
-                || !selectedPreset().equals(nullToEmpty(settings.preset()));
+        return enabled.isSelected() != settings.isEnabled() ||
+            !styleFile.getText().trim().equals(nullToEmpty(settings.styleFile())) ||
+            !selectedPreset().equals(nullToEmpty(settings.preset()));
     }
 
     @Override
@@ -118,9 +127,10 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
 
     private void refreshDiscovered() {
         discovered.setText(
-                FormatJSettings.getInstance(project)
-                        .engine()
-                        .describeStyle(FormatJSettings.getInstance(project).projectPath()));
+            FormatJSettings.getInstance(project)
+                .engine()
+                .describeStyle(FormatJSettings.getInstance(project).projectPath())
+        );
     }
 
     private String selectedPreset() {

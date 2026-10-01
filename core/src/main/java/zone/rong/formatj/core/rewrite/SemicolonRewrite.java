@@ -1,11 +1,12 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Removes stray semicolons, which the parser reads as empty declarations.
@@ -39,15 +40,16 @@ public final class SemicolonRewrite implements Rewrite {
         boolean removable = body && membersFollowConstants(children);
         boolean afterType = false;
         for (GreenNode child : children) {
-            if (child.kind() == SyntaxKind.EMPTY_STATEMENT
-                    && (body ? removable : afterType)
-                    && !hasComments(child)
-                    && context.firstPosition(child) >= 0) {
+            if (child.kind() == SyntaxKind.EMPTY_STATEMENT &&
+                (body ? removable : afterType) &&
+                !hasComments(child) &&
+                context.firstPosition(child) >= 0) {
                 context.record(TokenEdit.delete(
-                        SemicolonRules.REMOVE_REDUNDANT,
-                        "a stray semicolon",
-                        context.firstPosition(child),
-                        ";"));
+                    SemicolonRules.REMOVE_REDUNDANT,
+                    "a stray semicolon",
+                    context.firstPosition(child),
+                    ";"
+                ));
                 continue;
             }
             afterType = child.kind().isTypeDeclaration();

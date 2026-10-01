@@ -1,11 +1,11 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.HexDigitCase;
 import zone.rong.formatj.api.rules.LongSuffix;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LiteralRulesTest {
 
@@ -48,8 +48,8 @@ class LiteralRulesTest {
     @Test
     void hexDigitsAndLongSuffixCombine() {
         Style style = Style.builder()
-                .literals(literals -> literals.hexDigits(HexDigitCase.UPPER).longSuffix(LongSuffix.UPPER))
-                .build();
+            .literals(literals -> literals.hexDigits(HexDigitCase.UPPER).longSuffix(LongSuffix.UPPER))
+            .build();
         assertEquals(field("0xCAFEL"), format(field("0xcafel"), style));
     }
 

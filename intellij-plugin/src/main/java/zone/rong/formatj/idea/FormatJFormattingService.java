@@ -1,18 +1,19 @@
 package zone.rong.formatj.idea;
 
-import zone.rong.formatj.api.Diagnostic;
-import zone.rong.formatj.api.SourceRange;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import com.intellij.formatting.service.AsyncDocumentFormattingService;
 import com.intellij.formatting.service.AsyncFormattingRequest;
 import com.intellij.lang.ImportOptimizer;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import zone.rong.formatj.api.Diagnostic;
+import zone.rong.formatj.api.SourceRange;
 
 /**
  * Hands Java Reformat Code/format-on-save to FormatJ.
@@ -30,27 +31,32 @@ public final class FormatJFormattingService extends AsyncDocumentFormattingServi
     }
 
     @Override
-    public @NotNull Set<Feature> getFeatures() {
+    public @NotNull
+    Set<Feature> getFeatures() {
         return FEATURES;
     }
 
     @Override
-    public @NotNull Set<ImportOptimizer> getImportOptimizers(@NotNull PsiFile file) {
+    public @NotNull
+    Set<ImportOptimizer> getImportOptimizers(@NotNull PsiFile file) {
         return IMPORT_OPTIMIZERS;
     }
 
     @Override
-    protected @Nullable FormattingTask createFormattingTask(@NotNull AsyncFormattingRequest request) {
+    protected @Nullable
+    FormattingTask createFormattingTask(@NotNull AsyncFormattingRequest request) {
         return new FormatTask(request);
     }
 
     @Override
-    protected @NotNull String getNotificationGroupId() {
+    protected @NotNull
+    String getNotificationGroupId() {
         return NOTIFICATION_GROUP;
     }
 
     @Override
-    protected @NotNull String getName() {
+    protected @NotNull
+    String getName() {
         return "FormatJ";
     }
 
@@ -71,24 +77,26 @@ public final class FormatJFormattingService extends AsyncDocumentFormattingServi
             List<SourceRange> ranges = ranges(source, request.getFormattingRanges());
             try {
                 FormatJEngine.Outcome outcome = settings.engine()
-                        .format(new FormatJEngine.Request(
-                                source,
-                                file.getName(),
-                                path,
-                                ranges,
-                                FormatJFiles.languageLevel(file),
-                                FormatJFiles.previewFeatures(file),
-                                !request.canChangeWhitespaceOnly()));
+                    .format(new FormatJEngine.Request(
+                        source,
+                        file.getName(),
+                        path,
+                        ranges,
+                        FormatJFiles.languageLevel(file),
+                        FormatJFiles.previewFeatures(file),
+                        !request.canChangeWhitespaceOnly()
+                    ));
                 if (outcome.hasErrors()) {
                     Diagnostic diagnostic = outcome.diagnostics()
-                            .stream()
-                            .filter(item -> item.severity() == Diagnostic.Severity.ERROR)
-                            .findFirst()
-                            .orElse(Diagnostic.error("FormatJ could not format this file"));
+                        .stream()
+                        .filter(item -> item.severity() == Diagnostic.Severity.ERROR)
+                        .findFirst()
+                        .orElse(Diagnostic.error("FormatJ could not format this file"));
                     request.onError(
-                            "FormatJ could not format " + file.getName(),
-                            diagnostic.message(),
-                            offset(source, diagnostic));
+                        "FormatJ could not format " + file.getName(),
+                        diagnostic.message(),
+                        offset(source, diagnostic)
+                    );
                     return;
                 }
                 if (outcome.unchanged()) {

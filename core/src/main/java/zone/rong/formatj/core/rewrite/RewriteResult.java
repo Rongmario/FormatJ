@@ -1,8 +1,9 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.List;
+
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.core.cst.GreenNode;
-import java.util.List;
 
 /**
  * A rewritten tree and the complete account of what was done to it.

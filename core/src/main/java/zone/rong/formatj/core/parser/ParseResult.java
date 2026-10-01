@@ -1,10 +1,11 @@
 package zone.rong.formatj.core.parser;
 
+import java.util.List;
+
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
-import java.util.List;
 
 /**
  * The outcome of parsing one file.

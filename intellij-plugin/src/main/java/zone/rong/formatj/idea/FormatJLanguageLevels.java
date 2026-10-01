@@ -7,7 +7,7 @@ import zone.rong.formatj.api.LanguageLevel;
  */
 public final class FormatJLanguageLevels {
 
-    private FormatJLanguageLevels() {}
+    private FormatJLanguageLevels() { }
 
     /**
      * The FormatJ level for {@code release}.

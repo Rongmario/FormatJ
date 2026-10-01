@@ -1,11 +1,12 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.rules.SwitchCaseStyle;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Colon case labels turned into arrow ones, and back.
@@ -78,8 +79,8 @@ public final class SwitchCaseRewrite implements Rewrite {
             return node;
         }
         List<GreenNode> converted = context.rule(SwitchRules.CASE_STYLE) == SwitchCaseStyle.ARROW
-                ? toArrow(cases, value, context)
-                : toColon(cases, value, context);
+            ? toArrow(cases, value, context)
+            : toColon(cases, value, context);
         if (converted == null) {
             return node;
         }
@@ -159,7 +160,7 @@ public final class SwitchCaseRewrite implements Rewrite {
     }
 
     /** A run of empty cases and the case whose statements they all share. */
-    private record Group(List<GreenNode> merged, GreenNode owner) {}
+    private record Group(List<GreenNode> merged, GreenNode owner) { }
 
     /** What one group becomes, worked out before anything is recorded. */
     private record Plan(Group group, List<GreenNode> statements, GreenNode dropped, boolean brace, boolean yielded) {
@@ -178,7 +179,8 @@ public final class SwitchCaseRewrite implements Rewrite {
      */
     private Plan plan(Group group, boolean value, boolean last, RewriteContext context) {
         List<GreenNode> statements = new ArrayList<>(
-                group.owner().children().subList(2, group.owner().children().size()));
+            group.owner().children().subList(2, group.owner().children().size())
+        );
         GreenNode dropped = null;
 
         GreenNode terminator = statements.getLast();
@@ -193,8 +195,8 @@ public final class SwitchCaseRewrite implements Rewrite {
         }
 
         for (GreenNode statement : statements) {
-            if (statement.kind() == SyntaxKind.LOCAL_VARIABLE_DECLARATION
-                    || statement.kind() == SyntaxKind.LOCAL_TYPE_DECLARATION) {
+            if (statement.kind() == SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
+                statement.kind() == SyntaxKind.LOCAL_TYPE_DECLARATION) {
                 return null;
             }
             if (holdsSwitchBreak(statement)) {
@@ -224,12 +226,13 @@ public final class SwitchCaseRewrite implements Rewrite {
             GreenNode colon = merged.children().get(1);
             int position = context.firstPosition(colon);
             context.record(new TokenEdit(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    position,
-                    List.of(":", "case"),
-                    List.of(","),
-                    TokenEdit.Bias.INNERMOST_FIRST));
+                SwitchRules.CASE_STYLE,
+                reason,
+                position,
+                List.of(":", "case"),
+                List.of(","),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ));
             labels.addAll(labels.isEmpty() ? labelsOf(merged) : labelsOf(merged).subList(1, labelsOf(merged).size()));
             labels.add(Synthetic.separator(","));
         }
@@ -238,20 +241,22 @@ public final class SwitchCaseRewrite implements Rewrite {
         GreenNode colon = owner.children().get(1);
         int colonPosition = context.firstPosition(colon);
         context.record(new TokenEdit(
-                SwitchRules.CASE_STYLE,
-                reason,
-                colonPosition,
-                List.of(":"),
-                List.of("->"),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            SwitchRules.CASE_STYLE,
+            reason,
+            colonPosition,
+            List.of(":"),
+            List.of("->"),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
 
         if (plan.dropped() != null) {
             context.record(TokenEdit.delete(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    context.firstPosition(plan.dropped()),
-                    "break",
-                    ";"));
+                SwitchRules.CASE_STYLE,
+                reason,
+                context.firstPosition(plan.dropped()),
+                "break",
+                ";"
+            ));
         }
 
         List<GreenNode> statements = plan.statements();
@@ -259,13 +264,15 @@ public final class SwitchCaseRewrite implements Rewrite {
         if (plan.yielded()) {
             GreenNode yield = statements.getFirst();
             context.record(TokenEdit.delete(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    context.firstPosition(yield.children().getFirst()),
-                    "yield"));
+                SwitchRules.CASE_STYLE,
+                reason,
+                context.firstPosition(yield.children().getFirst()),
+                "yield"
+            ));
             body = GreenNode.branch(
-                    SyntaxKind.EXPRESSION_STATEMENT,
-                    List.of(yield.children().get(1), yield.children().getLast()));
+                SyntaxKind.EXPRESSION_STATEMENT,
+                List.of(yield.children().get(1), yield.children().getLast())
+            );
         } else if (!plan.brace()) {
             body = statements.getFirst();
         } else {
@@ -283,27 +290,30 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     /** A block round the statements of a group that cannot stand as a lone arrow body. */
     private static GreenNode braced(
-            List<GreenNode> statements,
-            int colonPosition,
-            RewriteContext context,
-            String reason) {
+        List<GreenNode> statements,
+        int colonPosition,
+        RewriteContext context,
+        String reason
+    ) {
         int start = statements.isEmpty() ? colonPosition + 1 : context.firstPosition(statements.getFirst());
         int end = statements.isEmpty() ? colonPosition + 1 : context.endPosition(statements.getLast());
         if (statements.isEmpty()) {
             context.record(TokenEdit.insert(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    start,
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "{",
-                    "}"));
+                SwitchRules.CASE_STYLE,
+                reason,
+                start,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{",
+                "}"
+            ));
         } else {
             context.record(TokenEdit.insert(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    start,
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "{"));
+                SwitchRules.CASE_STYLE,
+                reason,
+                start,
+                TokenEdit.Bias.OUTERMOST_FIRST,
+                "{"
+            ));
             context.record(TokenEdit.insert(SwitchRules.CASE_STYLE, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
         }
         List<GreenNode> children = new ArrayList<>();
@@ -329,8 +339,8 @@ public final class SwitchCaseRewrite implements Rewrite {
                 return null;
             }
             GreenNode body = switchCase.children().get(2);
-            if (body.kind() != SyntaxKind.THROW_STATEMENT
-                    && !(body.kind() == SyntaxKind.EXPRESSION_STATEMENT && body.children().size() == 2)) {
+            if (body.kind() != SyntaxKind.THROW_STATEMENT &&
+                !(body.kind() == SyntaxKind.EXPRESSION_STATEMENT && body.children().size() == 2)) {
                 return null;
             }
             if (context.firstPosition(body) < 0 || context.endPosition(body) < 0) {
@@ -344,12 +354,13 @@ public final class SwitchCaseRewrite implements Rewrite {
             GreenNode arrow = switchCase.children().get(1);
             GreenNode body = switchCase.children().get(2);
             context.record(new TokenEdit(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    context.firstPosition(arrow),
-                    List.of("->"),
-                    List.of(":"),
-                    TokenEdit.Bias.INNERMOST_FIRST));
+                SwitchRules.CASE_STYLE,
+                reason,
+                context.firstPosition(arrow),
+                List.of("->"),
+                List.of(":"),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ));
 
             List<GreenNode> children = new ArrayList<>();
             children.add(switchCase.children().getFirst());
@@ -359,29 +370,30 @@ public final class SwitchCaseRewrite implements Rewrite {
             } else if (value) {
                 // The body of an expression switch is a value, so the colon form has to yield it.
                 context.record(TokenEdit.insert(
-                        SwitchRules.CASE_STYLE,
-                        reason,
-                        context.firstPosition(body),
-                        TokenEdit.Bias.OUTERMOST_FIRST,
-                        "yield"));
+                    SwitchRules.CASE_STYLE,
+                    reason,
+                    context.firstPosition(body),
+                    TokenEdit.Bias.OUTERMOST_FIRST,
+                    "yield"
+                ));
                 children.add(GreenNode.branch(
-                        SyntaxKind.YIELD_STATEMENT,
-                        List.of(
-                                Synthetic.contextualKeyword("yield"),
-                                body.children().getFirst(),
-                                body.children().getLast())));
+                    SyntaxKind.YIELD_STATEMENT,
+                    List.of(Synthetic.contextualKeyword("yield"), body.children().getFirst(), body.children().getLast())
+                ));
             } else {
                 context.record(TokenEdit.insert(
-                        SwitchRules.CASE_STYLE,
-                        reason,
-                        context.endPosition(body),
-                        TokenEdit.Bias.INNERMOST_FIRST,
-                        "break",
-                        ";"));
+                    SwitchRules.CASE_STYLE,
+                    reason,
+                    context.endPosition(body),
+                    TokenEdit.Bias.INNERMOST_FIRST,
+                    "break",
+                    ";"
+                ));
                 children.add(body);
                 children.add(GreenNode.branch(
-                        SyntaxKind.BREAK_STATEMENT,
-                        List.of(Synthetic.keyword("break"), Synthetic.separator(";"))));
+                    SyntaxKind.BREAK_STATEMENT,
+                    List.of(Synthetic.keyword("break"), Synthetic.separator(";"))
+                ));
             }
             converted.add(GreenNode.branch(SyntaxKind.SWITCH_CASE, children));
         }
@@ -407,9 +419,9 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     private static boolean isDefault(GreenNode switchCase) {
         List<GreenNode> labels = labelsOf(switchCase);
-        return labels.size() == 1
-                && labels.getFirst() instanceof GreenNode.Leaf leaf
-                && leaf.decodedLexeme().equals("default");
+        return labels.size() == 1 &&
+            labels.getFirst() instanceof GreenNode.Leaf leaf &&
+            leaf.decodedLexeme().equals("default");
     }
 
     /** An unlabelled {@code break;}, which is the terminator an arrow case does not need. */
@@ -419,11 +431,11 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     /** Whether a statement cannot fall out of the bottom of its group. */
     private static boolean leavesTheSwitch(GreenNode statement) {
-        return statement.kind() == SyntaxKind.RETURN_STATEMENT
-                || statement.kind() == SyntaxKind.THROW_STATEMENT
-                || statement.kind() == SyntaxKind.YIELD_STATEMENT
-                || statement.kind() == SyntaxKind.CONTINUE_STATEMENT
-                || statement.kind() == SyntaxKind.BREAK_STATEMENT;
+        return statement.kind() == SyntaxKind.RETURN_STATEMENT ||
+            statement.kind() == SyntaxKind.THROW_STATEMENT ||
+            statement.kind() == SyntaxKind.YIELD_STATEMENT ||
+            statement.kind() == SyntaxKind.CONTINUE_STATEMENT ||
+            statement.kind() == SyntaxKind.BREAK_STATEMENT;
     }
 
     /** {@code yield e;} and nothing else, which an arrow body can be written as directly. */
@@ -459,15 +471,15 @@ public final class SwitchCaseRewrite implements Rewrite {
     }
 
     private static boolean bindsBreak(SyntaxKind kind) {
-        return kind == SyntaxKind.FOR_STATEMENT
-                || kind == SyntaxKind.ENHANCED_FOR_STATEMENT
-                || kind == SyntaxKind.WHILE_STATEMENT
-                || kind == SyntaxKind.DO_STATEMENT
-                || kind == SyntaxKind.SWITCH_STATEMENT
-                || kind == SyntaxKind.SWITCH_EXPRESSION
-                || kind == SyntaxKind.LAMBDA_EXPRESSION
-                || kind == SyntaxKind.ANONYMOUS_CLASS_BODY
-                || kind == SyntaxKind.CLASS_BODY;
+        return kind == SyntaxKind.FOR_STATEMENT ||
+            kind == SyntaxKind.ENHANCED_FOR_STATEMENT ||
+            kind == SyntaxKind.WHILE_STATEMENT ||
+            kind == SyntaxKind.DO_STATEMENT ||
+            kind == SyntaxKind.SWITCH_STATEMENT ||
+            kind == SyntaxKind.SWITCH_EXPRESSION ||
+            kind == SyntaxKind.LAMBDA_EXPRESSION ||
+            kind == SyntaxKind.ANONYMOUS_CLASS_BODY ||
+            kind == SyntaxKind.CLASS_BODY;
     }
 
 }

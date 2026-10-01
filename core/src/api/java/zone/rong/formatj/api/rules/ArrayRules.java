@@ -7,11 +7,12 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class ArrayRules {
 
     public static final Option<BracketStyle> C_STYLE_BRACKETS = Option.ofEnum(
-            "arrays.c-style-brackets",
-            BracketStyle.PRESERVE,
-            "Placement of array brackets on declared variables");
+        "arrays.c-style-brackets",
+        BracketStyle.PRESERVE,
+        "Placement of array brackets on declared variables"
+    );
 
-    private ArrayRules() {}
+    private ArrayRules() { }
 
     /** Fluent view of the {@code arrays.*} rules. */
     public static final class Builder {

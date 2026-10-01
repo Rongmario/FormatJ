@@ -1,9 +1,5 @@
 package zone.rong.formatj.core.pipeline;
 
-import zone.rong.formatj.api.SourceRange;
-import zone.rong.formatj.core.lexer.JavaLexer;
-import zone.rong.formatj.core.lexer.Token;
-import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +7,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import zone.rong.formatj.api.SourceRange;
+import zone.rong.formatj.core.lexer.JavaLexer;
+import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.lexer.TokenKind;
 
 /**
  * Line-oriented diff between the original source and a whole-file formatting result, used to keep
@@ -24,7 +25,7 @@ final class LineDiffer {
     private static final int MAX_ANCHOR_SCANS = 200_000;
     private static final int MAX_REFINEMENT_CHARACTERS = 2_000_000;
 
-    private LineDiffer() {}
+    private LineDiffer() { }
 
     static String splice(String original, String formatted, List<SourceRange> ranges) {
         if (original.equals(formatted) || ranges.isEmpty()) {
@@ -112,15 +113,15 @@ final class LineDiffer {
         int originalEnd = window.originalEnd;
         int formattedStart = window.formattedStart;
         int formattedEnd = window.formattedEnd;
-        while (originalStart < originalEnd
-                && formattedStart < formattedEnd
-                && original.get(originalStart).equals(formatted.get(formattedStart))) {
+        while (originalStart < originalEnd &&
+            formattedStart < formattedEnd &&
+            original.get(originalStart).equals(formatted.get(formattedStart))) {
             originalStart++;
             formattedStart++;
         }
-        while (originalStart < originalEnd
-                && formattedStart < formattedEnd
-                && original.get(originalEnd - 1).equals(formatted.get(formattedEnd - 1))) {
+        while (originalStart < originalEnd &&
+            formattedStart < formattedEnd &&
+            original.get(originalEnd - 1).equals(formatted.get(formattedEnd - 1))) {
             originalEnd--;
             formattedEnd--;
         }
@@ -128,10 +129,11 @@ final class LineDiffer {
     }
 
     private static void addBoundedHunks(
-            List<String> original,
-            List<String> formatted,
-            Window window,
-            List<Hunk> hunks) {
+        List<String> original,
+        List<String> formatted,
+        Window window,
+        List<Hunk> hunks
+    ) {
         int n = window.originalLength();
         int m = window.formattedLength();
         int width = m + 1;
@@ -152,13 +154,14 @@ final class LineDiffer {
         int formattedStart = -1;
         while (originalLine < n && formattedLine < m) {
             if (original.get(window.originalStart + originalLine)
-                    .equals(formatted.get(window.formattedStart + formattedLine))) {
+                .equals(formatted.get(window.formattedStart + formattedLine))) {
                 if (originalStart >= 0) {
                     hunks.add(new Hunk(
-                            window.originalStart + originalStart,
-                            window.originalStart + originalLine,
-                            window.formattedStart + formattedStart,
-                            window.formattedStart + formattedLine));
+                        window.originalStart + originalStart,
+                        window.originalStart + originalLine,
+                        window.formattedStart + formattedStart,
+                        window.formattedStart + formattedLine
+                    ));
                     originalStart = -1;
                     formattedStart = -1;
                 }
@@ -169,8 +172,8 @@ final class LineDiffer {
                     originalStart = originalLine;
                     formattedStart = formattedLine;
                 }
-                if (longest[(originalLine + 1) * width + formattedLine]
-                        >= longest[originalLine * width + formattedLine + 1]) {
+                if (longest[(originalLine + 1) * width + formattedLine] >=
+                    longest[originalLine * width + formattedLine + 1]) {
                     originalLine++;
                 } else {
                     formattedLine++;
@@ -187,10 +190,11 @@ final class LineDiffer {
         }
         if (originalStart >= 0) {
             hunks.add(new Hunk(
-                    window.originalStart + originalStart,
-                    window.originalStart + originalLine,
-                    window.formattedStart + formattedStart,
-                    window.formattedStart + formattedLine));
+                window.originalStart + originalStart,
+                window.originalStart + originalLine,
+                window.formattedStart + formattedStart,
+                window.formattedStart + formattedLine
+            ));
         }
     }
 
@@ -204,17 +208,18 @@ final class LineDiffer {
     }
 
     private static void refine(
-            Split original,
-            Split formatted,
-            Hunk hunk,
-            RefinementBudget budget,
-            List<Hunk> refined) {
+        Split original,
+        Split formatted,
+        Hunk hunk,
+        RefinementBudget budget,
+        List<Hunk> refined
+    ) {
         if (hunk.originalEnd - hunk.originalStart < 2 || hunk.formattedEnd - hunk.formattedStart < 2) {
             refined.add(hunk);
             return;
         }
-        long characters = contentLength(original.content, hunk.originalStart, hunk.originalEnd)
-                + contentLength(formatted.content, hunk.formattedStart, hunk.formattedEnd);
+        long characters = contentLength(original.content, hunk.originalStart, hunk.originalEnd) +
+            contentLength(formatted.content, hunk.formattedStart, hunk.formattedEnd);
         if (!budget.claim(characters)) {
             refined.add(hunk);
             return;
@@ -238,14 +243,14 @@ final class LineDiffer {
             if (length <= lastLength || !original.safeBreaks[originalBoundary]) {
                 continue;
             }
-            while (formattedBoundary < hunk.formattedEnd
-                    && formattedLengths[formattedBoundary - hunk.formattedStart] < length) {
+            while (formattedBoundary < hunk.formattedEnd &&
+                formattedLengths[formattedBoundary - hunk.formattedStart] < length) {
                 formattedBoundary++;
             }
             int candidate = formattedBoundary;
-            while (candidate < hunk.formattedEnd
-                    && formattedLengths[candidate - hunk.formattedStart] == length
-                    && !formatted.safeBreaks[candidate]) {
+            while (candidate < hunk.formattedEnd &&
+                formattedLengths[candidate - hunk.formattedStart] == length &&
+                !formatted.safeBreaks[candidate]) {
                 candidate++;
             }
             if (candidate >= hunk.formattedEnd || formattedLengths[candidate - hunk.formattedStart] != length) {
@@ -261,16 +266,17 @@ final class LineDiffer {
     }
 
     private static void addIfChanged(
-            Split original,
-            Split formatted,
-            int originalStart,
-            int originalEnd,
-            int formattedStart,
-            int formattedEnd,
-            List<Hunk> hunks) {
+        Split original,
+        Split formatted,
+        int originalStart,
+        int originalEnd,
+        int formattedStart,
+        int formattedEnd,
+        List<Hunk> hunks
+    ) {
         if (!original.lines
-                .subList(originalStart, originalEnd)
-                .equals(formatted.lines.subList(formattedStart, formattedEnd))) {
+            .subList(originalStart, originalEnd)
+            .equals(formatted.lines.subList(formattedStart, formattedEnd))) {
             hunks.add(new Hunk(originalStart, originalEnd, formattedStart, formattedEnd));
         }
     }
@@ -314,8 +320,8 @@ final class LineDiffer {
 
     private static boolean selectedLines(Split original, Hunk hunk, List<SourceRange> ranges) {
         for (int line = hunk.originalStart; line < hunk.originalEnd; line++) {
-            if (!original.lines.get(line).isBlank()
-                    && !overlaps(ranges, original.offsetOfLine(line), original.offsetOfLine(line + 1))) {
+            if (!original.lines.get(line).isBlank() &&
+                !overlaps(ranges, original.offsetOfLine(line), original.offsetOfLine(line + 1))) {
                 return false;
             }
         }
@@ -379,12 +385,13 @@ final class LineDiffer {
 
     }
 
-    private record Anchor(int originalLine, int formattedLine) {}
+    private record Anchor(int originalLine, int formattedLine) { }
 
     private record AnchorIndex(
-            List<String> originalLines,
-            Map<String, Integer> originalPositions,
-            Map<String, Integer> formattedPositions) {
+        List<String> originalLines,
+        Map<String, Integer> originalPositions,
+        Map<String, Integer> formattedPositions
+    ) {
 
         static AnchorIndex of(List<String> original, List<String> formatted) {
             if ((long) original.size() + formatted.size() > MAX_ANCHOR_LINES) {
@@ -404,10 +411,10 @@ final class LineDiffer {
                     continue;
                 }
                 Integer formattedLine = formattedPositions.get(line);
-                if (formattedLine != null
-                        && formattedLine >= window.formattedStart
-                        && formattedLine < window.formattedEnd
-                        && reliable(line)) {
+                if (formattedLine != null &&
+                    formattedLine >= window.formattedStart &&
+                    formattedLine < window.formattedEnd &&
+                    reliable(line)) {
                     candidates.add(new Anchor(i, formattedLine));
                 }
             }
@@ -480,15 +487,16 @@ final class LineDiffer {
 
     }
 
-    record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) {}
+    record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) { }
 
     record Split(
-            List<String> lines,
-            List<String> endings,
-            List<String> content,
-            int[] offsets,
-            boolean[] safeBreaks,
-            int sourceLength) {
+        List<String> lines,
+        List<String> endings,
+        List<String> content,
+        int[] offsets,
+        boolean[] safeBreaks,
+        int sourceLength
+    ) {
 
         int offsetOfLine(int index) {
             if (index < 0) {
@@ -508,7 +516,7 @@ final class LineDiffer {
 
         static Split of(String text) {
             if (text.isEmpty()) {
-                return new Split(List.of(), List.of(), List.of(), new int[0], new boolean[] {true}, 0);
+                return new Split(List.of(), List.of(), List.of(), new int[0], new boolean[] { true }, 0);
             }
             List<String> lines = new ArrayList<>();
             List<String> endings = new ArrayList<>();
@@ -536,12 +544,13 @@ final class LineDiffer {
             }
             LexicalLines lexical = lexicalLines(text, offsets);
             return new Split(
-                    List.copyOf(lines),
-                    List.copyOf(endings),
-                    lexical.content,
-                    offsets,
-                    lexical.safeBreaks,
-                    text.length());
+                List.copyOf(lines),
+                List.copyOf(endings),
+                lexical.content,
+                offsets,
+                lexical.safeBreaks,
+                text.length()
+            );
         }
 
         private static LexicalLines lexicalLines(String text, int[] offsets) {
@@ -581,6 +590,6 @@ final class LineDiffer {
 
     }
 
-    private record LexicalLines(List<String> content, boolean[] safeBreaks) {}
+    private record LexicalLines(List<String> content, boolean[] safeBreaks) { }
 
 }

@@ -55,10 +55,11 @@ final class TranslatedSource {
         }
 
         return new TranslatedSource(
-                raw,
-                java.util.Arrays.copyOf(characters, size),
-                java.util.Arrays.copyOf(rawStarts, size),
-                java.util.Arrays.copyOf(rawEnds, size));
+            raw,
+            java.util.Arrays.copyOf(characters, size),
+            java.util.Arrays.copyOf(rawStarts, size),
+            java.util.Arrays.copyOf(rawEnds, size)
+        );
     }
 
     int length() {

@@ -48,13 +48,14 @@ public final class Option<T> {
 
     /** {@code minValue} only matters for {@link Kind#INTEGER} and {@link Kind#INHERITABLE_INTEGER}. */
     private Option(
-            String key,
-            Kind kind,
-            Class<T> type,
-            Class<?> valueType,
-            T defaultValue,
-            int minValue,
-            String description) {
+        String key,
+        Kind kind,
+        Class<T> type,
+        Class<?> valueType,
+        T defaultValue,
+        int minValue,
+        String description
+    ) {
         this.key = Objects.requireNonNull(key, "key");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.type = Objects.requireNonNull(type, "type");
@@ -87,18 +88,19 @@ public final class Option<T> {
     }
 
     /** An integer option whose {@code inherit} value defers to another rule. */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Option<Inheritable<Integer>> ofInheritableInt(String key, String description) {
         Class<Inheritable<Integer>> type = (Class) Inheritable.class;
         return new Option<>(key, Kind.INHERITABLE_INTEGER, type, Integer.class, Inheritable.inherit(), 0, description);
     }
 
     /** An enum option whose {@code inherit} value defers to another rule. */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static <E extends Enum<E>> Option<Inheritable<E>> ofInheritableEnum(
-            String key,
-            Class<E> valueType,
-            String description) {
+        String key,
+        Class<E> valueType,
+        String description
+    ) {
         Class<Inheritable<E>> type = (Class) Inheritable.class;
         return new Option<>(key, Kind.INHERITABLE_ENUM, type, valueType, Inheritable.inherit(), description);
     }
@@ -110,11 +112,12 @@ public final class Option<T> {
      * {@code java} followed by one group of {@code a} and {@code b}. A bare string is the common case
      * and stays writable as one.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Option<List<List<String>>> ofStringGroups(
-            String key,
-            List<List<String>> defaultValue,
-            String description) {
+        String key,
+        List<List<String>> defaultValue,
+        String description
+    ) {
         Class<List<List<String>>> type = (Class) List.class;
         return new Option<>(key, Kind.STRING_GROUPS, type, copyGroups(defaultValue), description);
     }
@@ -164,18 +167,21 @@ public final class Option<T> {
                 return type.cast(copyGroups(list));
             }
             throw new IllegalArgumentException(
-                    key + " expects a list of string groups, got " + value.getClass().getName());
+                key + " expects a list of string groups, got " + value.getClass().getName()
+            );
         }
         if (kind == Kind.INHERITABLE_INTEGER || kind == Kind.INHERITABLE_ENUM) {
             if (!(value instanceof Inheritable<?> inheritable)) {
                 throw new IllegalArgumentException(
-                        key + " expects Inheritable, got " + value.getClass().getSimpleName());
+                    key + " expects Inheritable, got " + value.getClass().getSimpleName()
+                );
             }
             Object override = inheritable.override();
             if (override != null && !valueType.isInstance(override)) {
                 throw new IllegalArgumentException(
-                        key + " expects an inherited " + valueType.getSimpleName() + ", got "
-                                + override.getClass().getSimpleName());
+                    key + " expects an inherited " + valueType.getSimpleName() + ", got " +
+                        override.getClass().getSimpleName()
+                );
             }
             if (kind == Kind.INHERITABLE_INTEGER && override != null) {
                 requireMin((Integer) override);
@@ -184,7 +190,8 @@ public final class Option<T> {
         }
         if (!type.isInstance(value)) {
             throw new IllegalArgumentException(
-                    key + " expects " + type.getSimpleName() + ", got " + value.getClass().getSimpleName());
+                key + " expects " + type.getSimpleName() + ", got " + value.getClass().getSimpleName()
+            );
         }
         if (kind == Kind.INTEGER) {
             requireMin((Integer) value);

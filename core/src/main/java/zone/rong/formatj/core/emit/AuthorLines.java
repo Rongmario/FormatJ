@@ -31,11 +31,11 @@ import zone.rong.formatj.core.lexer.Token;
  */
 final class AuthorLines {
 
-    private AuthorLines() {}
+    private AuthorLines() { }
 
     /** Whether the author wrote every token of this node on one line. */
     static boolean onOneLine(GreenNode node) {
-        return scan(node, new boolean[] {true});
+        return scan(node, new boolean[] { true });
     }
 
     /** Whether the author put a line break anywhere inside this node. */
@@ -95,7 +95,7 @@ final class AuthorLines {
 
     /** The token at {@code index} in this node's token order, or {@code null} if there is none. */
     private static SyntaxToken tokenAt(GreenNode node, int index) {
-        return tokenAt(node, new int[] {index});
+        return tokenAt(node, new int[] { index });
     }
 
     private static SyntaxToken tokenAt(GreenNode node, int[] remaining) {

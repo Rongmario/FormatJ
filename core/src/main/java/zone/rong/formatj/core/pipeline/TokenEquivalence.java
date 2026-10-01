@@ -1,12 +1,13 @@
 package zone.rong.formatj.core.pipeline;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.text.TextBlocks;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Checks that formatting changed layout only.
@@ -23,7 +24,7 @@ import java.util.List;
  */
 public final class TokenEquivalence {
 
-    private TokenEquivalence() {}
+    private TokenEquivalence() { }
 
     /** Whether the two sources differ only in whitespace and comments. */
     public static boolean equivalent(String before, String after) {
@@ -57,9 +58,9 @@ public final class TokenEquivalence {
         if (left.equals(right)) {
             return true;
         }
-        return TextBlocks.isTextBlock(left)
-                && TextBlocks.isTextBlock(right)
-                && TextBlocks.value(left).equals(TextBlocks.value(right));
+        return TextBlocks.isTextBlock(left) &&
+            TextBlocks.isTextBlock(right) &&
+            TextBlocks.value(left).equals(TextBlocks.value(right));
     }
 
     private static String firstDifference(List<String> left, List<String> right) {

@@ -1,13 +1,14 @@
 package zone.rong.formatj.core.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Types, patterns and expressions.
@@ -20,29 +21,31 @@ import java.util.Set;
 abstract class ExpressionParser extends ParserBase {
 
     protected static final Set<String> PRIMITIVE_TYPES = Set.of(
-            "boolean",
-            "byte",
-            "char",
-            "short",
-            "int",
-            "long",
-            "float",
-            "double",
-            "void");
+        "boolean",
+        "byte",
+        "char",
+        "short",
+        "int",
+        "long",
+        "float",
+        "double",
+        "void"
+    );
 
     private static final Set<String> ASSIGNMENT_OPERATORS = Set.of(
-            "=",
-            "+=",
-            "-=",
-            "*=",
-            "/=",
-            "%=",
-            "&=",
-            "|=",
-            "^=",
-            "<<=",
-            ">>=",
-            ">>>=");
+        "=",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "&=",
+        "|=",
+        "^=",
+        "<<=",
+        ">>=",
+        ">>>="
+    );
 
     protected static final Set<String> LITERAL_KEYWORDS = Set.of("true", "false", "null");
 
@@ -465,20 +468,20 @@ abstract class ExpressionParser extends ParserBase {
             // For a reference type only an operand may follow; (a) + b is addition, not a cast.
             // A primitive type keyword only ever starts an operand here as a class literal,
             // e.g. (Class<Object>) int.class.
-            return next.kind() == TokenKind.IDENTIFIER
-                    || next.kind() == TokenKind.STRING_LITERAL
-                    || next.kind() == TokenKind.TEXT_BLOCK
-                    || next.kind() == TokenKind.CHAR_LITERAL
-                    || next.kind() == TokenKind.NUMBER_LITERAL
-                    || next.is("(")
-                    || next.is("!")
-                    || next.is("~")
-                    || next.is("this")
-                    || next.is("super")
-                    || next.is("new")
-                    || next.is("switch")
-                    || LITERAL_KEYWORDS.contains(next.decodedText())
-                    || PRIMITIVE_TYPES.contains(next.decodedText());
+            return next.kind() == TokenKind.IDENTIFIER ||
+                next.kind() == TokenKind.STRING_LITERAL ||
+                next.kind() == TokenKind.TEXT_BLOCK ||
+                next.kind() == TokenKind.CHAR_LITERAL ||
+                next.kind() == TokenKind.NUMBER_LITERAL ||
+                next.is("(") ||
+                next.is("!") ||
+                next.is("~") ||
+                next.is("this") ||
+                next.is("super") ||
+                next.is("new") ||
+                next.is("switch") ||
+                LITERAL_KEYWORDS.contains(next.decodedText()) ||
+                PRIMITIVE_TYPES.contains(next.decodedText());
         } catch (ParseFailure failure) {
             return false;
         } finally {
@@ -607,7 +610,7 @@ abstract class ExpressionParser extends ParserBase {
         Token token = peek();
         return switch (token.kind()) {
             case NUMBER_LITERAL, STRING_LITERAL, CHAR_LITERAL, TEXT_BLOCK ->
-                    branch(SyntaxKind.LITERAL, List.of(advance()));
+                branch(SyntaxKind.LITERAL, List.of(advance()));
             case IDENTIFIER -> parseIdentifierPrimary();
             case KEYWORD -> parseKeywordPrimary(token);
             case SEPARATOR -> parseSeparatorPrimary(token);

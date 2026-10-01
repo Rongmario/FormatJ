@@ -1,8 +1,5 @@
 package zone.rong.formatj.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
@@ -19,7 +16,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
+
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The public, dependency-free API against a committed source and binary surface baseline.
@@ -41,9 +42,10 @@ class ApiCompatibilityTest {
         assertTrue(Files.isRegularFile(BASELINE), () -> "missing API baseline: " + BASELINE.toAbsolutePath());
         String expected = Files.readString(BASELINE, StandardCharsets.UTF_8);
         assertEquals(
-                expected,
-                dump(),
-                "public API drifted from " + BASELINE + "; update the baseline if this is intentional");
+            expected,
+            dump(),
+            "public API drifted from " + BASELINE + "; update the baseline if this is intentional"
+        );
     }
 
     @Test
@@ -104,16 +106,15 @@ class ApiCompatibilityTest {
         Path root = apiSources();
         try (var files = Files.walk(root)) {
             List<Class<?>> types = new ArrayList<>();
-            files.filter(path -> path.toString().endsWith(".java"))
-                    .forEach(path -> {
-                        String relative = root.relativize(path).toString().replace('/', '.').replace('\\', '.');
-                        String name = relative.substring(0, relative.length() - 5);
-                        try {
-                            types.add(Class.forName(name));
-                        } catch (ClassNotFoundException e) {
-                            throw new IllegalStateException(name, e);
-                        }
-                    });
+            files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
+                String relative = root.relativize(path).toString().replace('/', '.').replace('\\', '.');
+                String name = relative.substring(0, relative.length() - 5);
+                try {
+                    types.add(Class.forName(name));
+                } catch (ClassNotFoundException e) {
+                    throw new IllegalStateException(name, e);
+                }
+            });
             if (types.size() <= 10) {
                 throw new IllegalStateException("API source walk should find public types, found " + types.size());
             }
@@ -238,9 +239,9 @@ class ApiCompatibilityTest {
     private static String constantValue(Field field) {
         int modifiers = field.getModifiers();
         Class<?> type = field.getType();
-        if (!Modifier.isStatic(modifiers)
-                || !Modifier.isFinal(modifiers)
-                || (!type.isPrimitive() && type != String.class)) {
+        if (!Modifier.isStatic(modifiers) ||
+            !Modifier.isFinal(modifiers) ||
+            (!type.isPrimitive() && type != String.class)) {
             return null;
         }
         try {

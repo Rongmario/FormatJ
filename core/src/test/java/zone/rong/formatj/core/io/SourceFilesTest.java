@@ -1,15 +1,16 @@
 package zone.rong.formatj.core.io;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SourceFilesTest {
 
@@ -20,7 +21,7 @@ class SourceFilesTest {
 
     @Test
     void failsWithTheByteOffsetInsteadOfReplacingTheBadByte() {
-        byte[] bytes = {'a', 'b', (byte) 0xFF};
+        byte[] bytes = { 'a', 'b', (byte) 0xFF };
         IOException failure = assertThrows(IOException.class, () -> SourceFiles.decode(bytes, StandardCharsets.UTF_8));
         assertTrue(failure.getMessage().contains("not valid UTF-8"), failure.getMessage());
         assertTrue(failure.getMessage().contains("byte 3"), failure.getMessage());

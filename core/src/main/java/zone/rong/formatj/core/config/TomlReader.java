@@ -17,7 +17,7 @@ import java.util.Set;
  */
 public final class TomlReader {
 
-    private TomlReader() {}
+    private TomlReader() { }
 
     /**
      * Flattens a TOML document to dotted key to raw value text.

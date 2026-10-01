@@ -19,7 +19,7 @@ import java.util.List;
  */
 public final class TextBlocks {
 
-    private TextBlocks() {}
+    private TextBlocks() { }
 
     /** Whether a lexeme is a text block rather than an ordinary string literal. */
     public static boolean isTextBlock(String lexeme) {
@@ -192,7 +192,8 @@ public final class TextBlocks {
                 case '\'' -> out.append('\'');
                 case '\\' -> out.append('\\');
                 // A backslash at the end of a line joins it to the next, producing nothing itself.
-                case '\n' -> {}
+                case '\n' -> {
+                }
                 default -> {
                     if (next >= '0' && next <= '7') {
                         i = octal(text, i, out);

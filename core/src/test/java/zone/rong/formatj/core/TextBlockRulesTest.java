@@ -1,11 +1,8 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.LanguageLevel;
@@ -18,8 +15,12 @@ import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.pipeline.RewriteVerification;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import zone.rong.formatj.core.text.TextBlocks;
-import java.util.List;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The text block rules, and the one thing they are all measured against: the string the block
@@ -38,10 +39,10 @@ class TextBlockRulesTest {
 
     private static FormatResult format(Style style, String block) {
         return FormatJ.newFormatter()
-                .style(style)
-                .languageLevel(LanguageLevel.LATEST)
-                .build()
-                .format(FormatRequest.of(source(block)).withName("T.java"));
+            .style(style)
+            .languageLevel(LanguageLevel.LATEST)
+            .build()
+            .format(FormatRequest.of(source(block)).withName("T.java"));
     }
 
     /** The text block of the formatted output, read back out of it. */
@@ -77,8 +78,9 @@ class TextBlockRulesTest {
         assertEquals(emSpace, TextBlocks.value(block));
 
         FormatResult result = format(
-                Style.builder().set(TextBlockRules.INDENT_POLICY, TextBlockIndentPolicy.MINIMAL).build(),
-                block);
+            Style.builder().set(TextBlockRules.INDENT_POLICY, TextBlockIndentPolicy.MINIMAL).build(),
+            block
+        );
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals(emSpace, TextBlocks.value(blockOf(result.text())));
         assertTrue(result.text().contains(emSpace), result.text());
@@ -89,15 +91,17 @@ class TextBlockRulesTest {
     @Test
     void reindentingMovesTheBlockAndNotTheString() {
         for (TextBlockIndentPolicy policy : List.of(
-                TextBlockIndentPolicy.REINDENT_TO_BLOCK,
-                TextBlockIndentPolicy.MINIMAL)) {
+            TextBlockIndentPolicy.REINDENT_TO_BLOCK,
+            TextBlockIndentPolicy.MINIMAL
+        )) {
             FormatResult result = format(Style.builder().set(TextBlockRules.INDENT_POLICY, policy).build(), BLOCK);
             assertFalse(result.hasErrors(), () -> policy + ": " + result.diagnostics());
             String rewritten = blockOf(result.text());
             assertEquals(TextBlocks.value(BLOCK), TextBlocks.value(rewritten), policy.toString());
             assertTrue(
-                    rewritten.contains("\n        select *") || rewritten.contains("\n               select *"),
-                    policy + " produced " + rewritten);
+                rewritten.contains("\n        select *") || rewritten.contains("\n               select *"),
+                policy + " produced " + rewritten
+            );
         }
     }
 
@@ -113,8 +117,9 @@ class TextBlockRulesTest {
     void theClosingDelimiterRuleAddsTheLineTerminatorItImplies() {
         String inline = "\"\"\"\n        a\n        b\"\"\"";
         FormatResult result = format(
-                Style.builder().set(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE, true).build(),
-                inline);
+            Style.builder().set(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE, true).build(),
+            inline
+        );
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         assertEquals("a\nb\n", TextBlocks.value(blockOf(result.text())));
     }
@@ -148,15 +153,17 @@ class TextBlockRulesTest {
     void anEditThatChangesTheContentFailsTheLaw() {
         GreenNode tree = tree();
         String problem = RewriteVerification.verifyOutput(
-                tree,
-                tree,
-                List.of(new TokenEdit(
-                        TextBlockRules.ESCAPE_TRAILING_SPACES,
-                        "quietly editing the query",
-                        blockPosition(tree),
-                        List.of(BLOCK),
-                        List.of("\"\"\"\n        delete *\n          from t\n        \"\"\""),
-                        TokenEdit.Bias.INNERMOST_FIRST)));
+            tree,
+            tree,
+            List.of(new TokenEdit(
+                TextBlockRules.ESCAPE_TRAILING_SPACES,
+                "quietly editing the query",
+                blockPosition(tree),
+                List.of(BLOCK),
+                List.of("\"\"\"\n        delete *\n          from t\n        \"\"\""),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("what the text block says"), problem);
     }
@@ -165,15 +172,17 @@ class TextBlockRulesTest {
     void anEditThatOnlyMovesTheEndSatisfiesTheLaw() {
         GreenNode tree = tree();
         String problem = RewriteVerification.verifyOutput(
-                tree,
-                tree,
-                List.of(new TokenEdit(
-                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
-                        "moving the delimiter",
-                        blockPosition(tree),
-                        List.of(BLOCK),
-                        List.of(BLOCK),
-                        TokenEdit.Bias.INNERMOST_FIRST)));
+            tree,
+            tree,
+            List.of(new TokenEdit(
+                TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
+                "moving the delimiter",
+                blockPosition(tree),
+                List.of(BLOCK),
+                List.of(BLOCK),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ))
+        );
         assertNull(problem);
     }
 
@@ -181,15 +190,17 @@ class TextBlockRulesTest {
     void anEditThatIsNotAWholeTextBlockFailsTheLaw() {
         GreenNode tree = tree();
         String problem = RewriteVerification.verifyOutput(
-                tree,
-                tree,
-                List.of(new TokenEdit(
-                        TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
-                        "reaching outside the block",
-                        blockPosition(tree),
-                        List.of(BLOCK),
-                        List.of("\"a\""),
-                        TokenEdit.Bias.INNERMOST_FIRST)));
+            tree,
+            tree,
+            List.of(new TokenEdit(
+                TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE,
+                "reaching outside the block",
+                blockPosition(tree),
+                List.of(BLOCK),
+                List.of("\"a\""),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ))
+        );
         assertNotNull(problem);
         assertTrue(problem.contains("one whole text block"), problem);
     }

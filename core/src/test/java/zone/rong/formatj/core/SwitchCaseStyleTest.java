@@ -1,16 +1,16 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.SwitchCaseStyle;
 import zone.rong.formatj.api.rules.SwitchRules;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@code switch.case-style}, and the switches it has to refuse.
@@ -24,10 +24,10 @@ class SwitchCaseStyleTest {
     private static String format(SwitchCaseStyle caseStyle, String body) {
         String source = "class T {\n\n" + body + "\n}\n";
         FormatResult result = FormatJ.newFormatter()
-                .style(Style.builder().set(SwitchRules.CASE_STYLE, caseStyle).build())
-                .languageLevel(LanguageLevel.LATEST)
-                .build()
-                .format(FormatRequest.of(source).withName("T.java"));
+            .style(Style.builder().set(SwitchRules.CASE_STYLE, caseStyle).build())
+            .languageLevel(LanguageLevel.LATEST)
+            .build()
+            .format(FormatRequest.of(source).withName("T.java"));
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
         return result.text();
     }
@@ -41,8 +41,8 @@ class SwitchCaseStyleTest {
     @Test
     void aGroupThatCannotFallThroughConverts() {
         String formatted = format(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -52,7 +52,8 @@ class SwitchCaseStyleTest {
                                 h(n);
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1 -> g(n);"), formatted);
         assertTrue(formatted.contains("default -> h(n);"), formatted);
     }
@@ -60,8 +61,8 @@ class SwitchCaseStyleTest {
     @Test
     void emptyCasesBecomeMoreLabelsOnTheOneBelowThem() {
         String formatted = format(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -71,15 +72,16 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1, 2, 3 -> g(n);"), formatted);
     }
 
     @Test
     void aGroupWithSeveralStatementsGetsABlock() {
         String formatted = format(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -88,22 +90,24 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1 -> {"), formatted);
     }
 
     @Test
     void aLoneYieldBecomesAnExpressionBody() {
         String formatted = format(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     int f(int n) {
                         return switch (n) {
                             case 1: yield 2;
                             default: yield 3;
                         };
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1 -> 2;"), formatted);
         assertTrue(formatted.contains("default -> 3;"), formatted);
     }
@@ -111,8 +115,8 @@ class SwitchCaseStyleTest {
     @Test
     void aSwitchThatFallsThroughIsRefused() {
         unchanged(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -122,14 +126,15 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
     }
 
     @Test
     void aGroupDeclaringALocalIsRefused() {
         unchanged(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -140,14 +145,15 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
     }
 
     @Test
     void aGroupDeclaringALocalClassIsRefused() {
         unchanged(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -158,14 +164,15 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
     }
 
     @Test
     void aBreakThatLeavesTheSwitchFromInsideTheGroupIsRefused() {
         unchanged(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -178,14 +185,15 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
     }
 
     @Test
     void aBreakBelongingToANestedLoopDoesNotStopTheConversion() {
         String formatted = format(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1:
@@ -197,15 +205,16 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1 -> {"), formatted);
     }
 
     @Test
     void aGuardedLabelIsNotMergedWithTheEmptyCasesAboveIt() {
         unchanged(
-                SwitchCaseStyle.ARROW,
-                """
+            SwitchCaseStyle.ARROW,
+            """
                     void f(Object o) {
                         switch (o) {
                             case Integer i:
@@ -216,7 +225,8 @@ class SwitchCaseStyleTest {
                                 break;
                         }
                     }
-                """);
+                """
+        );
     }
 
     // --------------------------------------------------------- arrow to colon
@@ -224,15 +234,16 @@ class SwitchCaseStyleTest {
     @Test
     void anExpressionBodyGetsItsBreakBack() {
         String formatted = format(
-                SwitchCaseStyle.COLON,
-                """
+            SwitchCaseStyle.COLON,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1, 2 -> g(n);
                             default -> throw new IllegalStateException();
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1, 2:"), formatted);
         assertTrue(formatted.contains("break;"), formatted);
         assertFalse(formatted.contains("IllegalStateException();\n                break;"), formatted);
@@ -241,15 +252,16 @@ class SwitchCaseStyleTest {
     @Test
     void anExpressionSwitchGetsItsYieldBack() {
         String formatted = format(
-                SwitchCaseStyle.COLON,
-                """
+            SwitchCaseStyle.COLON,
+            """
                     int f(int n) {
                         return switch (n) {
                             case 1 -> 2;
                             default -> 3;
                         };
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("yield 2;"), formatted);
         assertTrue(formatted.contains("yield 3;"), formatted);
     }
@@ -257,8 +269,8 @@ class SwitchCaseStyleTest {
     @Test
     void aBlockBodyIsRefusedBecauseNobodyKnowsWhereTheBreakGoes() {
         String formatted = format(
-                SwitchCaseStyle.COLON,
-                """
+            SwitchCaseStyle.COLON,
+            """
                     void f(int n) {
                         switch (n) {
                             case 1 -> {
@@ -268,7 +280,8 @@ class SwitchCaseStyleTest {
                             default -> h(n);
                         }
                     }
-                """);
+                """
+        );
         assertTrue(formatted.contains("case 1 -> {"), formatted);
         assertTrue(formatted.contains("default -> h(n);"), formatted);
     }

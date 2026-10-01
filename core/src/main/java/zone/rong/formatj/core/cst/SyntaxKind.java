@@ -154,22 +154,22 @@ public enum SyntaxKind {
 
     /** Whether nodes of this kind declare a type. */
     public boolean isTypeDeclaration() {
-        return this == CLASS_DECLARATION
-                || this == INTERFACE_DECLARATION
-                || this == ENUM_DECLARATION
-                || this == RECORD_DECLARATION
-                || this == ANNOTATION_TYPE_DECLARATION;
+        return this == CLASS_DECLARATION ||
+            this == INTERFACE_DECLARATION ||
+            this == ENUM_DECLARATION ||
+            this == RECORD_DECLARATION ||
+            this == ANNOTATION_TYPE_DECLARATION;
     }
 
     /** Whether nodes of this kind are members of a type body. */
     public boolean isMember() {
-        return isTypeDeclaration()
-                || this == FIELD_DECLARATION
-                || this == METHOD_DECLARATION
-                || this == CONSTRUCTOR_DECLARATION
-                || this == COMPACT_CONSTRUCTOR_DECLARATION
-                || this == ANNOTATION_ELEMENT_DECLARATION
-                || this == INITIALIZER_BLOCK;
+        return isTypeDeclaration() ||
+            this == FIELD_DECLARATION ||
+            this == METHOD_DECLARATION ||
+            this == CONSTRUCTOR_DECLARATION ||
+            this == COMPACT_CONSTRUCTOR_DECLARATION ||
+            this == ANNOTATION_ELEMENT_DECLARATION ||
+            this == INITIALIZER_BLOCK;
     }
 
 }

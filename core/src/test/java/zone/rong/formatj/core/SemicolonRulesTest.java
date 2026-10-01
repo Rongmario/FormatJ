@@ -1,10 +1,10 @@
 package zone.rong.formatj.core;
 
+import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.Style;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import zone.rong.formatj.api.Style;
-import org.junit.jupiter.api.Test;
 
 class SemicolonRulesTest {
 

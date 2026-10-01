@@ -6,8 +6,9 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /** Fails the build when a Java source is not formatted to the configured style. */
 @Mojo(
-        name = "check", defaultPhase = LifecyclePhase.VERIFY, requiresDependencyResolution = ResolutionScope.NONE,
-        threadSafe = true)
+    name = "check", defaultPhase = LifecyclePhase.VERIFY, requiresDependencyResolution = ResolutionScope.NONE,
+    threadSafe = true
+)
 public class CheckMojo extends AbstractFormatJMojo {
 
     @Override

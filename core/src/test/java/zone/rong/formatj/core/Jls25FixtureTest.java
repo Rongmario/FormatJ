@@ -1,16 +1,5 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
-
-import zone.rong.formatj.api.FormatRequest;
-import zone.rong.formatj.api.FormatResult;
-import zone.rong.formatj.api.Formatter;
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.core.parser.JavaParser;
-import zone.rong.formatj.core.parser.ParseResult;
-import zone.rong.formatj.core.pipeline.TokenEquivalence;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -20,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.FileObject;
@@ -29,8 +19,20 @@ import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
+
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.FormatResult;
+import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.core.parser.JavaParser;
+import zone.rong.formatj.core.parser.ParseResult;
+import zone.rong.formatj.core.pipeline.TokenEquivalence;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Fixtures under {@code src/test/resources/jls25} are standalone Java files a JDK accepts.
@@ -50,22 +52,22 @@ class Jls25FixtureTest {
     Stream<DynamicTest> everyFixtureCompilesParsesAndFormats() throws IOException {
         assertTrue(Files.isDirectory(FIXTURES), () -> "missing fixture directory: " + FIXTURES.toAbsolutePath());
         assumeTrue(
-                Runtime.version().feature() >= 25,
-                () -> "this JDK does not support --release 25: " + Runtime.version());
+            Runtime.version().feature() >= 25,
+            () -> "this JDK does not support --release 25: " + Runtime.version()
+        );
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         assumeTrue(compiler != null, "no system Java compiler available");
 
         try (Stream<Path> entries = Files.list(FIXTURES)) {
             List<Path> fixtures = entries.sorted().toList();
             assertTrue(!fixtures.isEmpty(), "no fixtures found under " + FIXTURES);
-            return fixtures.stream()
-                    .map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
-                        if (Files.isDirectory(path)) {
-                            testDirectoryFixture(compiler, path);
-                        } else {
-                            testSingleFileFixture(compiler, path);
-                        }
-                    }));
+            return fixtures.stream().map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
+                if (Files.isDirectory(path)) {
+                    testDirectoryFixture(compiler, path);
+                } else {
+                    testSingleFileFixture(compiler, path);
+                }
+            }));
         }
     }
 
@@ -82,8 +84,9 @@ class Jls25FixtureTest {
         FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
         assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
         assertTrue(
-                TokenEquivalence.equivalent(source, once.text()),
-                () -> "formatting changed the program: " + TokenEquivalence.firstDifference(source, once.text()));
+            TokenEquivalence.equivalent(source, once.text()),
+            () -> "formatting changed the program: " + TokenEquivalence.firstDifference(source, once.text())
+        );
         assertCompiles(compiler, List.of(new StringSource(path.getFileName().toString(), once.text())));
 
         FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
@@ -119,9 +122,10 @@ class Jls25FixtureTest {
             FormatResult once = formatter.format(FormatRequest.of(source).withName(file.toString()));
             assertTrue(!once.hasErrors(), () -> "formatting failed in " + file + ": " + once.diagnostics());
             assertTrue(
-                    TokenEquivalence.equivalent(source, once.text()),
-                    () -> "formatting changed the program in " + file + ": "
-                            + TokenEquivalence.firstDifference(source, once.text()));
+                TokenEquivalence.equivalent(source, once.text()),
+                () -> "formatting changed the program in " + file + ": " +
+                    TokenEquivalence.firstDifference(source, once.text())
+            );
             formattedOnce.add(once.text());
         }
         assertCompiles(compiler, unitsOf(files, formattedOnce));
@@ -144,23 +148,24 @@ class Jls25FixtureTest {
 
     private static void assertCompiles(JavaCompiler compiler, List<JavaFileObject> units) throws IOException {
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        try (
-                StandardJavaFileManager base = compiler.getStandardFileManager(
-                        diagnostics,
-                        null,
-                        StandardCharsets.UTF_8)) {
+        try (StandardJavaFileManager base = compiler.getStandardFileManager(
+            diagnostics,
+            null,
+            StandardCharsets.UTF_8
+        )) {
             boolean success = compiler.getTask(
-                    null,
-                    new DiscardingOutputFileManager(base),
-                    diagnostics,
-                    List.of("--release", "25", "-proc:none"),
-                    null,
-                    units)
-                    .call();
+                null,
+                new DiscardingOutputFileManager(base),
+                diagnostics,
+                List.of("--release", "25", "-proc:none"),
+                null,
+                units
+            )
+                .call();
             List<Diagnostic<? extends JavaFileObject>> errors = diagnostics.getDiagnostics()
-                    .stream()
-                    .filter(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR)
-                    .toList();
+                .stream()
+                .filter(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR)
+                .toList();
             assertTrue(success && errors.isEmpty(), () -> "javac errors: " + errors);
         }
     }
@@ -191,13 +196,15 @@ class Jls25FixtureTest {
 
         @Override
         public JavaFileObject getJavaFileForOutput(
-                Location location,
-                String className,
-                JavaFileObject.Kind kind,
-                FileObject sibling) {
+            Location location,
+            String className,
+            JavaFileObject.Kind kind,
+            FileObject sibling
+        ) {
             return new SimpleJavaFileObject(
-                    URI.create("mem:///" + className.replace('.', '/') + kind.extension),
-                    kind) {
+                URI.create("mem:///" + className.replace('.', '/') + kind.extension),
+                kind
+            ) {
 
                 @Override
                 public OutputStream openOutputStream() {

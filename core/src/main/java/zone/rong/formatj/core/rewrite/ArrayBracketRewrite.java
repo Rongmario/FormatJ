@@ -1,12 +1,13 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracketStyle;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Moves C-style array brackets from a variable to its type, so {@code int a[]} becomes {@code int[] a}.
@@ -67,12 +68,12 @@ public final class ArrayBracketRewrite implements Rewrite {
             }
             edits.add(delete);
             rewritten.set(
-                    i,
-                    GreenNode.branch(
-                            SyntaxKind.VARIABLE_DECLARATOR,
-                            concat(
-                                    declarator.subList(0, 1),
-                                    declarator.subList(1 + 2 * dimensions, declarator.size()))));
+                i,
+                GreenNode.branch(
+                    SyntaxKind.VARIABLE_DECLARATOR,
+                    concat(declarator.subList(0, 1), declarator.subList(1 + 2 * dimensions, declarator.size()))
+                )
+            );
         }
 
         TokenEdit insert = insert(children.get(first).children().getFirst(), dimensions, context);
@@ -92,10 +93,10 @@ public final class ArrayBracketRewrite implements Rewrite {
             end -= 2;
         }
         int dimensions = (children.size() - end) / 2;
-        if (dimensions == 0
-                || end < 2
-                || !(children.get(end - 1) instanceof GreenNode.Leaf name)
-                || endsWithEllipsis(children.get(end - 2))) {
+        if (dimensions == 0 ||
+            end < 2 ||
+            !(children.get(end - 1) instanceof GreenNode.Leaf name) ||
+            endsWithEllipsis(children.get(end - 2))) {
             return parameter;
         }
 
@@ -116,9 +117,9 @@ public final class ArrayBracketRewrite implements Rewrite {
     /** The number of plain bracket pairs after a declarator's name, or -1 when annotated. */
     private static int dimensions(List<GreenNode> declarator) {
         int next = 1;
-        while (next + 1 < declarator.size()
-                && isLeaf(declarator.get(next), "[")
-                && isLeaf(declarator.get(next + 1), "]")) {
+        while (next + 1 < declarator.size() &&
+            isLeaf(declarator.get(next), "[") &&
+            isLeaf(declarator.get(next + 1), "]")) {
             next += 2;
         }
         if (next < declarator.size() && declarator.get(next).kind() == SyntaxKind.ANNOTATION) {
@@ -132,20 +133,21 @@ public final class ArrayBracketRewrite implements Rewrite {
         int position = context.firstPosition(brackets.getFirst());
         List<String> lexemes = new ArrayList<>();
         for (int i = 0; i < brackets.size(); i++) {
-            if (position < 0
-                    || context.firstPosition(brackets.get(i)) != position + i
-                    || Synthetic.carriesComments(brackets.get(i))) {
+            if (position < 0 ||
+                context.firstPosition(brackets.get(i)) != position + i ||
+                Synthetic.carriesComments(brackets.get(i))) {
                 return null;
             }
             lexemes.add(((GreenNode.Leaf) brackets.get(i)).lexeme());
         }
         return new TokenEdit(
-                ArrayRules.C_STYLE_BRACKETS,
-                "array brackets moved to the type",
-                position,
-                lexemes,
-                List.of(),
-                TokenEdit.Bias.INNERMOST_FIRST);
+            ArrayRules.C_STYLE_BRACKETS,
+            "array brackets moved to the type",
+            position,
+            lexemes,
+            List.of(),
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
     }
 
     private static TokenEdit insert(GreenNode name, int dimensions, RewriteContext context) {
@@ -158,20 +160,22 @@ public final class ArrayBracketRewrite implements Rewrite {
             brackets.addAll(List.of("[", "]"));
         }
         return new TokenEdit(
-                ArrayRules.C_STYLE_BRACKETS,
-                "array brackets moved to the type",
-                position,
-                List.of(),
-                brackets,
-                TokenEdit.Bias.INNERMOST_FIRST);
+            ArrayRules.C_STYLE_BRACKETS,
+            "array brackets moved to the type",
+            position,
+            List.of(),
+            brackets,
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
     }
 
     private static GreenNode withBrackets(GreenNode type, int dimensions) {
         GreenNode array = type;
         for (int i = 0; i < dimensions; i++) {
             array = GreenNode.branch(
-                    SyntaxKind.ARRAY_TYPE,
-                    List.of(array, Synthetic.separator("["), Synthetic.separator("]")));
+                SyntaxKind.ARRAY_TYPE,
+                List.of(array, Synthetic.separator("["), Synthetic.separator("]"))
+            );
         }
         return array;
     }

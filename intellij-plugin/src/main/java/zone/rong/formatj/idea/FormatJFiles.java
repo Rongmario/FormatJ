@@ -1,18 +1,19 @@
 package zone.rong.formatj.idea;
 
-import zone.rong.formatj.api.LanguageLevel;
+import java.nio.file.Path;
+
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiUtil;
-import java.nio.file.Path;
+import zone.rong.formatj.api.LanguageLevel;
 
 /**
  * IntelliJ-facing helpers shared by the formatting service and the import optimizer.
  */
 final class FormatJFiles {
 
-    private FormatJFiles() {}
+    private FormatJFiles() { }
 
     static boolean isJava(PsiFile file) {
         return JavaFileType.INSTANCE.equals(file.getFileType());

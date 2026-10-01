@@ -1,14 +1,15 @@
 package zone.rong.formatj.core.imports;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.StaticImportPlacement;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * The order the {@code imports.*} rules ask for, and the groups they divide imports into.
@@ -20,7 +21,7 @@ import java.util.List;
  */
 public final class ImportOrder {
 
-    private ImportOrder() {}
+    private ImportOrder() { }
 
     /** Whether any {@code imports.*} rule asks for the declarations to be put in an order. */
     public static boolean sorts(Style style) {
@@ -83,9 +84,9 @@ public final class ImportOrder {
         boolean modulesFirst = style.get(ImportRules.MODULE_IMPORTS_FIRST);
 
         Comparator<ImportEntry> byBucket = Comparator
-                .comparingInt((ImportEntry entry) -> moduleBucket(entry, modulesFirst))
-                .thenComparingInt(entry -> staticBucket(entry, placement))
-                .thenComparingInt(entry -> groupWithin(entry, groups, placement, modulesFirst));
+            .comparingInt((ImportEntry entry) -> moduleBucket(entry, modulesFirst))
+            .thenComparingInt(entry -> staticBucket(entry, placement))
+            .thenComparingInt(entry -> groupWithin(entry, groups, placement, modulesFirst));
         Comparator<ImportEntry> comparator = switch (order) {
             case PRESERVE -> byBucket;
             case ASCENDING -> byBucket.thenComparing(ImportEntry::name);
@@ -105,10 +106,10 @@ public final class ImportOrder {
         List<List<String>> groups = style.get(ImportRules.GROUPS);
         StaticImportPlacement placement = style.get(ImportRules.STATIC_PLACEMENT);
         boolean modulesFirst = style.get(ImportRules.MODULE_IMPORTS_FIRST);
-        return moduleBucket(previous, modulesFirst) != moduleBucket(next, modulesFirst)
-                || staticBucket(previous, placement) != staticBucket(next, placement)
-                || groupWithin(previous, groups, placement, modulesFirst)
-                        != groupWithin(next, groups, placement, modulesFirst);
+        return moduleBucket(previous, modulesFirst) != moduleBucket(next, modulesFirst) ||
+            staticBucket(previous, placement) != staticBucket(next, placement) ||
+            groupWithin(previous, groups, placement, modulesFirst) !=
+                groupWithin(next, groups, placement, modulesFirst);
     }
 
     /**
@@ -121,10 +122,11 @@ public final class ImportOrder {
      * and the prefixes apply to them like anything else.
      */
     private static int groupWithin(
-            ImportEntry entry,
-            List<List<String>> groups,
-            StaticImportPlacement placement,
-            boolean modulesFirst) {
+        ImportEntry entry,
+        List<List<String>> groups,
+        StaticImportPlacement placement,
+        boolean modulesFirst
+    ) {
         if (modulesFirst && entry.isModule()) {
             return 0;
         }

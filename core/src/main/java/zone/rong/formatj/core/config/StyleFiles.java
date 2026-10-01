@@ -1,8 +1,5 @@
 package zone.rong.formatj.core.config;
 
-import zone.rong.formatj.api.Preset;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.StyleBuilder;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +9,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import zone.rong.formatj.api.Preset;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.StyleBuilder;
 
 /**
  * Loads and saves {@code formatj.toml} style files.
@@ -30,7 +31,7 @@ public final class StyleFiles {
     private static final String FILES_INCLUDE_KEY = "files.include";
     private static final String FILES_EXCLUDE_KEY = "files.exclude";
 
-    private StyleFiles() {}
+    private StyleFiles() { }
 
     /** Reads a style file. */
     public static Style load(Path file) {
@@ -74,9 +75,10 @@ public final class StyleFiles {
         Map<String, String> entries = TomlReader.read(read(file));
         Path base = file.toAbsolutePath().getParent();
         return new FileSelection(
-                base,
-                globArray(entries.get(FILES_INCLUDE_KEY)),
-                globArray(entries.get(FILES_EXCLUDE_KEY)));
+            base,
+            globArray(entries.get(FILES_INCLUDE_KEY)),
+            globArray(entries.get(FILES_EXCLUDE_KEY))
+        );
     }
 
     /** The file selection of the nearest style file to {@code start}, or none when there is none. */
@@ -94,11 +96,11 @@ public final class StyleFiles {
             body = body.substring(1, body.length() - 1);
         }
         return TomlReader.splitTopLevel(body, ',')
-                .stream()
-                .map(String::trim)
-                .filter(element -> !element.isEmpty())
-                .map(element -> TomlReader.unquote(element, 0))
-                .toList();
+            .stream()
+            .map(String::trim)
+            .filter(element -> !element.isEmpty())
+            .map(element -> TomlReader.unquote(element, 0))
+            .toList();
     }
 
     /** Writes a style out as a commented TOML document. */

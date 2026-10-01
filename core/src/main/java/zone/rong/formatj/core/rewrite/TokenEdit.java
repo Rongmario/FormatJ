@@ -1,7 +1,8 @@
 package zone.rong.formatj.core.rewrite;
 
-import zone.rong.formatj.api.Option;
 import java.util.List;
+
+import zone.rong.formatj.api.Option;
 
 /**
  * One declared change to the program's token stream.
@@ -26,13 +27,14 @@ import java.util.List;
  *     are to be written; empty for every other edit
  */
 public record TokenEdit(
-        Option<?> authority,
-        String reason,
-        int position,
-        List<String> removed,
-        List<String> inserted,
-        TokenEdit.Bias bias,
-        List<TokenEdit.Span> order) {
+    Option<?> authority,
+    String reason,
+    int position,
+    List<String> removed,
+    List<String> inserted,
+    TokenEdit.Bias bias,
+    List<TokenEdit.Span> order
+) {
 
     /**
      * A stretch of the original program tokens, from {@code start} up to but not including {@code end}.
@@ -81,12 +83,13 @@ public record TokenEdit(
     }
 
     public TokenEdit(
-            Option<?> authority,
-            String reason,
-            int position,
-            List<String> removed,
-            List<String> inserted,
-            Bias bias) {
+        Option<?> authority,
+        String reason,
+        int position,
+        List<String> removed,
+        List<String> inserted,
+        Bias bias
+    ) {
         this(authority, reason, position, removed, inserted, bias, List.of());
     }
 
@@ -108,8 +111,8 @@ public record TokenEdit(
 
     @Override
     public String toString() {
-        return authority.key() + " at token " + position + ": "
-                + (order.isEmpty() ? removed + " -> " + inserted : "reordered " + order);
+        return authority.key() + " at token " + position + ": " +
+            (order.isEmpty() ? removed + " -> " + inserted : "reordered " + order);
     }
 
 }

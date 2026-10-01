@@ -1,12 +1,13 @@
 package zone.rong.formatj.core.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Blocks, statements and switch bodies.
@@ -165,12 +166,12 @@ abstract class StatementParser extends ExpressionParser {
         return switch (token.kind()) {
             case NUMBER_LITERAL, STRING_LITERAL, CHAR_LITERAL, TEXT_BLOCK, IDENTIFIER -> true;
             case KEYWORD ->
-                    LITERAL_KEYWORDS.contains(token.decodedText())
-                            || PRIMITIVE_TYPES.contains(token.decodedText())
-                            || token.is("new")
-                            || token.is("switch")
-                            || token.is("this")
-                            || token.is("super");
+                LITERAL_KEYWORDS.contains(token.decodedText()) ||
+                    PRIMITIVE_TYPES.contains(token.decodedText()) ||
+                    token.is("new") ||
+                    token.is("switch") ||
+                    token.is("this") ||
+                    token.is("super");
             case OPERATOR -> token.is("+") || token.is("-") || token.is("!") || token.is("~");
             default -> false;
         };
@@ -193,10 +194,10 @@ abstract class StatementParser extends ExpressionParser {
                     break;
                 }
             }
-            return at("class")
-                    || at("interface")
-                    || at("enum")
-                    || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER);
+            return at("class") ||
+                at("interface") ||
+                at("enum") ||
+                (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER);
         } catch (ParseFailure failure) {
             return false;
         } finally {

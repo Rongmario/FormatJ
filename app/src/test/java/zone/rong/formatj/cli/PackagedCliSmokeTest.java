@@ -1,8 +1,5 @@
 package zone.rong.formatj.cli;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,8 +7,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Runs the installed CLI launcher, not {@link CliRunner} in-process.
@@ -81,15 +82,16 @@ class PackagedCliSmokeTest {
                 throw new IOException("launcher timed out: " + command + "\n" + Files.readString(errFile));
             }
             return new Run(
-                    process.exitValue(),
-                    Files.readString(outFile, StandardCharsets.UTF_8),
-                    Files.readString(errFile, StandardCharsets.UTF_8));
+                process.exitValue(),
+                Files.readString(outFile, StandardCharsets.UTF_8),
+                Files.readString(errFile, StandardCharsets.UTF_8)
+            );
         } finally {
             Files.deleteIfExists(outFile);
             Files.deleteIfExists(errFile);
         }
     }
 
-    private record Run(int exitCode, String out, String err) {}
+    private record Run(int exitCode, String out, String err) { }
 
 }

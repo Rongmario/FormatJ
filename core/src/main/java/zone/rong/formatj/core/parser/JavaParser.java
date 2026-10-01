@@ -1,5 +1,9 @@
 package zone.rong.formatj.core.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -7,9 +11,6 @@ import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Recursive-descent parser for Java source, producing a lossless concrete syntax tree.
@@ -21,18 +22,19 @@ import java.util.Set;
 public final class JavaParser extends StatementParser {
 
     private static final Set<String> MODIFIER_KEYWORDS = Set.of(
-            "public",
-            "protected",
-            "private",
-            "static",
-            "final",
-            "abstract",
-            "native",
-            "synchronized",
-            "transient",
-            "volatile",
-            "strictfp",
-            "default");
+        "public",
+        "protected",
+        "private",
+        "static",
+        "final",
+        "abstract",
+        "native",
+        "synchronized",
+        "transient",
+        "volatile",
+        "strictfp",
+        "default"
+    );
 
     private JavaParser(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
         super(tokens, languageLevel, previewFeatures);
@@ -80,11 +82,11 @@ public final class JavaParser extends StatementParser {
         if (atModuleDeclaration()) {
             return parseModuleDeclaration(modifiers);
         }
-        if (at("class")
-                || at("interface")
-                || at("enum")
-                || (at("@") && peek(1).is("interface"))
-                || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
+        if (at("class") ||
+            at("interface") ||
+            at("enum") ||
+            (at("@") && peek(1).is("interface")) ||
+            (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
             return parseTypeDeclaration(modifiers);
         }
         // JEP 512: a compact source file has no top-level type declaration at all; its fields,
@@ -492,11 +494,11 @@ public final class JavaParser extends StatementParser {
             children.add(parseBlock());
             return branch(SyntaxKind.INITIALIZER_BLOCK, children);
         }
-        if (at("class")
-                || at("interface")
-                || at("enum")
-                || (at("@") && peek(1).is("interface"))
-                || (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
+        if (at("class") ||
+            at("interface") ||
+            at("enum") ||
+            (at("@") && peek(1).is("interface")) ||
+            (atContextual("record") && peek(1).kind() == TokenKind.IDENTIFIER)) {
             return parseTypeDeclaration(modifiers);
         }
         if ((atIdentifier() && peek().is(enclosingName) && peek(1).is("(")) || atGenericConstructor(enclosingName)) {

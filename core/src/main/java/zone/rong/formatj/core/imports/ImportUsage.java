@@ -1,10 +1,11 @@
 package zone.rong.formatj.core.imports;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.Token;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Whether a file still mentions a name, which is all {@code imports.remove-unused} is allowed to go
@@ -21,7 +22,7 @@ import java.util.Set;
  */
 public final class ImportUsage {
 
-    private ImportUsage() {}
+    private ImportUsage() { }
 
     /** The simple names a file mentions anywhere other than in its own import declarations. */
     public static Set<String> namesMentioned(GreenNode compilationUnit) {

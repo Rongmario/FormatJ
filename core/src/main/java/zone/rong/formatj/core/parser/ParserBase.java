@@ -1,5 +1,9 @@
 package zone.rong.formatj.core.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
+
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -7,9 +11,6 @@ import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Token cursor, trivia attachment and error recovery shared by every layer of the parser.
@@ -40,6 +41,7 @@ abstract class ParserBase {
 
     private final List<Token> tokens;
     private final List<Diagnostic> diagnostics = new ArrayList<>();
+
     private int index;
 
     ParserBase(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
@@ -299,9 +301,10 @@ abstract class ParserBase {
                 advance();
             }
             report(Diagnostic.warning(
-                    failure.getMessage() + "; " + what + " left unformatted",
-                    failure.token().line(),
-                    failure.token().column()));
+                failure.getMessage() + "; " + what + " left unformatted",
+                failure.token().line(),
+                failure.token().column()
+            ));
             return unparsedFrom(start);
         }
     }

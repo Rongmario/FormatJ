@@ -1,11 +1,12 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import zone.rong.formatj.api.Formatter;
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.Formatter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Published core bytecode must stay on the documented Java 21 floor. */
 class RuntimeFloorTest {
@@ -29,11 +30,11 @@ class RuntimeFloorTest {
                 throw new IOException("missing class file: " + resource);
             }
             byte[] header = in.readNBytes(8);
-            if (header.length < 8
-                    || header[0] != (byte) 0xCA
-                    || header[1] != (byte) 0xFE
-                    || header[2] != (byte) 0xBA
-                    || header[3] != (byte) 0xBE) {
+            if (header.length < 8 ||
+                header[0] != (byte) 0xCA ||
+                header[1] != (byte) 0xFE ||
+                header[2] != (byte) 0xBA ||
+                header[3] != (byte) 0xBE) {
                 throw new IOException("not a class file: " + resource);
             }
             return ((header[6] & 0xff) << 8) | (header[7] & 0xff);

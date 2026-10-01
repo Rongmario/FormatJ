@@ -1,22 +1,24 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import zone.rong.formatj.core.ir.Doc;
-import zone.rong.formatj.core.layout.DocPrinter;
 import java.util.Arrays;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.core.ir.Doc;
+import zone.rong.formatj.core.layout.DocPrinter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DocPrinterTest {
 
     private static Doc call(String receiver, String... arguments) {
         List<Doc> parts = Arrays.stream(arguments).map(Doc::text).toList();
         return Doc.group(Doc.concat(
-                Doc.text(receiver + "("),
-                Doc.indent(4, Doc.concat(Doc.softLine(), Doc.join(Doc.concat(Doc.text(","), Doc.line()), parts))),
-                Doc.softLine(),
-                Doc.text(")")));
+            Doc.text(receiver + "("),
+            Doc.indent(4, Doc.concat(Doc.softLine(), Doc.join(Doc.concat(Doc.text(","), Doc.line()), parts))),
+            Doc.softLine(),
+            Doc.text(")")
+        ));
     }
 
     @Test
@@ -28,33 +30,34 @@ class DocPrinterTest {
     void breaksEveryLineOfAGroupThatDoesNotFit() {
         String printed = DocPrinter.ofSpaces(12).print(call("call", "alpha", "beta", "gamma"));
         assertEquals(
-                """
+            """
                 call(
                     alpha,
                     beta,
                     gamma
                 )""",
-                printed);
+            printed
+        );
     }
 
     @Test
     void hardLineForcesEnclosingGroupsToBreak() {
         Doc document = Doc.group(Doc.concat(
-                Doc.text("{"),
-                Doc.indent(4, Doc.concat(Doc.hardLine(), Doc.text("body"))),
-                Doc.hardLine(),
-                Doc.text("}")));
+            Doc.text("{"),
+            Doc.indent(4, Doc.concat(Doc.hardLine(), Doc.text("body"))),
+            Doc.hardLine(),
+            Doc.text("}")
+        ));
         assertEquals("{\n    body\n}", DocPrinter.ofSpaces(200).print(document));
     }
 
     @Test
     void firstLineGroupStaysFlatAroundAHardBreakWhenItsFirstLineFits() {
         Doc document = Doc.firstLineGroup(Doc.concat(
-                Doc.text("call("),
-                Doc.indentIfBreak(
-                        4,
-                        Doc.concat(Doc.softLine(), Doc.text("argument"), Doc.hardLine(), Doc.text("body"))),
-                Doc.text(")")));
+            Doc.text("call("),
+            Doc.indentIfBreak(4, Doc.concat(Doc.softLine(), Doc.text("argument"), Doc.hardLine(), Doc.text("body"))),
+            Doc.text(")")
+        ));
 
         assertEquals("call(argument\nbody)", DocPrinter.ofSpaces(80).print(document));
     }
@@ -62,11 +65,10 @@ class DocPrinterTest {
     @Test
     void firstLineGroupAppliesItsIndentWhenItsFirstLineOverflows() {
         Doc document = Doc.firstLineGroup(Doc.concat(
-                Doc.text("call("),
-                Doc.indentIfBreak(
-                        4,
-                        Doc.concat(Doc.softLine(), Doc.text("argument"), Doc.hardLine(), Doc.text("body"))),
-                Doc.text(")")));
+            Doc.text("call("),
+            Doc.indentIfBreak(4, Doc.concat(Doc.softLine(), Doc.text("argument"), Doc.hardLine(), Doc.text("body"))),
+            Doc.text(")")
+        ));
 
         assertEquals("call(\n    argument\n    body)", DocPrinter.ofSpaces(10).print(document));
     }
@@ -75,12 +77,14 @@ class DocPrinterTest {
     void fillInsideAFlatFirstLineGroupStopsMeasuringAtAHardBreak() {
         Doc wordSeparator = Doc.ifBreak(Doc.concat(Doc.hardLine(), Doc.text("// ")), Doc.text(" "));
         Doc comment = Doc.concat(
-                Doc.text("// "),
-                Doc.fill(List.of(Doc.text("configure"), wordSeparator, Doc.text("it"))));
+            Doc.text("// "),
+            Doc.fill(List.of(Doc.text("configure"), wordSeparator, Doc.text("it")))
+        );
         Doc document = Doc.firstLineGroup(Doc.concat(
-                Doc.text("call({"),
-                Doc.indent(2, Doc.concat(Doc.hardLine(), comment, Doc.hardLine(), Doc.text("body"))),
-                Doc.text("})")));
+            Doc.text("call({"),
+            Doc.indent(2, Doc.concat(Doc.hardLine(), comment, Doc.hardLine(), Doc.text("body"))),
+            Doc.text("})")
+        ));
 
         assertEquals("call({\n  // configure it\n  body})", DocPrinter.ofSpaces(80).print(document));
     }
@@ -88,63 +92,62 @@ class DocPrinterTest {
     @Test
     void indentUsesTheConfiguredUnit() {
         Doc document = Doc.group(Doc.concat(
-                Doc.text("{"),
-                Doc.indent(4, Doc.concat(Doc.hardLine(), Doc.text("x"))),
-                Doc.hardLine(),
-                Doc.text("}")));
+            Doc.text("{"),
+            Doc.indent(4, Doc.concat(Doc.hardLine(), Doc.text("x"))),
+            Doc.hardLine(),
+            Doc.text("}")
+        ));
         assertEquals("{\n\tx\n}", new DocPrinter(80, true, 4, "\n", true, false).print(document));
     }
 
     @Test
     void lineIndentReplacesTheIndentOfTheCurrentLine() {
         Doc document = Doc.concat(
-                Doc.text("{"),
-                Doc.indent(
-                        4,
-                        Doc.concat(
-                                Doc.hardLine(),
-                                Doc.lineIndent(0, Doc.text("// first")),
-                                Doc.hardLine(),
-                                Doc.text("x"))),
-                Doc.hardLine(),
-                Doc.text("}"));
+            Doc.text("{"),
+            Doc.indent(
+                4,
+                Doc.concat(Doc.hardLine(), Doc.lineIndent(0, Doc.text("// first")), Doc.hardLine(), Doc.text("x"))
+            ),
+            Doc.hardLine(),
+            Doc.text("}")
+        );
         assertEquals("{\n// first\n    x\n}", DocPrinter.ofSpaces(80).print(document));
     }
 
     @Test
     void lineIndentCanKeepAShallowerAuthorIndent() {
         Doc document = Doc.concat(
-                Doc.text("{"),
-                Doc.indent(
-                        4,
-                        Doc.concat(
-                                Doc.hardLine(),
-                                Doc.lineIndent(2, Doc.text("// two")),
-                                Doc.hardLine(),
-                                Doc.text("x"))),
-                Doc.hardLine(),
-                Doc.text("}"));
+            Doc.text("{"),
+            Doc.indent(
+                4,
+                Doc.concat(Doc.hardLine(), Doc.lineIndent(2, Doc.text("// two")), Doc.hardLine(), Doc.text("x"))
+            ),
+            Doc.hardLine(),
+            Doc.text("}")
+        );
         assertEquals("{\n  // two\n    x\n}", DocPrinter.ofSpaces(80).print(document));
     }
 
     @Test
     void lineSuffixIsHeldUntilTheNextBreak() {
         Doc document = Doc.concat(
-                Doc.text("int x = 1;"),
-                Doc.lineSuffix(Doc.text(" // set once")),
-                Doc.hardLine(),
-                Doc.text("int y = 2;"));
+            Doc.text("int x = 1;"),
+            Doc.lineSuffix(Doc.text(" // set once")),
+            Doc.hardLine(),
+            Doc.text("int y = 2;")
+        );
         assertEquals("int x = 1; // set once\nint y = 2;", DocPrinter.ofSpaces(80).print(document));
     }
 
     @Test
     void ifBreakChoosesByTheEnclosingGroupsMode() {
         Doc document = Doc.group(Doc.concat(
-                Doc.text("["),
-                Doc.text("1"),
-                Doc.ifBreak(Doc.text(","), Doc.EMPTY),
-                Doc.softLine(),
-                Doc.text("]")));
+            Doc.text("["),
+            Doc.text("1"),
+            Doc.ifBreak(Doc.text(","), Doc.EMPTY),
+            Doc.softLine(),
+            Doc.text("]")
+        ));
         assertEquals("[1]", DocPrinter.ofSpaces(80).print(document));
     }
 

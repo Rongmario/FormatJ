@@ -1,10 +1,11 @@
 package zone.rong.formatj.core.imports;
 
+import java.util.List;
+
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.UnicodeEscapes;
-import java.util.List;
 
 /**
  * One import declaration, read well enough to sort and to reason about.
@@ -22,12 +23,13 @@ import java.util.List;
  *     import is responsible for, which is the case for on-demand and module imports
  */
 public record ImportEntry(
-        GreenNode node,
-        boolean isStatic,
-        boolean isModule,
-        boolean isWildcard,
-        String name,
-        String simpleName) {
+    GreenNode node,
+    boolean isStatic,
+    boolean isModule,
+    boolean isWildcard,
+    String name,
+    String simpleName
+) {
 
     /** Reads an {@code IMPORT_DECLARATION}, or returns null when the node is not one. */
     public static ImportEntry of(GreenNode node) {
@@ -88,8 +90,8 @@ public record ImportEntry(
 
     /** The declaration as it would be written, for comparing one against another. */
     public String text() {
-        return (isStatic ? "import static " : isModule ? "import module " : "import ") + name
-                + (isWildcard ? ".*" : "") + ";";
+        return (isStatic ? "import static " : isModule ? "import module " : "import ") + name +
+            (isWildcard ? ".*" : "") + ";";
     }
 
     /**

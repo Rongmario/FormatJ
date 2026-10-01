@@ -1,17 +1,5 @@
 package zone.rong.formatj.gradle;
 
-import zone.rong.formatj.api.Diagnostic;
-import zone.rong.formatj.api.FormatRequest;
-import zone.rong.formatj.api.FormatResult;
-import zone.rong.formatj.api.Formatter;
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Preset;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.StyleBuilder;
-import zone.rong.formatj.api.rules.FileRules;
-import zone.rong.formatj.core.FormatJ;
-import zone.rong.formatj.core.config.StyleFiles;
-import zone.rong.formatj.core.io.SourceFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -22,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -40,6 +29,18 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.ChangeType;
 import org.gradle.work.Incremental;
 import org.gradle.work.InputChanges;
+import zone.rong.formatj.api.Diagnostic;
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.FormatResult;
+import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.api.Preset;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.FileRules;
+import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.StyleFiles;
+import zone.rong.formatj.core.io.SourceFiles;
 
 /**
  * Formats or checks a set of Java sources.
@@ -97,10 +98,10 @@ public abstract class FormatJTask extends DefaultTask {
     @TaskAction
     public void execute(InputChanges changes) {
         Formatter formatter = FormatJ.newFormatter()
-                .style(resolveStyle())
-                .languageLevel(getLanguageLevel().get())
-                .previewFeatures(getPreviewFeatures().get())
-                .build();
+            .style(resolveStyle())
+            .languageLevel(getLanguageLevel().get())
+            .previewFeatures(getPreviewFeatures().get())
+            .build();
 
         List<String> wouldChange = new ArrayList<>();
         List<String> failures = new ArrayList<>();
@@ -136,12 +137,14 @@ public abstract class FormatJTask extends DefaultTask {
 
         if (!failures.isEmpty()) {
             throw new GradleException(
-                    "FormatJ could not format " + failures.size() + " file(s):\n" + String.join("\n", failures));
+                "FormatJ could not format " + failures.size() + " file(s):\n" + String.join("\n", failures)
+            );
         }
         if (!wouldChange.isEmpty()) {
             throw new GradleException(
-                    "FormatJ found " + wouldChange.size() + " file(s) that are not formatted. Run formatJavaApply.\n"
-                            + String.join("\n", wouldChange));
+                "FormatJ found " + wouldChange.size() + " file(s) that are not formatted. Run formatJavaApply.\n" +
+                    String.join("\n", wouldChange)
+            );
         }
         getLogger().info("FormatJ formatted {} file(s)", formatted);
         writeMarker(formatted);

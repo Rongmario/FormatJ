@@ -1,14 +1,5 @@
 package zone.rong.formatj.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import zone.rong.formatj.api.rules.IndentRules;
-import zone.rong.formatj.api.rules.WrappingRules;
-import zone.rong.formatj.core.config.StyleFiles;
-import zone.rong.formatj.core.config.TomlWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -20,7 +11,17 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.core.config.StyleFiles;
+import zone.rong.formatj.core.config.TomlWriter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OptionCatalogueTest {
 
@@ -70,14 +71,16 @@ class OptionCatalogueTest {
     void enumValuesFromAnotherGlossaryDoNotSatisfyARow() {
         String readme = readmeText();
         String corrupted = readme.replace(
-                "| `wrapping.method-parameters`                     | `WrapPolicy`",
-                "| `wrapping.method-parameters`                     | `BracePolicy`");
+            "| `wrapping.method-parameters`                     | `WrapPolicy`",
+            "| `wrapping.method-parameters`                     | `BracePolicy`"
+        );
         assertFalse(corrupted.equals(readme), "fixture row was not replaced");
 
         List<String> problems = readmeProblems(corrupted);
         assertTrue(
-                problems.stream().anyMatch(problem -> problem.startsWith("wrapping.method-parameters")),
-                () -> String.join("\n", problems));
+            problems.stream().anyMatch(problem -> problem.startsWith("wrapping.method-parameters")),
+            () -> String.join("\n", problems)
+        );
     }
 
     private static List<String> readmeProblems(String readme) {
@@ -104,13 +107,13 @@ class OptionCatalogueTest {
                 List<String> documentedValues = documentedEnumValues(option, row, readme);
                 if (!new HashSet<>(documentedValues).equals(new HashSet<>(option.allowedValues()))) {
                     problems.add(
-                            option.key() + " README values " + documentedValues + " != catalogue "
-                                    + option.allowedValues());
+                        option.key() + " README values " + documentedValues + " != catalogue " + option.allowedValues()
+                    );
                 }
             } else if (option.kind() == Option.Kind.BOOLEAN) {
-                if (!row.values.isEmpty()
-                        && !row.values.toLowerCase(Locale.ROOT).contains("boolean")
-                        && !row.values.contains("true")) {
+                if (!row.values.isEmpty() &&
+                    !row.values.toLowerCase(Locale.ROOT).contains("boolean") &&
+                    !row.values.contains("true")) {
                     problems.add(option.key() + " README values '" + row.values + "' do not name boolean");
                 }
             }
@@ -136,9 +139,10 @@ class OptionCatalogueTest {
             return values;
         }
         Matcher glossary = Pattern.compile(
-                "`" + Pattern.quote(typeName) + "` values are (.*?)(?:\\.(?:\\s|$)|\\R\\s*\\R)",
-                Pattern.DOTALL)
-                .matcher(readme);
+            "`" + Pattern.quote(typeName) + "` values are (.*?)(?:\\.(?:\\s|$)|\\R\\s*\\R)",
+            Pattern.DOTALL
+        )
+            .matcher(readme);
         return glossary.find() ? codeTokens(glossary.group(1)) : List.of();
     }
 
@@ -167,7 +171,7 @@ class OptionCatalogueTest {
         }
     }
 
-    private record ReadmeRow(String key, String values, String defaultValue) {}
+    private record ReadmeRow(String key, String values, String defaultValue) { }
 
     private static List<ReadmeRow> readmeRows(String readme) {
         List<ReadmeRow> rows = new ArrayList<>();
@@ -258,9 +262,10 @@ class OptionCatalogueTest {
 
     private static <T> void assertRoundTrips(Option<T> option) {
         assertEquals(
-                option.defaultValue(),
-                option.parse(option.render(option.defaultValue())),
-                () -> option.key() + " did not round-trip");
+            option.defaultValue(),
+            option.parse(option.render(option.defaultValue())),
+            () -> option.key() + " did not round-trip"
+        );
     }
 
     @Test
@@ -298,27 +303,31 @@ class OptionCatalogueTest {
     void groupsAreInCatalogueOrderWhicheverClassInitialisedFirst() {
         assertEquals(IndentRules.SIZE, OptionRegistry.require("indent.size"));
         assertEquals(
-                List.of("file", "indent", "wrapping", "braces", "spacing", "blank-lines", "alignment"),
-                OptionRegistry.groups().subList(0, 7));
+            List.of("file", "indent", "wrapping", "braces", "spacing", "blank-lines", "alignment"),
+            OptionRegistry.groups().subList(0, 7)
+        );
         assertTrue(OptionRegistry.groups().containsAll(List.of("module", "modifiers")));
         assertTrue(
-                OptionRegistry.groups().indexOf("module") < OptionRegistry.groups().indexOf("modifiers"),
-                "module must precede modifiers in the public catalogue");
+            OptionRegistry.groups().indexOf("module") < OptionRegistry.groups().indexOf("modifiers"),
+            "module must precede modifiers in the public catalogue"
+        );
         assertTrue(OptionRegistry.find("module.brace-placement").isPresent());
         assertTrue(OptionRegistry.find("modifiers.order").isPresent());
         assertEquals(OptionRegistry.groups(), List.copyOf(OptionRegistry.groups()));
         List<String> keys = OptionRegistry.all().stream().map(Option::key).toList();
         assertEquals(List.copyOf(OptionRegistry.asMap().keySet()), keys);
         assertTrue(
-                keys.indexOf("indent.size") < keys.indexOf("wrapping.max-line-length"),
-                "indent.* must precede wrapping.* regardless of class initialisation order");
+            keys.indexOf("indent.size") < keys.indexOf("wrapping.max-line-length"),
+            "indent.* must precede wrapping.* regardless of class initialisation order"
+        );
     }
 
     @Test
     void unknownKeysAreRejectedWithAUsefulMessage() {
         IllegalArgumentException failure = assertThrows(
-                IllegalArgumentException.class,
-                () -> OptionRegistry.require("indent.siz"));
+            IllegalArgumentException.class,
+            () -> OptionRegistry.require("indent.siz")
+        );
         assertTrue(failure.getMessage().contains("--dump-config"));
     }
 

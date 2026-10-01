@@ -1,5 +1,9 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -8,9 +12,6 @@ import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportOrder;
 import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Puts a file's imports in order, and deletes the ones it can prove nothing refers to.
@@ -66,12 +67,13 @@ public final class ImportRewrite implements Rewrite {
                 return node;
             }
             context.record(new TokenEdit(
-                    ImportRules.ORDER,
-                    "imports reordered or removed",
-                    position,
-                    before,
-                    after,
-                    TokenEdit.Bias.INNERMOST_FIRST));
+                ImportRules.ORDER,
+                "imports reordered or removed",
+                position,
+                before,
+                after,
+                TokenEdit.Bias.INNERMOST_FIRST
+            ));
         }
 
         return replaceRun(node, entries, ordered, sorts);
@@ -82,9 +84,9 @@ public final class ImportRewrite implements Rewrite {
         Set<String> mentioned = ImportUsage.namesMentioned(compilationUnit);
         List<ImportEntry> kept = new ArrayList<>(entries.size());
         for (ImportEntry entry : entries) {
-            if (!entry.isRemovable()
-                    || mentioned.contains(entry.simpleName())
-                    || ImportUsage.mentionedInComments(compilationUnit, entry.simpleName())) {
+            if (!entry.isRemovable() ||
+                mentioned.contains(entry.simpleName()) ||
+                ImportUsage.mentionedInComments(compilationUnit, entry.simpleName())) {
                 kept.add(entry);
             }
         }
@@ -101,10 +103,11 @@ public final class ImportRewrite implements Rewrite {
 
     /** Swaps the run of import declarations for the reordered one, leaving the rest of the file alone. */
     private static GreenNode replaceRun(
-            GreenNode compilationUnit,
-            List<ImportEntry> before,
-            List<ImportEntry> after,
-            boolean sorted) {
+        GreenNode compilationUnit,
+        List<ImportEntry> before,
+        List<ImportEntry> after,
+        boolean sorted
+    ) {
         int start = ImportOrder.runStart(compilationUnit);
         List<GreenNode> replacement = new ArrayList<>(after.size());
         boolean changed = before.size() != after.size();

@@ -1,12 +1,8 @@
 package zone.rong.formatj.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import zone.rong.formatj.api.rules.BracePolicy;
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.rules.BracePlacement;
+import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
@@ -15,7 +11,11 @@ import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StyleTest {
 
@@ -29,13 +29,13 @@ class StyleTest {
     @Test
     void theBuilderReadsLikeTheDocumentedExample() {
         Style style = Style.preset(Preset.FORMATJ)
-                .indent(indent -> indent.size(4).useTabs(false).continuation(8))
-                .wrapping(wrapping -> wrapping.maxLineLength(120).chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE))
-                .modules(module -> module.bracePlacement(BracePlacement.NEXT_LINE)
-                        .exportsOpensTargetListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS))
-                .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
-                .switches(switches -> switches.arrowCaseBraces(BracePolicy.WHEN_MULTI_STATEMENT))
-                .build();
+            .indent(indent -> indent.size(4).useTabs(false).continuation(8))
+            .wrapping(wrapping -> wrapping.maxLineLength(120).chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE))
+            .modules(module -> module.bracePlacement(BracePlacement.NEXT_LINE)
+                .exportsOpensTargetListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS))
+            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
+            .switches(switches -> switches.arrowCaseBraces(BracePolicy.WHEN_MULTI_STATEMENT))
+            .build();
 
         assertEquals(120, style.get(WrappingRules.MAX_LINE_LENGTH));
         assertEquals(ChainPolicy.BREAK_ALL_IF_MULTILINE, style.get(WrappingRules.CHAINED_CALLS));
@@ -67,11 +67,11 @@ class StyleTest {
     @Test
     void rawSettingIsTypedAndValidated() {
         Style style = Style.builder()
-                .setRaw("indent.size", "2")
-                .setRaw("wrapping.chained-calls", "break-when-too-long")
-                .setRaw("module.brace-placement", "next-line")
-                .setRaw("modifiers.order", "canonical")
-                .build();
+            .setRaw("indent.size", "2")
+            .setRaw("wrapping.chained-calls", "break-when-too-long")
+            .setRaw("module.brace-placement", "next-line")
+            .setRaw("modifiers.order", "canonical")
+            .build();
         assertEquals(2, style.get(IndentRules.SIZE));
         assertEquals(ChainPolicy.BREAK_WHEN_TOO_LONG, style.get(WrappingRules.CHAINED_CALLS));
         assertEquals(Inheritable.of(BracePlacement.NEXT_LINE), style.get(ModuleRules.BRACE_PLACEMENT));

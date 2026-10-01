@@ -7,21 +7,24 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class SealedRules {
 
     public static final Option<WrapPolicy> PERMITS_WRAPPING = Option.ofEnum(
-            "sealed.permits-wrapping",
-            WrapPolicy.WRAP_IF_LONG,
-            "Wrapping of a permits clause");
+        "sealed.permits-wrapping",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a permits clause"
+    );
 
     public static final Option<SortOrder> PERMITS_ORDER = Option.ofEnum(
-            "sealed.permits-order",
-            SortOrder.PRESERVE,
-            "Sort order of the types in a permits clause");
+        "sealed.permits-order",
+        SortOrder.PRESERVE,
+        "Sort order of the types in a permits clause"
+    );
 
     public static final Option<Boolean> PERMITS_ON_NEW_LINE = Option.ofBoolean(
-            "sealed.permits-on-new-line",
-            false,
-            "Start the permits clause on its own line");
+        "sealed.permits-on-new-line",
+        false,
+        "Start the permits clause on its own line"
+    );
 
-    private SealedRules() {}
+    private SealedRules() { }
 
     /** Fluent view of the {@code sealed.*} rules. */
     public static final class Builder {

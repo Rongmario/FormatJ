@@ -1,16 +1,5 @@
 package zone.rong.formatj.idea;
 
-import zone.rong.formatj.api.Diagnostic;
-import zone.rong.formatj.api.FormatRequest;
-import zone.rong.formatj.api.FormatResult;
-import zone.rong.formatj.api.Formatter;
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Preset;
-import zone.rong.formatj.api.SourceRange;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.StyleBuilder;
-import zone.rong.formatj.core.FormatJ;
-import zone.rong.formatj.core.config.StyleFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +11,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import zone.rong.formatj.api.Diagnostic;
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.FormatResult;
+import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.api.Preset;
+import zone.rong.formatj.api.SourceRange;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.StyleFiles;
 
 /**
  * Style resolution and formatter reuse. Range splicing happens inside core's formatter itself.
@@ -46,13 +47,14 @@ public final class FormatJEngine {
     }
 
     public record Request(
-            String source,
-            String name,
-            Path path,
-            List<SourceRange> ranges,
-            LanguageLevel languageLevel,
-            boolean previewFeatures,
-            boolean rewrites) {}
+        String source,
+        String name,
+        Path path,
+        List<SourceRange> ranges,
+        LanguageLevel languageLevel,
+        boolean previewFeatures,
+        boolean rewrites
+    ) { }
 
     public record Outcome(String text, boolean unchanged, List<Diagnostic> diagnostics) {
 
@@ -62,19 +64,20 @@ public final class FormatJEngine {
 
     }
 
-    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) {}
+    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) { }
 
     private final Settings settings;
 
-    private record LoadedStyle(FileTime lastModified, Style style) {}
+    private record LoadedStyle(FileTime lastModified, Style style) { }
 
     private static final int MAX_FORMATTERS = 8;
 
     // Bounded: every edit of formatj.toml yields a new Style and so a new key.
     private final Map<CacheKey, Formatter> formatters = Collections.synchronizedMap(new LinkedHashMap<>(
-            16,
-            0.75f,
-            true) {
+        16,
+        0.75f,
+        true
+    ) {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry<CacheKey, Formatter> eldest) {
@@ -146,15 +149,17 @@ public final class FormatJEngine {
         Objects.requireNonNull(request, "request");
         Style style = styleFor(request.path());
         Formatter formatter = formatters.computeIfAbsent(
-                new CacheKey(style, request.languageLevel(), request.previewFeatures(), request.rewrites()),
-                key -> FormatJ.newFormatter()
-                        .style(key.style())
-                        .languageLevel(key.languageLevel())
-                        .previewFeatures(key.previewFeatures())
-                        .rewrites(key.rewrites())
-                        .build());
+            new CacheKey(style, request.languageLevel(), request.previewFeatures(), request.rewrites()),
+            key -> FormatJ.newFormatter()
+                .style(key.style())
+                .languageLevel(key.languageLevel())
+                .previewFeatures(key.previewFeatures())
+                .rewrites(key.rewrites())
+                .build()
+        );
         FormatResult result = formatter.format(
-                FormatRequest.of(request.source()).withName(request.name()).withRanges(request.ranges()));
+            FormatRequest.of(request.source()).withName(request.name()).withRanges(request.ranges())
+        );
         if (result.hasErrors()) {
             return new Outcome(request.source(), true, result.diagnostics());
         }

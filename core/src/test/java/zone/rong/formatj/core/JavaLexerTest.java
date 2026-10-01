@@ -1,16 +1,17 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.lexer.UnicodeEscapes;
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JavaLexerTest {
 
@@ -50,8 +51,8 @@ class JavaLexerTest {
             """;
 
     // A text block cannot be written inside a text block, so this sample is a plain string.
-    private static final String TEXT_BLOCK_SAMPLE = "String message = \"\"\"\n" + "        unknown\n"
-            + "        shape\\s\"\"\";\n";
+    private static final String TEXT_BLOCK_SAMPLE = "String message = \"\"\"\n" + "        unknown\n" +
+        "        shape\\s\"\"\";\n";
 
     @Test
     void roundTripsModernSyntax() {
@@ -71,30 +72,32 @@ class JavaLexerTest {
     void reportsNoErrorTokensForValidSource() {
         List<Token> tokens = JavaLexer.tokenize(MODERN_SAMPLE);
         assertTrue(
-                tokens.stream().noneMatch(t -> t.kind() == TokenKind.ERROR),
-                () -> "unexpected error token in " + tokens.stream().filter(t -> t.kind() == TokenKind.ERROR).toList());
+            tokens.stream().noneMatch(t -> t.kind() == TokenKind.ERROR),
+            () -> "unexpected error token in " + tokens.stream().filter(t -> t.kind() == TokenKind.ERROR).toList()
+        );
     }
 
     @ParameterizedTest
     @ValueSource(
-            strings = {
-                "",
-                "class A {}",
-                "int x = 0x1_FFp2f;",
-                "int y = 0b1010_1010;",
-                "double d = 1.5e-3;",
-                "char c = '\\n';",
-                "String s = \"a\\\"b\";",
-                "// trailing comment",
-                "/* unterminated",
-                "/** javadoc */ class A {}",
-                "var f = (a, b) -> a + b;",
-                "x >>>= 2;",
-                "a ? b : c;",
-                "@Deprecated class A {}",
-                "record R(int a, int b) {}",
-                "\r\nclass A {}\r\n"
-            })
+        strings = {
+            "",
+            "class A {}",
+            "int x = 0x1_FFp2f;",
+            "int y = 0b1010_1010;",
+            "double d = 1.5e-3;",
+            "char c = '\\n';",
+            "String s = \"a\\\"b\";",
+            "// trailing comment",
+            "/* unterminated",
+            "/** javadoc */ class A {}",
+            "var f = (a, b) -> a + b;",
+            "x >>>= 2;",
+            "a ? b : c;",
+            "@Deprecated class A {}",
+            "record R(int a, int b) {}",
+            "\r\nclass A {}\r\n"
+        }
+    )
     void roundTripsEverySnippet(String source) {
         assertEquals(source, JavaLexer.toSource(JavaLexer.tokenize(source)));
     }
@@ -160,9 +163,9 @@ class JavaLexerTest {
     void tracksLineAndColumn() {
         List<Token> tokens = JavaLexer.tokenize("class A {\n    int x;\n}\n");
         Token intKeyword = tokens.stream()
-                .filter(t -> t.kind() == TokenKind.KEYWORD && t.is("int"))
-                .findFirst()
-                .orElseThrow();
+            .filter(t -> t.kind() == TokenKind.KEYWORD && t.is("int"))
+            .findFirst()
+            .orElseThrow();
         assertEquals(2, intKeyword.line());
         assertEquals(5, intKeyword.column());
     }
@@ -173,9 +176,9 @@ class JavaLexerTest {
         List<Token> lineTokens = JavaLexer.tokenize(lineSource);
         assertEquals(lineSource, JavaLexer.toSource(lineTokens));
         Token lineComment = lineTokens.stream()
-                .filter(token -> token.kind() == TokenKind.LINE_COMMENT)
-                .findFirst()
-                .orElseThrow();
+            .filter(token -> token.kind() == TokenKind.LINE_COMMENT)
+            .findFirst()
+            .orElseThrow();
         assertEquals("/" + escape("u002f") + " comment", lineComment.text());
         Token classKeyword = lineTokens.stream().filter(token -> token.is("class")).findFirst().orElseThrow();
         assertEquals(2, classKeyword.line());
@@ -226,9 +229,9 @@ class JavaLexerTest {
         List<Token> tokens = JavaLexer.tokenize(source);
         assertEquals(source, JavaLexer.toSource(tokens));
         Token whitespace = tokens.stream()
-                .filter(token -> token.kind() == TokenKind.WHITESPACE)
-                .findFirst()
-                .orElseThrow();
+            .filter(token -> token.kind() == TokenKind.WHITESPACE)
+            .findFirst()
+            .orElseThrow();
         assertEquals(escape("u000d") + escape("u000a"), whitespace.text());
         assertEquals("\r\n", whitespace.decodedText());
         assertEquals(1, whitespace.lineTerminatorCount());

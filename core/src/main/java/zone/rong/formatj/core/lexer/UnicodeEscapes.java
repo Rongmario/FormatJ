@@ -3,7 +3,7 @@ package zone.rong.formatj.core.lexer;
 /** Unicode escape translation as defined by JLS 3.3. */
 public final class UnicodeEscapes {
 
-    private UnicodeEscapes() {}
+    private UnicodeEscapes() { }
 
     /**
      * End of a syntactically valid escape at {@code offset}, or {@code -1}. The caller checks

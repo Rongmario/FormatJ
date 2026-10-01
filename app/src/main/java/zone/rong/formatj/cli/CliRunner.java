@@ -1,17 +1,5 @@
 package zone.rong.formatj.cli;
 
-import zone.rong.formatj.api.Diagnostic;
-import zone.rong.formatj.api.FormatRequest;
-import zone.rong.formatj.api.FormatResult;
-import zone.rong.formatj.api.Formatter;
-import zone.rong.formatj.api.SourceRange;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.FileRules;
-import zone.rong.formatj.core.FormatJ;
-import zone.rong.formatj.core.config.FileSelection;
-import zone.rong.formatj.core.config.TomlReader;
-import zone.rong.formatj.core.config.TomlWriter;
-import zone.rong.formatj.core.io.SourceFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -28,6 +16,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import zone.rong.formatj.api.Diagnostic;
+import zone.rong.formatj.api.FormatRequest;
+import zone.rong.formatj.api.FormatResult;
+import zone.rong.formatj.api.Formatter;
+import zone.rong.formatj.api.SourceRange;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.FileRules;
+import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.FileSelection;
+import zone.rong.formatj.core.config.TomlReader;
+import zone.rong.formatj.core.config.TomlWriter;
+import zone.rong.formatj.core.io.SourceFiles;
 
 /** Runs one CLI invocation. Kept separate from {@link Main} so it can be tested without exiting. */
 final class CliRunner {
@@ -148,7 +149,8 @@ final class CliRunner {
 
         if (options.verbose()) {
             err.println(
-                    "formatj: " + files.size() + " files, " + changed.get() + " changed, " + failed.get() + " failed");
+                "formatj: " + files.size() + " files, " + changed.get() + " changed, " + failed.get() + " failed"
+            );
         }
         if (failed.get() > 0) {
             return ERROR;
@@ -160,7 +162,7 @@ final class CliRunner {
     }
 
     /** One file's output, buffered rather than printed directly so {@code -j} can print it in order. */
-    private record FileOutput(String out, String err) {}
+    private record FileOutput(String out, String err) { }
 
     private FileOutput processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
         StringBuilder out = new StringBuilder();
@@ -243,11 +245,11 @@ final class CliRunner {
 
     private Formatter formatter(Style style) {
         return FormatJ.newFormatter()
-                .style(style)
-                .languageLevel(options.languageLevel())
-                .previewFeatures(options.previewFeatures())
-                .verify(options.verify())
-                .build();
+            .style(style)
+            .languageLevel(options.languageLevel())
+            .previewFeatures(options.previewFeatures())
+            .verify(options.verify())
+            .build();
     }
 
     /** Expands the given paths into the Java files to format. */

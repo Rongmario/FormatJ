@@ -1,9 +1,5 @@
 package zone.rong.formatj.idea;
 
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.FileRules;
-import zone.rong.formatj.api.rules.IndentRules;
-import zone.rong.formatj.api.rules.WrappingRules;
 import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -15,6 +11,10 @@ import com.intellij.psi.codeStyle.modifier.CodeStyleSettingsModifier;
 import com.intellij.psi.codeStyle.modifier.CodeStyleStatusBarUIContributor;
 import com.intellij.psi.codeStyle.modifier.TransientCodeStyleSettings;
 import org.jetbrains.annotations.NotNull;
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.FileRules;
+import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.WrappingRules;
 
 /**
  * Overlays indent and right-margin from FormatJ onto the editor so the gutter matches
@@ -44,7 +44,8 @@ public final class FormatJCodeStyleModifier implements CodeStyleSettingsModifier
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull
+    String getName() {
         return "FormatJ";
     }
 
@@ -66,12 +67,14 @@ public final class FormatJCodeStyleModifier implements CodeStyleSettingsModifier
         }
 
         @Override
-        public @NotNull String getTooltip() {
+        public @NotNull
+        String getTooltip() {
             return "Indent and right margin from FormatJ";
         }
 
         @Override
-        public @NotNull AnAction createDisableAction(@NotNull Project project) {
+        public @NotNull
+        AnAction createDisableAction(@NotNull Project project) {
             return new DisableAction(project);
         }
 

@@ -1,9 +1,10 @@
 package zone.rong.formatj.core.rewrite;
 
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.core.cst.GreenNode;
 import java.util.ArrayList;
 import java.util.List;
+
+import zone.rong.formatj.api.Style;
+import zone.rong.formatj.core.cst.GreenNode;
 
 /**
  * The stage between parsing and emitting, where rules that add or remove code are applied.
@@ -39,22 +40,23 @@ import java.util.List;
 public final class RewriteStage {
 
     private static final List<Rewrite> REWRITES = List.of(
-            new ImportRewrite(),
-            new SemicolonRewrite(),
-            new MemberOrderRewrite(),
-            new RedundantModifierRewrite(),
-            new ModifierRewrite(),
-            new SealedRewrite(),
-            new SwitchCaseRewrite(),
-            new SwitchRewrite(),
-            new LambdaRewrite(),
-            new BraceRewrite(),
-            new LiteralRewrite(),
-            new TextBlockRewrite(),
-            new RedundantModifierRewrite(),
-            new ArrayBracketRewrite());
+        new ImportRewrite(),
+        new SemicolonRewrite(),
+        new MemberOrderRewrite(),
+        new RedundantModifierRewrite(),
+        new ModifierRewrite(),
+        new SealedRewrite(),
+        new SwitchCaseRewrite(),
+        new SwitchRewrite(),
+        new LambdaRewrite(),
+        new BraceRewrite(),
+        new LiteralRewrite(),
+        new TextBlockRewrite(),
+        new RedundantModifierRewrite(),
+        new ArrayBracketRewrite()
+    );
 
-    private RewriteStage() {}
+    private RewriteStage() { }
 
     /** Every rewrite the formatter ships, in the order they run. */
     public static List<Rewrite> defaults() {

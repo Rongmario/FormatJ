@@ -1,10 +1,13 @@
 package zone.rong.formatj.idea;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.SourceRange;
@@ -12,13 +15,11 @@ import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.core.FormatJ;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
-import java.util.List;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FormatJEngineTest {
 
@@ -68,15 +69,15 @@ class FormatJEngineTest {
 
     @Test
     void unchangedInputIsReportedUnchanged() {
-        String source = FormatJ.defaultFormatter()
-                .format(
-                        """
+        String source = FormatJ.defaultFormatter().format(
+            """
                                 class T {
 
                                     void run() { }
 
                                 }
-                                """);
+                                """
+        );
         FormatJEngine.Outcome outcome = formatWhole(source);
         assertTrue(outcome.unchanged());
         assertEquals(source, outcome.text());
@@ -97,21 +98,23 @@ class FormatJEngineTest {
                 """;
         FormatJEngine engine = new FormatJEngine(FormatJEngine.Settings.discover());
         FormatJEngine.Outcome withRewrites = engine.format(new FormatJEngine.Request(
-                source,
-                "T.java",
-                file,
-                List.of(),
-                LanguageLevel.LATEST,
-                false,
-                true));
+            source,
+            "T.java",
+            file,
+            List.of(),
+            LanguageLevel.LATEST,
+            false,
+            true
+        ));
         FormatJEngine.Outcome withoutRewrites = engine.format(new FormatJEngine.Request(
-                source,
-                "T.java",
-                file,
-                List.of(),
-                LanguageLevel.LATEST,
-                false,
-                false));
+            source,
+            "T.java",
+            file,
+            List.of(),
+            LanguageLevel.LATEST,
+            false,
+            false
+        ));
         assertTrue(withRewrites.text().contains("if (n > 0) {"), withRewrites.text());
         assertFalse(withoutRewrites.text().contains("if (n > 0) {"), withoutRewrites.text());
     }
@@ -150,8 +153,9 @@ class FormatJEngineTest {
                 """;
         FormatJEngine.Outcome emptyRanges = formatWhole(source);
         FormatJEngine.Outcome covering = new FormatJEngine(FormatJEngine.Settings.discover()).format(request(
-                source,
-                List.of(new SourceRange(0, source.length()))));
+            source,
+            List.of(new SourceRange(0, source.length()))
+        ));
         assertEquals(emptyRanges.text(), covering.text());
     }
 

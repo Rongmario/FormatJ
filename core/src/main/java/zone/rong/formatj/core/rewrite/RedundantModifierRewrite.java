@@ -1,14 +1,15 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Removes modifiers the JLS implies.
@@ -42,12 +43,9 @@ public final class RedundantModifierRewrite implements Rewrite {
     public GreenNode rewrite(GreenNode node, RewriteContext context) {
         return switch (node.kind()) {
             case COMPILATION_UNIT ->
-                    rewriteMembers(
-                            node,
-                            context,
-                            child -> child.kind() == SyntaxKind.RECORD_DECLARATION ? FINAL : NONE);
+                rewriteMembers(node, context, child -> child.kind() == SyntaxKind.RECORD_DECLARATION ? FINAL : NONE);
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
-                    ANNOTATION_TYPE_DECLARATION -> rewriteBody(node, context);
+                ANNOTATION_TYPE_DECLARATION -> rewriteBody(node, context);
             case RESOURCE -> rewriteResource(node, context);
             default -> node;
         };
@@ -68,9 +66,10 @@ public final class RedundantModifierRewrite implements Rewrite {
     }
 
     private static GreenNode rewriteMembers(
-            GreenNode parent,
-            RewriteContext context,
-            Function<GreenNode, Set<String>> redundant) {
+        GreenNode parent,
+        RewriteContext context,
+        Function<GreenNode, Set<String>> redundant
+    ) {
         List<GreenNode> children = new ArrayList<>(parent.children());
         boolean changed = false;
         for (int i = 0; i < children.size(); i++) {
@@ -90,8 +89,8 @@ public final class RedundantModifierRewrite implements Rewrite {
 
     /** The modifiers the language already implies for {@code member}, given the type that owns it. */
     private static Set<String> redundant(SyntaxKind owner, GreenNode member) {
-        boolean interfaceLike = owner == SyntaxKind.INTERFACE_DECLARATION
-                || owner == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+        boolean interfaceLike = owner == SyntaxKind.INTERFACE_DECLARATION ||
+            owner == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
         return switch (member.kind()) {
             case FIELD_DECLARATION -> interfaceLike ? PUBLIC_STATIC_FINAL : NONE;
             case METHOD_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> {
@@ -102,7 +101,7 @@ public final class RedundantModifierRewrite implements Rewrite {
             }
             case CLASS_DECLARATION -> interfaceLike ? PUBLIC_STATIC : NONE;
             case INTERFACE_DECLARATION, ENUM_DECLARATION, ANNOTATION_TYPE_DECLARATION ->
-                    interfaceLike ? PUBLIC_STATIC : STATIC;
+                interfaceLike ? PUBLIC_STATIC : STATIC;
             case RECORD_DECLARATION -> interfaceLike ? PUBLIC_STATIC_FINAL : STATIC_FINAL;
             case CONSTRUCTOR_DECLARATION -> owner == SyntaxKind.ENUM_DECLARATION ? PRIVATE : NONE;
             default -> NONE;
@@ -115,11 +114,10 @@ public final class RedundantModifierRewrite implements Rewrite {
 
     private static boolean hasModifier(GreenNode declaration, String modifier) {
         GreenNode first = declaration.children().getFirst();
-        return first.kind() == SyntaxKind.MODIFIERS
-                && first.children()
-                        .stream()
-                        .anyMatch(child -> child instanceof GreenNode.Leaf leaf
-                                && leaf.decodedLexeme().equals(modifier));
+        return first.kind() == SyntaxKind.MODIFIERS &&
+            first.children()
+                .stream()
+                .anyMatch(child -> child instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(modifier));
     }
 
     private static GreenNode strip(GreenNode declaration, Set<String> redundant, RewriteContext context) {
@@ -159,7 +157,7 @@ public final class RedundantModifierRewrite implements Rewrite {
     }
 
     /** What is left of a modifier list, the edits that say so, and trivia still owed to the next token. */
-    private record Removal(List<GreenNode> kept, List<TokenEdit> edits, List<Token> carried) {}
+    private record Removal(List<GreenNode> kept, List<TokenEdit> edits, List<Token> carried) { }
 
     /**
      * Drops the redundant leaves among {@code items}, or returns null when nothing can be dropped safely.
@@ -190,16 +188,17 @@ public final class RedundantModifierRewrite implements Rewrite {
             GreenNode item = items.get(i);
             if (isRedundant(item, redundant)) {
                 GreenNode.Leaf leaf = (GreenNode.Leaf) item;
-                if (!leaf.token().trailingComments().isEmpty()
-                        || (i > 0 && !leaf.token().leadingComments().isEmpty())) {
+                if (!leaf.token().trailingComments().isEmpty() ||
+                    (i > 0 && !leaf.token().leadingComments().isEmpty())) {
                     kept.add(item);
                     continue;
                 }
                 edits.add(TokenEdit.delete(
-                        ModifierRules.REMOVE_REDUNDANT,
-                        "redundant modifier removed",
-                        context.firstPosition(leaf),
-                        leaf.lexeme()));
+                    ModifierRules.REMOVE_REDUNDANT,
+                    "redundant modifier removed",
+                    context.firstPosition(leaf),
+                    leaf.lexeme()
+                ));
                 pending = concat(pending, leaf.token().leading());
                 continue;
             }

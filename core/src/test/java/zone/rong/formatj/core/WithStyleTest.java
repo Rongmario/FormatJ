@@ -1,12 +1,12 @@
 package zone.rong.formatj.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.RecordWithStyle;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@code records.with-style}, which is layout rather than a rewrite.
@@ -18,18 +18,18 @@ import org.junit.jupiter.api.Test;
  */
 class WithStyleTest {
 
-    private static final String INLINE = "class T {\n\n    void run() {\n        var q = p with { x = 1; };\n"
-            + "    }\n\n}\n";
+    private static final String INLINE = "class T {\n\n    void run() {\n        var q = p with { x = 1; };\n" +
+        "    }\n\n}\n";
 
-    private static final String SPREAD = "class T {\n\n    void run() {\n        var q = p with {\n"
-            + "            x = 1;\n        };\n    }\n\n}\n";
+    private static final String SPREAD = "class T {\n\n    void run() {\n        var q = p with {\n" +
+        "            x = 1;\n        };\n    }\n\n}\n";
 
     private static String format(String source, RecordWithStyle style) {
         return FormatJ.newFormatter()
-                .style(Style.builder().set(RecordRules.WITH_STYLE, style).build())
-                .previewFeatures(true)
-                .build()
-                .format(source);
+            .style(Style.builder().set(RecordRules.WITH_STYLE, style).build())
+            .previewFeatures(true)
+            .build()
+            .format(source);
     }
 
     @Test
@@ -52,9 +52,8 @@ class WithStyleTest {
 
     @Test
     void aBlockTooLongForItsLineBreaksWhateverTheRuleAsks() {
-        String source = "class T {\n\n    void run() {\n        var q = p with { someRatherLongComponentName = "
-                + "aRatherLongExpressionIndeed + andAnotherOneOfSimilarLength + andAYetLongerThirdOne; };"
-                + "\n    }\n\n}\n";
+        String source = "class T {\n\n    void run() {\n        var q = p with { someRatherLongComponentName = " +
+            "aRatherLongExpressionIndeed + andAnotherOneOfSimilarLength + andAYetLongerThirdOne; };" + "\n    }\n\n}\n";
         String formatted = format(source, RecordWithStyle.INLINE_WHEN_SHORT);
         assertTrue(formatted.contains("p with {\n"), formatted);
     }
@@ -62,7 +61,7 @@ class WithStyleTest {
     @Test
     void eachValueSettlesAfterOnePass() {
         for (RecordWithStyle style : RecordWithStyle.values()) {
-            for (String source : new String[] {INLINE, SPREAD}) {
+            for (String source : new String[] { INLINE, SPREAD }) {
                 String once = format(source, style);
                 assertEquals(once, format(once, style), style.name());
             }

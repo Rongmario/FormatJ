@@ -1,5 +1,8 @@
 package zone.rong.formatj.core.emit;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AssignmentBreak;
@@ -24,8 +27,6 @@ import zone.rong.formatj.core.ir.AlignmentSite;
 import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /** Layout for types, expressions and patterns. */
 abstract class ExpressionEmitter extends EmitSupport {
@@ -68,22 +69,24 @@ abstract class ExpressionEmitter extends EmitSupport {
      *     that brings hard breaks uses {@link Doc.GroupKind#FIRST_LINE}
      */
     protected Doc delimitedList(
-            GreenNode node,
-            WrapPolicy policy,
-            int indentColumns,
-            boolean spaceInside,
-            Doc.GroupKind groupKind) {
+        GreenNode node,
+        WrapPolicy policy,
+        int indentColumns,
+        boolean spaceInside,
+        Doc.GroupKind groupKind
+    ) {
         return delimitedList(node, policy, indentColumns, spaceInside, groupKind, false);
     }
 
     /** @param keepRows whether elements keep the lines the author put them on, several to a row */
     protected Doc delimitedList(
-            GreenNode node,
-            WrapPolicy policy,
-            int indentColumns,
-            boolean spaceInside,
-            Doc.GroupKind groupKind,
-            boolean keepRows) {
+        GreenNode node,
+        WrapPolicy policy,
+        int indentColumns,
+        boolean spaceInside,
+        Doc.GroupKind groupKind,
+        boolean keepRows
+    ) {
         List<GreenNode> children = node.children();
         if (children.size() < 2) {
             return Doc.concat(children.stream().map(this::emit).toList());
@@ -137,26 +140,27 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         Doc edge = spaceInside ? Doc.line() : Doc.softLine();
         // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
-        boolean ownLine = is(close, "}")
-                || is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
+        boolean ownLine = is(close, "}") ||
+            is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
         Doc closingEdge = ownLine ? edge : spaceIf(spaceInside);
         // An inline comment in front of the closing delimiter stays with the last element, even when the
         // delimiter takes a line of its own.
         HoistedLeading closing = inlineCommentsOnly(close)
-                ? hoistLeadingTrivia(close)
-                : new HoistedLeading(Doc.EMPTY, close);
+            ? hoistLeadingTrivia(close)
+            : new HoistedLeading(Doc.EMPTY, close);
         // This indentation belongs to the list breaking. A first-line group can stay flat around hard
         // breaks brought by its last child, and those lines must not receive an indent the list did not
         // take. For every ordinary group, IndentIfBreak prints identically to Indent.
         Doc body = Doc.concat(
-                Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner, closing.leading())),
-                closingEdge);
+            Doc.indentIfBreak(indentColumns, Doc.concat(edge, inner, closing.leading())),
+            closingEdge
+        );
         Doc content = Doc.concat(emit(open), body, emit(closing.node()));
 
         // The author's break after the opening delimiter is the one this rule is named for; it is the
         // same break the PRESERVE policy reads, so a list under either policy keeps it.
-        boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN)
-                && AuthorLines.brokeAfterFirstToken(node);
+        boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN) &&
+            AuthorLines.brokeAfterFirstToken(node);
 
         if (keepRows) {
             return Doc.breakingGroup(content);
@@ -165,16 +169,16 @@ abstract class ExpressionEmitter extends EmitSupport {
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
             case PRESERVE ->
-                    authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content, groupKind);
+                authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content, groupKind);
             default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
     }
 
     private static boolean inlineCommentsOnly(GreenNode node) {
         SyntaxToken token = firstToken(node);
-        return token != null
-                && !token.leadingComments().isEmpty()
-                && token.leading().stream().noneMatch(Token::hasLineTerminator);
+        return token != null &&
+            !token.leadingComments().isEmpty() &&
+            token.leading().stream().noneMatch(Token::hasLineTerminator);
     }
 
     private static List<Doc> interleave(List<Doc> elements, Doc separator) {
@@ -245,15 +249,17 @@ abstract class ExpressionEmitter extends EmitSupport {
             }
         }
         return Doc.concat(
-                emit(children.getFirst()),
-                space(),
-                emitOperatorSeparated(
-                        node,
-                        types,
-                        separators,
-                        rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
-                        rule(WrappingRules.INTERSECTION_TYPES),
-                        rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
+            emit(children.getFirst()),
+            space(),
+            emitOperatorSeparated(
+                node,
+                types,
+                separators,
+                rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
+                rule(WrappingRules.INTERSECTION_TYPES),
+                rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)
+            )
+        );
     }
 
     protected Doc emitTypeArguments(GreenNode node) {
@@ -262,10 +268,11 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     protected Doc emitTypeParameters(GreenNode node) {
         return delimitedList(
-                node,
-                rule(WrappingRules.TYPE_PARAMETERS),
-                continuation(),
-                rule(SpacingRules.WITHIN_ANGLE_BRACKETS));
+            node,
+            rule(WrappingRules.TYPE_PARAMETERS),
+            continuation(),
+            rule(SpacingRules.WITHIN_ANGLE_BRACKETS)
+        );
     }
 
     // ----------------------------------------------------------- expressions
@@ -334,12 +341,13 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** A list whose separators may carry spacing, line breaks and comments of their own. */
     protected Doc emitOperatorSeparated(
-            GreenNode node,
-            List<Doc> operands,
-            List<GreenNode> separators,
-            boolean spaced,
-            WrapPolicy policy,
-            OperatorWrap position) {
+        GreenNode node,
+        List<Doc> operands,
+        List<GreenNode> separators,
+        boolean spaced,
+        WrapPolicy policy,
+        OperatorWrap position
+    ) {
         if (operands.isEmpty()) {
             return Doc.EMPTY;
         }
@@ -371,9 +379,10 @@ abstract class ExpressionEmitter extends EmitSupport {
                 GreenNode separator = separators.get(i);
                 parts.add(optionalBreak);
                 parts.add(Doc.concat(
-                        emit(separator),
-                        hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced),
-                        operands.get(i + 1)));
+                    emit(separator),
+                    hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced),
+                    operands.get(i + 1)
+                ));
             }
         } else {
             for (int i = 0; i < separators.size(); i++) {
@@ -395,8 +404,8 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     private static boolean hasTrailingLineComment(GreenNode node) {
         SyntaxToken token = firstToken(node);
-        return token != null
-                && token.trailingComments().stream().anyMatch(comment -> comment.kind() == TokenKind.LINE_COMMENT);
+        return token != null &&
+            token.trailingComments().stream().anyMatch(comment -> comment.kind() == TokenKind.LINE_COMMENT);
     }
 
     private static boolean isLogicalRun(GreenNode node) {
@@ -406,11 +415,12 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** Splits a left-nested run of same-precedence operators into operands and operator documents. */
     private void flattenBinary(
-            GreenNode node,
-            List<GreenNode> operands,
-            List<Doc> operators,
-            List<Boolean> commented,
-            List<Boolean> ownLine) {
+        GreenNode node,
+        List<GreenNode> operands,
+        List<Doc> operators,
+        List<Boolean> commented,
+        List<Boolean> ownLine
+    ) {
         List<GreenNode> children = node.children();
         GreenNode left = children.getFirst();
         List<Doc> operator = new ArrayList<>();
@@ -425,7 +435,8 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         operators.add(Doc.concat(operator));
         commented.add(
-                hasTrailingLineComment(children.get(children.size() - 2)) || hasLeadingComments(children.getLast()));
+            hasTrailingLineComment(children.get(children.size() - 2)) || hasLeadingComments(children.getLast())
+        );
         ownLine.add(hasLeadingComments(children.get(1)));
         operands.add(children.getLast());
     }
@@ -478,13 +489,15 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc value = emit(children.getLast());
         boolean spaced = rule(SpacingRules.AROUND_ASSIGNMENT_OPERATORS);
         return authorGroup(
-                node,
-                Doc.concat(
-                        target,
-                        alignable ? alignmentMark(AlignmentSite.ASSIGNMENT) : Doc.EMPTY,
-                        spaceIf(spaced),
-                        Doc.concat(operator),
-                        assignedValue(children.getLast(), value, spaced)));
+            node,
+            Doc.concat(
+                target,
+                alignable ? alignmentMark(AlignmentSite.ASSIGNMENT) : Doc.EMPTY,
+                spaceIf(spaced),
+                Doc.concat(operator),
+                assignedValue(children.getLast(), value, spaced)
+            )
+        );
     }
 
     /**
@@ -501,8 +514,8 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (policy == WrapPolicy.NEVER || !prefersItsOwnLine(valueNode)) {
             return Doc.concat(spaceIf(spaced), value);
         }
-        if (policy != WrapPolicy.CHOP_DOWN_ALWAYS
-                && rule(WrappingRules.ASSIGNMENT_BREAK) == AssignmentBreak.INSIDE_VALUE) {
+        if (policy != WrapPolicy.CHOP_DOWN_ALWAYS &&
+            rule(WrappingRules.ASSIGNMENT_BREAK) == AssignmentBreak.INSIDE_VALUE) {
             return Doc.fluid(continuation(), spaced, value);
         }
         Doc broken = Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), value));
@@ -543,25 +556,27 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc whenFalse = emit(children.get(4));
         if (rule(WrappingRules.TERNARY) == WrapPolicy.NEVER) {
             return Doc.concat(
-                    condition,
-                    spaceIf(spaced),
-                    question,
-                    spaceIf(spaced),
-                    whenTrue,
-                    spaceIf(spaced),
-                    colon,
-                    spaceIf(spaced),
-                    whenFalse);
-        }
-        Doc branches = Doc.concat(
-                Doc.line(),
+                condition,
+                spaceIf(spaced),
                 question,
                 spaceIf(spaced),
                 whenTrue,
-                Doc.line(),
+                spaceIf(spaced),
                 colon,
                 spaceIf(spaced),
-                whenFalse);
+                whenFalse
+            );
+        }
+        Doc branches = Doc.concat(
+            Doc.line(),
+            question,
+            spaceIf(spaced),
+            whenTrue,
+            Doc.line(),
+            colon,
+            spaceIf(spaced),
+            whenFalse
+        );
         if (alignsOnColumn(AlignmentRules.TERNARY_BRANCHES)) {
             // Aligning the branches means hanging them under the condition rather than at a fixed
             // indent, so the alignment has to start where the condition starts, not where it ends.
@@ -595,26 +610,28 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (policy == WrapPolicy.PRESERVE) {
             // Only a break around the operator unties the pattern. One inside the tested expression
             // says nothing about it, and may be the formatter's own.
-            boolean tied = rule(PatternRules.KEEP_SIMPLE_PATTERN_INLINE)
-                    && !authorBrokeBefore(children.get(1))
-                    && !authorBrokeBefore(children.get(2));
+            boolean tied = rule(PatternRules.KEEP_SIMPLE_PATTERN_INLINE) &&
+                !authorBrokeBefore(children.get(1)) &&
+                !authorBrokeBefore(children.get(2));
             policy = tied ? WrapPolicy.NEVER : WrapPolicy.WRAP_IF_LONG;
         }
         return emitOperatorSeparated(
-                node,
-                List.of(emit(children.getFirst()), Doc.concat(tested)),
-                List.of(children.get(1)),
-                true,
-                policy,
-                rule(WrappingRules.INSTANCEOF_OPERATOR_POSITION));
+            node,
+            List.of(emit(children.getFirst()), Doc.concat(tested)),
+            List.of(children.get(1)),
+            true,
+            policy,
+            rule(WrappingRules.INSTANCEOF_OPERATOR_POSITION)
+        );
     }
 
     protected Doc emitUnary(GreenNode node) {
         List<GreenNode> children = node.children();
         return Doc.concat(
-                emit(children.getFirst()),
-                spaceIf(rule(SpacingRules.AROUND_UNARY_OPERATORS)),
-                emit(children.getLast()));
+            emit(children.getFirst()),
+            spaceIf(rule(SpacingRules.AROUND_UNARY_OPERATORS)),
+            emit(children.getLast())
+        );
     }
 
     protected Doc emitCast(GreenNode node) {
@@ -633,12 +650,13 @@ abstract class ExpressionEmitter extends EmitSupport {
             }
         }
         parts.add(emitOperatorSeparated(
-                node,
-                types,
-                separators,
-                rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
-                rule(WrappingRules.INTERSECTION_TYPES),
-                rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)));
+            node,
+            types,
+            separators,
+            rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR),
+            rule(WrappingRules.INTERSECTION_TYPES),
+            rule(WrappingRules.INTERSECTION_SEPARATOR_POSITION)
+        ));
         parts.add(emit(children.get(closing)));
         parts.add(spaceIf(rule(SpacingRules.AFTER_TYPE_CAST)));
         for (int i = closing + 1; i < children.size(); i++) {
@@ -654,29 +672,31 @@ abstract class ExpressionEmitter extends EmitSupport {
             referenced.add(emit(child));
         }
         return emitOperatorSeparated(
-                node,
-                List.of(emit(children.getFirst()), Doc.concat(referenced)),
-                List.of(children.get(1)),
-                rule(SpacingRules.AROUND_METHOD_REFERENCE_OPERATOR),
-                rule(WrappingRules.METHOD_REFERENCE),
-                rule(WrappingRules.METHOD_REFERENCE_OPERATOR_POSITION));
+            node,
+            List.of(emit(children.getFirst()), Doc.concat(referenced)),
+            List.of(children.get(1)),
+            rule(SpacingRules.AROUND_METHOD_REFERENCE_OPERATOR),
+            rule(WrappingRules.METHOD_REFERENCE),
+            rule(WrappingRules.METHOD_REFERENCE_OPERATOR_POSITION)
+        );
     }
 
     protected Doc emitParenthesized(GreenNode node) {
         List<GreenNode> children = node.children();
         boolean inside = rule(SpacingRules.WITHIN_PARENTHESES);
         return Doc.concat(
-                emit(children.getFirst()),
-                spaceIf(inside),
-                emit(children.get(1)),
-                spaceIf(inside),
-                emit(children.getLast()));
+            emit(children.getFirst()),
+            spaceIf(inside),
+            emit(children.get(1)),
+            spaceIf(inside),
+            emit(children.getLast())
+        );
     }
 
     protected Doc emitArguments(GreenNode node) {
         List<GreenNode> children = node.children();
-        if (children.size() == 3
-                && (hugsItsArgument(children.get(1)) || children.get(1).kind() == SyntaxKind.LAMBDA_EXPRESSION)) {
+        if (children.size() == 3 &&
+            (hugsItsArgument(children.get(1)) || children.get(1).kind() == SyntaxKind.LAMBDA_EXPRESSION)) {
             // A lone lambda or anonymous class brings its own line structure: wrapping the argument
             // list around it would indent the body twice and buy nothing.
             return Doc.concat(emit(children.getFirst()), emit(children.get(1)), emit(children.getLast()));
@@ -685,9 +705,10 @@ abstract class ExpressionEmitter extends EmitSupport {
             // A lone call stays on the parenthesis' line while its own first line fits, and wraps its
             // own arguments. Wrapping around it would spend a line and an indent on one name.
             return Doc.concat(
-                    emit(children.getFirst()),
-                    Doc.fluid(continuation(), false, emit(children.get(1))),
-                    emit(children.getLast()));
+                emit(children.getFirst()),
+                Doc.fluid(continuation(), false, emit(children.get(1))),
+                emit(children.getLast())
+            );
         }
         // The same argument, with others in front of it, is the same argument: the lines its body
         // brings are not the list overflowing, so the list is judged by the line it actually prints.
@@ -696,11 +717,12 @@ abstract class ExpressionEmitter extends EmitSupport {
         GreenNode last = lastArgument(children);
         boolean hugsLast = last != null && hugsItsArgument(last);
         return delimitedList(
-                node,
-                rule(WrappingRules.METHOD_ARGUMENTS),
-                continuation(),
-                rule(SpacingRules.WITHIN_PARENTHESES),
-                hugsLast ? Doc.GroupKind.FIRST_LINE : Doc.GroupKind.IF_NEEDED);
+            node,
+            rule(WrappingRules.METHOD_ARGUMENTS),
+            continuation(),
+            rule(SpacingRules.WITHIN_PARENTHESES),
+            hugsLast ? Doc.GroupKind.FIRST_LINE : Doc.GroupKind.IF_NEEDED
+        );
     }
 
     /** The last argument of a non-empty argument list. */
@@ -716,16 +738,16 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     /** Whether an argument is a plain call or creation with arguments of its own to wrap. */
     private static boolean breaksInside(GreenNode argument) {
-        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && !hasCall(argument.children().getFirst())
-                || argument.kind() == SyntaxKind.OBJECT_CREATION;
+        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && !hasCall(argument.children().getFirst()) ||
+            argument.kind() == SyntaxKind.OBJECT_CREATION;
         GreenNode last = argument.children().getLast();
         return call && last.kind() == SyntaxKind.ARGUMENTS && last.children().size() > 2;
     }
 
     /** Whether a receiver holds a call, which makes what hangs off it a chain rather than one call. */
     private static boolean hasCall(GreenNode receiver) {
-        return receiver.kind() == SyntaxKind.METHOD_INVOCATION
-                || isChainLink(receiver) && hasCall(receiver.children().getFirst());
+        return receiver.kind() == SyntaxKind.METHOD_INVOCATION ||
+            isChainLink(receiver) && hasCall(receiver.children().getFirst());
     }
 
     private static boolean hugsItsArgument(GreenNode argument) {
@@ -734,9 +756,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             case LAMBDA_EXPRESSION -> argument.children().getLast().kind() == SyntaxKind.BLOCK;
             case ARRAY_INITIALIZER, SWITCH_EXPRESSION -> true;
             case OBJECT_CREATION ->
-                    argument.children()
-                            .stream()
-                            .anyMatch(child -> child.kind() == SyntaxKind.CLASS_BODY);
+                argument.children().stream().anyMatch(child -> child.kind() == SyntaxKind.CLASS_BODY);
             default -> false;
         };
     }
@@ -744,16 +764,17 @@ abstract class ExpressionEmitter extends EmitSupport {
     protected Doc emitArrayInitializer(GreenNode node) {
         List<GreenNode> children = node.children();
         // Breaks just inside the braces say nothing about rows; a break between two elements does.
-        boolean keepRows = rule(PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT)
-                && children.size() > 3
-                && authorBrokeInside(children.subList(1, children.size() - 1));
+        boolean keepRows = rule(PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT) &&
+            children.size() > 3 &&
+            authorBrokeInside(children.subList(1, children.size() - 1));
         return delimitedList(
-                node,
-                rule(WrappingRules.ARRAY_INITIALIZERS),
-                rule(IndentRules.ARRAY_INITIALIZER),
-                rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES),
-                Doc.GroupKind.IF_NEEDED,
-                keepRows);
+            node,
+            rule(WrappingRules.ARRAY_INITIALIZERS),
+            rule(IndentRules.ARRAY_INITIALIZER),
+            rule(SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES),
+            Doc.GroupKind.IF_NEEDED,
+            keepRows
+        );
     }
 
     /** Whether the author spread this node over more than one line. */
@@ -823,8 +844,9 @@ abstract class ExpressionEmitter extends EmitSupport {
             }
             Doc tails = Doc.concat(preserved);
             return Doc.concat(
-                    baseDoc,
-                    alignDots ? Doc.align(tails) : Doc.indent(rule(IndentRules.CHAINED_CALL), tails));
+                baseDoc,
+                alignDots ? Doc.align(tails) : Doc.indent(rule(IndentRules.CHAINED_CALL), tails)
+            );
         }
         // Only calls count towards the threshold: a qualified name such as Outer.Inner.CONSTANT is one
         // thing however many dots it has.
@@ -839,8 +861,8 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(link);
         }
         Doc hanging = alignDots
-                ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
-                : Doc.indentIfBreak(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
+            ? Doc.align(Doc.concat(attached, Doc.concat(parts)))
+            : Doc.indentIfBreak(rule(IndentRules.CHAINED_CALL), Doc.concat(parts));
         Doc content = Doc.concat(baseDoc, hanging);
         if (policy == ChainPolicy.BREAK_WHEN_TOO_LONG) {
             if (alignDots) {
@@ -924,21 +946,23 @@ abstract class ExpressionEmitter extends EmitSupport {
             // On the same line the arrow's own spacing rule decides the gap; a placed brace brings its own.
             Doc lead = placement == BracePlacement.END_OF_LINE ? spaceIf(spaced) : braceLead(placement);
             return Doc.concat(
-                    parameters,
-                    spaceIf(spaced),
-                    arrow,
-                    lead,
-                    emitLambdaBody(bodyNode, rule(BraceRules.EMPTY_METHOD_BODY)));
+                parameters,
+                spaceIf(spaced),
+                arrow,
+                lead,
+                emitLambdaBody(bodyNode, rule(BraceRules.EMPTY_METHOD_BODY))
+            );
         }
         Doc body = emit(bodyNode);
         if (rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {
             return Doc.concat(parameters, spaceIf(spaced), arrow, spaceIf(spaced), body);
         }
         return Doc.group(Doc.concat(
-                parameters,
-                spaceIf(spaced),
-                arrow,
-                Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), body))));
+            parameters,
+            spaceIf(spaced),
+            arrow,
+            Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), body))
+        ));
     }
 
     protected Doc emitLambdaParameters(GreenNode node) {
@@ -947,10 +971,11 @@ abstract class ExpressionEmitter extends EmitSupport {
             return emit(children.getFirst());
         }
         return delimitedList(
-                node,
-                rule(WrappingRules.METHOD_PARAMETERS),
-                continuation(),
-                rule(SpacingRules.WITHIN_PARENTHESES));
+            node,
+            rule(WrappingRules.METHOD_PARAMETERS),
+            continuation(),
+            rule(SpacingRules.WITHIN_PARENTHESES)
+        );
     }
 
     // --------------------------------------------------------- object creation
@@ -1011,11 +1036,12 @@ abstract class ExpressionEmitter extends EmitSupport {
             case PRESERVE -> AuthorLines.onOneLine(block);
         };
         return Doc.concat(
-                emit(children.get(0)),
-                space(),
-                emit(children.get(1)),
-                spaceIf(rule(RecordRules.SPACE_BEFORE_WITH_BLOCK)),
-                emitBlockLike(block, mayInline));
+            emit(children.get(0)),
+            space(),
+            emit(children.get(1)),
+            spaceIf(rule(RecordRules.SPACE_BEFORE_WITH_BLOCK)),
+            emitBlockLike(block, mayInline)
+        );
     }
 
     // -------------------------------------------------------------- patterns
@@ -1047,10 +1073,11 @@ abstract class ExpressionEmitter extends EmitSupport {
 
     protected Doc emitPatternComponents(GreenNode node) {
         return delimitedList(
-                node,
-                rule(PatternRules.DECONSTRUCTION_WRAPPING),
-                rule(PatternRules.NESTED_INDENT),
-                rule(SpacingRules.WITHIN_PARENTHESES));
+            node,
+            rule(PatternRules.DECONSTRUCTION_WRAPPING),
+            rule(PatternRules.NESTED_INDENT),
+            rule(SpacingRules.WITHIN_PARENTHESES)
+        );
     }
 
     /** An index or dimension expression, with the spaces the bracket rule asks for inside it. */

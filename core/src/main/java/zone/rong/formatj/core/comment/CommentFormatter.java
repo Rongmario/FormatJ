@@ -1,5 +1,13 @@
 package zone.rong.formatj.core.comment;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.CommentReflow;
@@ -12,13 +20,6 @@ import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.core.ir.Doc;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Turns a comment into a document, under the rules that are allowed to rearrange it.
@@ -128,10 +129,10 @@ public final class CommentFormatter {
     // ----------------------------------------------------------- block comments
 
     private Doc blockComment(Token comment) {
-        if (rule(CommentRules.REFLOW) != CommentReflow.REFLOW_TO_LINE_LENGTH
-                || !comment.hasLineTerminator()
-                || !reflowable(List.of(comment))
-                || !rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT)) {
+        if (rule(CommentRules.REFLOW) != CommentReflow.REFLOW_TO_LINE_LENGTH ||
+            !comment.hasLineTerminator() ||
+            !reflowable(List.of(comment)) ||
+            !rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT)) {
             return verbatim(comment);
         }
         List<Doc> parts = new ArrayList<>();
@@ -230,9 +231,9 @@ public final class CommentFormatter {
         if (rule(JavadocRules.TAG_ORDER) != JavadocTagOrder.PRESERVE && !sorted(parsed.tags())) {
             return true;
         }
-        return !parsed.tags().isEmpty()
-                && !parsed.description().isEmpty()
-                && parsed.blankBeforeTags() != rule(JavadocRules.BLANK_LINE_BEFORE_TAGS);
+        return !parsed.tags().isEmpty() &&
+            !parsed.description().isEmpty() &&
+            parsed.blankBeforeTags() != rule(JavadocRules.BLANK_LINE_BEFORE_TAGS);
     }
 
     private void addMarkdownBlock(List<Doc> output, Javadoc.Block block) {
@@ -254,8 +255,8 @@ public final class CommentFormatter {
 
         if (!rule(JavadocRules.WRAP)) {
             String opening = rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) && !rest.isEmpty()
-                    ? prefix + tag.head() + padding + " " + rest
-                    : first;
+                ? prefix + tag.head() + padding + " " + rest
+                : first;
             addMarkdownLine(output, opening);
             for (String line : tag.lines().subList(1, tag.lines().size())) {
                 addMarkdownLine(output, line);
@@ -272,10 +273,9 @@ public final class CommentFormatter {
             } else {
                 String continuation = prefix + " ".repeat(Math.max(0, rule(JavadocRules.TAG_CONTINUATION_INDENT)));
                 addMarkdownDoc(
-                        output,
-                        Doc.concat(
-                                markdownText(prefix + tag.head() + padding + " "),
-                                fill(words, "///" + continuation)));
+                    output,
+                    Doc.concat(markdownText(prefix + tag.head() + padding + " "), fill(words, "///" + continuation))
+                );
             }
             nextBlock = 1;
         } else if (!blocks.isEmpty() && tag.descriptionStartsOnTagLine()) {
@@ -347,19 +347,19 @@ public final class CommentFormatter {
 
     /** Whether any rule that is on would rearrange this comment; if none would, it is left alone. */
     private boolean restructures(Javadoc parsed) {
-        if (rule(JavadocRules.WRAP)
-                || rule(JavadocRules.ADD_PARAGRAPH_TAGS)
-                || rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS)
-                || rule(JavadocRules.CLOSING_TAG_FORM) != JavadocClosingTagForm.PRESERVE
-                || rule(JavadocRules.OPENING_TAG_POSITION) != JavadocOpeningTagPosition.PRESERVE) {
+        if (rule(JavadocRules.WRAP) ||
+            rule(JavadocRules.ADD_PARAGRAPH_TAGS) ||
+            rule(JavadocRules.ALIGN_TAG_DESCRIPTIONS) ||
+            rule(JavadocRules.CLOSING_TAG_FORM) != JavadocClosingTagForm.PRESERVE ||
+            rule(JavadocRules.OPENING_TAG_POSITION) != JavadocOpeningTagPosition.PRESERVE) {
             return true;
         }
         if (rule(JavadocRules.TAG_ORDER) != JavadocTagOrder.PRESERVE && !sorted(parsed.tags())) {
             return true;
         }
-        return !parsed.tags().isEmpty()
-                && !parsed.description().isEmpty()
-                && parsed.blankBeforeTags() != rule(JavadocRules.BLANK_LINE_BEFORE_TAGS);
+        return !parsed.tags().isEmpty() &&
+            !parsed.description().isEmpty() &&
+            parsed.blankBeforeTags() != rule(JavadocRules.BLANK_LINE_BEFORE_TAGS);
     }
 
     private static boolean sorted(List<Javadoc.Tag> tags) {
@@ -488,8 +488,9 @@ public final class CommentFormatter {
     }
 
     private static final Pattern BLOCK_ELEMENT = Pattern.compile(
-            "<(pre|ul|ol|dl|table|blockquote|div|h[1-6]|hr|p)\\b.*",
-            Pattern.CASE_INSENSITIVE);
+        "<(pre|ul|ol|dl|table|blockquote|div|h[1-6]|hr|p)\\b.*",
+        Pattern.CASE_INSENSITIVE
+    );
 
     private static boolean opensBlock(List<String> lines, int from) {
         for (int i = from; i < lines.size(); i++) {
@@ -510,8 +511,9 @@ public final class CommentFormatter {
      * prose check.
      */
     private static final Pattern PARAGRAPH_MARKER = Pattern.compile(
-            "(^|\\s)(</p>|<p/>|<p>)(\\s|$)",
-            Pattern.CASE_INSENSITIVE);
+        "(^|\\s)(</p>|<p/>|<p>)(\\s|$)",
+        Pattern.CASE_INSENSITIVE
+    );
 
     private static boolean isParagraphMarkerToken(String token) {
         return token.equalsIgnoreCase("<p>") || token.equalsIgnoreCase("</p>") || token.equalsIgnoreCase("<p/>");
@@ -647,7 +649,7 @@ public final class CommentFormatter {
             if (Prose.isInside(verbatim, offset + matcher.start(2))) {
                 continue;
             }
-            hits.add(new int[] {matcher.start(2), matcher.end(2)});
+            hits.add(new int[] { matcher.start(2), matcher.end(2) });
             tokens.add(matcher.group(2));
         }
         if (hits.isEmpty()) {
@@ -692,8 +694,8 @@ public final class CommentFormatter {
             return "";
         }
         return strippedTrailing.startsWith(" ") || strippedTrailing.startsWith("\t")
-                ? strippedTrailing
-                : " " + stripped;
+            ? strippedTrailing
+            : " " + stripped;
     }
 
     /**
@@ -849,8 +851,8 @@ public final class CommentFormatter {
     public Doc verbatim(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
             return Prose.isMarkdownComment(comment)
-                    ? Doc.textPreservingTrailingWhitespace(comment.text())
-                    : Doc.text(stripTrailing(comment.text()));
+                ? Doc.textPreservingTrailingWhitespace(comment.text())
+                : Doc.text(stripTrailing(comment.text()));
         }
         String[] lines = comment.text().split("\r\n|\r|\n", -1);
         if (lines.length == 1) {

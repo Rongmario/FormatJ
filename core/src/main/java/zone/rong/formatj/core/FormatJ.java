@@ -1,11 +1,12 @@
 package zone.rong.formatj.core;
 
+import java.util.Objects;
+
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.FormatterBuilder;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.core.pipeline.DefaultFormatter;
-import java.util.Objects;
 
 /**
  * Entry point to the formatter.
@@ -19,7 +20,7 @@ import java.util.Objects;
  */
 public final class FormatJ {
 
-    private FormatJ() {}
+    private FormatJ() { }
 
     /** A builder for a formatter using default rules and the newest language level. */
     public static FormatterBuilder newFormatter() {

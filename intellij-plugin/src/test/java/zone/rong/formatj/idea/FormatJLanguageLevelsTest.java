@@ -1,9 +1,9 @@
 package zone.rong.formatj.idea;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import zone.rong.formatj.api.LanguageLevel;
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.LanguageLevel;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FormatJLanguageLevelsTest {
 

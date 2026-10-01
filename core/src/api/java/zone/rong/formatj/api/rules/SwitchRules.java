@@ -7,41 +7,48 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class SwitchRules {
 
     public static final Option<SwitchCaseStyle> CASE_STYLE = Option.ofEnum(
-            "switch.case-style",
-            SwitchCaseStyle.PRESERVE,
-            "Arrow or colon case labels");
+        "switch.case-style",
+        SwitchCaseStyle.PRESERVE,
+        "Arrow or colon case labels"
+    );
 
     public static final Option<BracePolicy> ARROW_CASE_BRACES = Option.ofEnum(
-            "switch.arrow-case-braces",
-            BracePolicy.PRESERVE,
-            "Braces around the body of an arrow case");
+        "switch.arrow-case-braces",
+        BracePolicy.PRESERVE,
+        "Braces around the body of an arrow case"
+    );
 
     public static final Option<YieldStyle> YIELD_STYLE = Option.ofEnum(
-            "switch.yield-style",
-            YieldStyle.PRESERVE,
-            "How the value of an arrow case body is written");
+        "switch.yield-style",
+        YieldStyle.PRESERVE,
+        "How the value of an arrow case body is written"
+    );
 
     public static final Option<WrapPolicy> MULTI_LABEL_WRAPPING = Option.ofEnum(
-            "switch.multi-label-wrapping",
-            WrapPolicy.WRAP_IF_LONG,
-            "Wrapping of a case label listing several constants");
+        "switch.multi-label-wrapping",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a case label listing several constants"
+    );
 
     public static final Option<Boolean> NULL_DEFAULT_ON_ONE_LINE = Option.ofBoolean(
-            "switch.null-default-on-one-line",
-            true,
-            "Keep case null, default on a single line");
+        "switch.null-default-on-one-line",
+        true,
+        "Keep case null, default on a single line"
+    );
 
     public static final Option<Boolean> GUARD_ON_SAME_LINE = Option.ofBoolean(
-            "switch.guard-on-same-line",
-            true,
-            "Keep a when guard on the line of its pattern");
+        "switch.guard-on-same-line",
+        true,
+        "Keep a when guard on the line of its pattern"
+    );
 
     public static final Option<Boolean> ARROW_BODY_ON_NEW_LINE_WHEN_LONG = Option.ofBoolean(
-            "switch.arrow-body-on-new-line-when-long",
-            true,
-            "Move a long arrow case body to the next line");
+        "switch.arrow-body-on-new-line-when-long",
+        true,
+        "Move a long arrow case body to the next line"
+    );
 
-    private SwitchRules() {}
+    private SwitchRules() { }
 
     /** Fluent view of the {@code switch.*} rules. */
     public static final class Builder {

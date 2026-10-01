@@ -13,7 +13,7 @@ import java.util.List;
  */
 public final class DocBreaks {
 
-    private DocBreaks() {}
+    private DocBreaks() { }
 
     /** Returns an equivalent document with every group that must break marked as breaking. */
     public static Doc propagate(Doc doc) {
@@ -25,7 +25,7 @@ public final class DocBreaks {
         return rewrite(doc).forcesBreak();
     }
 
-    private record Rewritten(Doc doc, boolean forcesBreak) {}
+    private record Rewritten(Doc doc, boolean forcesBreak) { }
 
     private static Rewritten rewrite(Doc doc) {
         return switch (doc) {
@@ -33,9 +33,10 @@ public final class DocBreaks {
             case Doc.BreakParent parent -> new Rewritten(parent, true);
             case Doc.Mark mark -> new Rewritten(mark, false);
             case Doc.Break lineBreak ->
-                    new Rewritten(
-                            lineBreak,
-                            lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT);
+                new Rewritten(
+                    lineBreak,
+                    lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT
+                );
             case Doc.Concat concat -> {
                 List<Doc> parts = new ArrayList<>(concat.parts().size());
                 boolean forced = false;
@@ -63,8 +64,8 @@ public final class DocBreaks {
                 // outwards, because the line it makes is real, but this group is left to the printer's
                 // fit check, which measures only as far as that break.
                 Doc.GroupKind kind = group.kind() == Doc.GroupKind.FIRST_LINE
-                        ? Doc.GroupKind.FIRST_LINE
-                        : inside ? Doc.GroupKind.ALWAYS : Doc.GroupKind.IF_NEEDED;
+                    ? Doc.GroupKind.FIRST_LINE
+                    : inside ? Doc.GroupKind.ALWAYS : Doc.GroupKind.IF_NEEDED;
                 yield new Rewritten(Doc.group(content.doc(), kind), inside);
             }
             case Doc.Indent indent -> {
@@ -86,8 +87,9 @@ public final class DocBreaks {
             case Doc.Fluid fluid -> {
                 Rewritten content = rewrite(fluid.content());
                 yield new Rewritten(
-                        new Doc.Fluid(fluid.columns(), fluid.separator(), content.doc()),
-                        content.forcesBreak());
+                    new Doc.Fluid(fluid.columns(), fluid.separator(), content.doc()),
+                    content.forcesBreak()
+                );
             }
             case Doc.IfBreak ifBreak -> {
                 Rewritten broken = rewrite(ifBreak.broken());

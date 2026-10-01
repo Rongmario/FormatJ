@@ -1,10 +1,11 @@
 package zone.rong.formatj.core.comment;
 
-import zone.rong.formatj.core.lexer.Token;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import zone.rong.formatj.core.lexer.Token;
 
 /** A traditional or Markdown documentation comment split into its description and block tags. */
 public final class Javadoc {
@@ -37,11 +38,12 @@ public final class Javadoc {
 
     /** One block tag and the lines and Markdown blocks belonging to it. */
     public record Tag(
-            String name,
-            String head,
-            List<String> lines,
-            List<Block> description,
-            boolean descriptionStartsOnTagLine) {
+        String name,
+        String head,
+        List<String> lines,
+        List<Block> description,
+        boolean descriptionStartsOnTagLine
+    ) {
 
         public Tag {
             lines = List.copyOf(lines);
@@ -52,18 +54,19 @@ public final class Javadoc {
 
     /** The conventional order for block tags. Unknown tags stay after the known tags. */
     private static final List<String> CANONICAL = List.of(
-            "@author",
-            "@version",
-            "@param",
-            "@return",
-            "@throws",
-            "@exception",
-            "@see",
-            "@since",
-            "@serial",
-            "@serialfield",
-            "@serialdata",
-            "@deprecated");
+        "@author",
+        "@version",
+        "@param",
+        "@return",
+        "@throws",
+        "@exception",
+        "@see",
+        "@since",
+        "@serial",
+        "@serialfield",
+        "@serialdata",
+        "@deprecated"
+    );
 
     private static final Pattern ATX_HEADING = Pattern.compile("#{1,6}(?:\\s|$).*");
     private static final Pattern SETEXT_HEADING = Pattern.compile("(?:=+|-+)\\s*");
@@ -81,14 +84,15 @@ public final class Javadoc {
     private final int markdownIndent;
 
     private Javadoc(
-            Form form,
-            List<String> description,
-            List<Block> descriptionBlocks,
-            List<Tag> tags,
-            boolean singleLine,
-            boolean blankBeforeTags,
-            boolean safeToFormat,
-            int markdownIndent) {
+        Form form,
+        List<String> description,
+        List<Block> descriptionBlocks,
+        List<Tag> tags,
+        boolean singleLine,
+        boolean blankBeforeTags,
+        boolean safeToFormat,
+        int markdownIndent
+    ) {
         this.form = form;
         this.description = List.copyOf(description);
         this.descriptionBlocks = List.copyOf(descriptionBlocks);
@@ -228,14 +232,15 @@ public final class Javadoc {
 
         trimBlankEnds(description);
         return new Javadoc(
-                Form.MARKDOWN,
-                description,
-                markdownBlocks(description, indent),
-                tags,
-                comments.size() == 1,
-                blankBeforeTags,
-                scan.safe(),
-                indent);
+            Form.MARKDOWN,
+            description,
+            markdownBlocks(description, indent),
+            tags,
+            comments.size() == 1,
+            blankBeforeTags,
+            scan.safe(),
+            indent
+        );
     }
 
     private static Tag traditionalTag(String name, List<String> sourceLines) {
@@ -341,9 +346,9 @@ public final class Javadoc {
             }
 
             int end = i + 1;
-            while (end < lines.size()
-                    && !lines.get(end).isBlank()
-                    && openingFence(removeIndent(lines.get(end), indent)) == null) {
+            while (end < lines.size() &&
+                !lines.get(end).isBlank() &&
+                openingFence(removeIndent(lines.get(end), indent)) == null) {
                 end++;
             }
             List<String> blockLines = lines.subList(i, end);
@@ -362,21 +367,21 @@ public final class Javadoc {
         for (int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
             String sourceLine = lines.get(lineIndex);
             String line = removeIndent(sourceLine, indent);
-            if (line.isBlank()
-                    || lineIndex == 0 && Character.isWhitespace(line.charAt(0))
-                    || ATX_HEADING.matcher(line).matches()
-                    || SETEXT_HEADING.matcher(line).matches()
-                    || LIST_ITEM.matcher(line).matches()
-                    || LINK_DEFINITION.matcher(line).matches()
-                    || THEMATIC_BREAK.matcher(line).matches()
-                    || line.startsWith(">")
-                    || line.startsWith(":")
-                    || line.startsWith("!")
-                    || line.startsWith("$")
-                    || line.startsWith("+")
-                    || line.indexOf('|') >= 0
-                    || line.endsWith("  ")
-                    || line.endsWith("\\")) {
+            if (line.isBlank() ||
+                lineIndex == 0 && Character.isWhitespace(line.charAt(0)) ||
+                ATX_HEADING.matcher(line).matches() ||
+                SETEXT_HEADING.matcher(line).matches() ||
+                LIST_ITEM.matcher(line).matches() ||
+                LINK_DEFINITION.matcher(line).matches() ||
+                THEMATIC_BREAK.matcher(line).matches() ||
+                line.startsWith(">") ||
+                line.startsWith(":") ||
+                line.startsWith("!") ||
+                line.startsWith("$") ||
+                line.startsWith("+") ||
+                line.indexOf('|') >= 0 ||
+                line.endsWith("  ") ||
+                line.endsWith("\\")) {
                 return false;
             }
             for (int i = 0; i < line.length(); i++) {
@@ -390,9 +395,9 @@ public final class Javadoc {
 
     // ---------------------------------------------------- Markdown literals
 
-    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) {}
+    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) { }
 
-    private record Fence(char marker, int length) {}
+    private record Fence(char marker, int length) { }
 
     private static MarkdownScan scanMarkdown(List<String> lines, int indent) {
         List<Boolean> literal = new ArrayList<>(lines.size());
@@ -454,11 +459,11 @@ public final class Javadoc {
                     i = end;
                     continue;
                 }
-                if (codeSpan == 0
-                        && line.charAt(i) == '{'
-                        && i + 2 < line.length()
-                        && line.charAt(i + 1) == '@'
-                        && Character.isLetter(line.charAt(i + 2))) {
+                if (codeSpan == 0 &&
+                    line.charAt(i) == '{' &&
+                    i + 2 < line.length() &&
+                    line.charAt(i + 1) == '@' &&
+                    Character.isLetter(line.charAt(i + 2))) {
                     inlineDepth = 1;
                     i += 2;
                     continue;

@@ -1,9 +1,5 @@
 package zone.rong.formatj.maven;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,8 +14,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Runs the packaged Maven plugin against a real Maven project.
@@ -32,11 +33,10 @@ class MavenPluginFixtureTest {
 
     private static final String MAVEN_VERSION = System.getProperty("formatj.maven.version", "3.9.16");
     private static final String MAVEN_ARCHIVE = "apache-maven-" + MAVEN_VERSION + "-bin.tar.gz";
-    private static final String MAVEN_URL = "https://archive.apache.org/dist/maven/maven-3/" + MAVEN_VERSION
-            + "/binaries/" + MAVEN_ARCHIVE;
+    private static final String MAVEN_URL = "https://archive.apache.org/dist/maven/maven-3/" + MAVEN_VERSION +
+        "/binaries/" + MAVEN_ARCHIVE;
 
-    @TempDir
-    Path temp;
+    @TempDir Path temp;
 
     @Test
     void formatGoalRewritesAndCheckThenPasses() throws Exception {
@@ -59,20 +59,23 @@ class MavenPluginFixtureTest {
 
         Path mavenHome = mavenHome();
         Run mavenVersion = runProcess(
-                List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
-                fixture,
-                Duration.ofMinutes(1));
+            List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
+            fixture,
+            Duration.ofMinutes(1)
+        );
         assertEquals(0, mavenVersion.exitCode, mavenVersion.out + mavenVersion.err);
         assertTrue(
-                mavenVersion.out.contains("Apache Maven " + MAVEN_VERSION),
-                () -> "expected Maven " + MAVEN_VERSION + ":\n" + mavenVersion.out + mavenVersion.err);
+            mavenVersion.out.contains("Apache Maven " + MAVEN_VERSION),
+            () -> "expected Maven " + MAVEN_VERSION + ":\n" + mavenVersion.out + mavenVersion.err
+        );
         String plugin = "zone.rong.formatj:formatj-maven-plugin:" + version;
         Run checkDirty = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
         assertNotEquals(0, checkDirty.exitCode, checkDirty.out + checkDirty.err);
         assertTrue(
-                (checkDirty.out + checkDirty.err).toLowerCase().contains("not formatted")
-                        || (checkDirty.out + checkDirty.err).contains("Sample.java"),
-                checkDirty.out + checkDirty.err);
+            (checkDirty.out + checkDirty.err).toLowerCase().contains("not formatted") ||
+                (checkDirty.out + checkDirty.err).contains("Sample.java"),
+            checkDirty.out + checkDirty.err
+        );
 
         Run format = maven(mavenHome, localRepo, fixture, version, plugin + ":format");
         assertEquals(0, format.exitCode, format.out + format.err);
@@ -87,7 +90,7 @@ class MavenPluginFixtureTest {
     }
 
     private static Run maven(Path mavenHome, Path localRepo, Path fixture, String version, String goal)
-            throws Exception {
+        throws Exception {
         Path mvn = mavenHome.resolve("bin/mvn");
         assertTrue(Files.isRegularFile(mvn), () -> "missing mvn: " + mvn);
         List<String> command = new ArrayList<>();
@@ -112,9 +115,10 @@ class MavenPluginFixtureTest {
             download(URI.create(MAVEN_URL), archive);
         }
         Run unpack = runProcess(
-                List.of("tar", "-xzf", archive.toString(), "-C", cache.toString()),
-                cache,
-                Duration.ofMinutes(2));
+            List.of("tar", "-xzf", archive.toString(), "-C", cache.toString()),
+            cache,
+            Duration.ofMinutes(2)
+        );
         if (unpack.exitCode != 0) {
             Files.deleteIfExists(archive);
             throw new IOException("failed to unpack Maven from " + archive + "\n" + unpack.out + unpack.err);
@@ -126,9 +130,9 @@ class MavenPluginFixtureTest {
 
     private static void download(URI uri, Path destination) throws Exception {
         HttpClient client = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
         HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofMinutes(2)).GET().build();
         HttpResponse<Path> response = client.send(request, HttpResponse.BodyHandlers.ofFile(destination));
         if (response.statusCode() / 100 != 2) {
@@ -138,7 +142,7 @@ class MavenPluginFixtureTest {
     }
 
     private static void installArtifact(Path repo, String group, String artifact, String version, Path jar, String pom)
-            throws IOException {
+        throws IOException {
         Path directory = repo;
         for (String part : group.split("\\.")) {
             directory = directory.resolve(part);
@@ -148,9 +152,10 @@ class MavenPluginFixtureTest {
         Files.copy(jar, directory.resolve(artifact + "-" + version + ".jar"), StandardCopyOption.REPLACE_EXISTING);
         Files.writeString(directory.resolve(artifact + "-" + version + ".pom"), pom, StandardCharsets.UTF_8);
         Files.writeString(
-                directory.getParent().resolve("maven-metadata-local.xml"),
-                metadata(group, artifact, version),
-                StandardCharsets.UTF_8);
+            directory.getParent().resolve("maven-metadata-local.xml"),
+            metadata(group, artifact, version),
+            StandardCharsets.UTF_8
+        );
     }
 
     private static String corePom(String version) {
@@ -163,7 +168,8 @@ class MavenPluginFixtureTest {
                   <version>%s</version>
                 </project>
                 """.formatted(
-                version);
+            version
+        );
     }
 
     private static String pluginPom(String version) {
@@ -184,8 +190,9 @@ class MavenPluginFixtureTest {
                   </dependencies>
                 </project>
                 """.formatted(
-                version,
-                version);
+            version,
+            version
+        );
     }
 
     private static String metadata(String group, String artifact, String version) {
@@ -200,10 +207,11 @@ class MavenPluginFixtureTest {
                   </versioning>
                 </metadata>
                 """.formatted(
-                group,
-                artifact,
-                version,
-                version);
+            group,
+            artifact,
+            version,
+            version
+        );
     }
 
     private static void copyFixture(Path destination) throws IOException {
@@ -248,18 +256,20 @@ class MavenPluginFixtureTest {
                 process.destroyForcibly();
                 process.waitFor();
                 throw new IOException(
-                        "process timed out: " + command + "\n" + Files.readString(outFile) + Files.readString(errFile));
+                    "process timed out: " + command + "\n" + Files.readString(outFile) + Files.readString(errFile)
+                );
             }
             return new Run(
-                    process.exitValue(),
-                    Files.readString(outFile, StandardCharsets.UTF_8),
-                    Files.readString(errFile, StandardCharsets.UTF_8));
+                process.exitValue(),
+                Files.readString(outFile, StandardCharsets.UTF_8),
+                Files.readString(errFile, StandardCharsets.UTF_8)
+            );
         } finally {
             Files.deleteIfExists(outFile);
             Files.deleteIfExists(errFile);
         }
     }
 
-    private record Run(int exitCode, String out, String err) {}
+    private record Run(int exitCode, String out, String err) { }
 
 }

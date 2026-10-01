@@ -1,5 +1,8 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -7,8 +10,6 @@ import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
 import zone.rong.formatj.core.text.TextBlocks;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The two text block rules that change the string the program produces.
@@ -43,8 +44,8 @@ public final class TextBlockRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE)
-                || context.rule(TextBlockRules.ESCAPE_TRAILING_SPACES);
+        return context.rule(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE) ||
+            context.rule(TextBlockRules.ESCAPE_TRAILING_SPACES);
     }
 
     @Override
@@ -107,16 +108,18 @@ public final class TextBlockRewrite implements Rewrite {
             return child;
         }
         context.record(new TokenEdit(
-                authority,
-                "a text block written the way the text block rules ask for",
-                position,
-                List.of(original),
-                List.of(rewritten),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            authority,
+            "a text block written the way the text block rules ask for",
+            position,
+            List.of(original),
+            List.of(rewritten),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
         return GreenNode.leaf(new SyntaxToken(
-                syntax.leading(),
-                Token.synthetic(TokenKind.TEXT_BLOCK, rewritten),
-                syntax.trailing()));
+            syntax.leading(),
+            Token.synthetic(TokenKind.TEXT_BLOCK, rewritten),
+            syntax.trailing()
+        ));
     }
 
 }

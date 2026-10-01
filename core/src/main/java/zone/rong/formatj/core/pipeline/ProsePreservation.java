@@ -1,19 +1,20 @@
 package zone.rong.formatj.core.pipeline;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.api.rules.JavadocRules;
+import zone.rong.formatj.api.rules.JavadocTagOrder;
 import zone.rong.formatj.core.comment.Javadoc;
 import zone.rong.formatj.core.comment.Prose;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Checks that laying the file out did not change what its comments say.
@@ -50,7 +51,7 @@ public final class ProsePreservation {
 
     private static final String STRUCTURE = "\u0000documentation-structure:";
 
-    private ProsePreservation() {}
+    private ProsePreservation() { }
 
     /**
      * Verifies that the formatted output says what the tree it came from said.

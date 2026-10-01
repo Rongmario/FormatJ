@@ -6,8 +6,9 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /** Formats the project's Java sources in place. */
 @Mojo(
-        name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES,
-        requiresDependencyResolution = ResolutionScope.NONE, threadSafe = true)
+    name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES, requiresDependencyResolution = ResolutionScope.NONE,
+    threadSafe = true
+)
 public class FormatMojo extends AbstractFormatJMojo {
 
     @Override

@@ -1,15 +1,16 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.TokenKind;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Puts braces around the body of a control statement, or takes them off.
@@ -40,9 +41,9 @@ public final class BraceRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(BraceRules.IF_ELSE) != BracePolicy.PRESERVE
-                || context.rule(BraceRules.FOR_LOOP) != BracePolicy.PRESERVE
-                || context.rule(BraceRules.WHILE_LOOP) != BracePolicy.PRESERVE;
+        return context.rule(BraceRules.IF_ELSE) != BracePolicy.PRESERVE ||
+            context.rule(BraceRules.FOR_LOOP) != BracePolicy.PRESERVE ||
+            context.rule(BraceRules.WHILE_LOOP) != BracePolicy.PRESERVE;
     }
 
     @Override
@@ -78,11 +79,12 @@ public final class BraceRewrite implements Rewrite {
     }
 
     private GreenNode rewriteBody(
-            GreenNode statement,
-            GreenNode body,
-            BracePolicy policy,
-            Option<BracePolicy> authority,
-            RewriteContext context) {
+        GreenNode statement,
+        GreenNode body,
+        BracePolicy policy,
+        Option<BracePolicy> authority,
+        RewriteContext context
+    ) {
         boolean braced = body.kind() == SyntaxKind.BLOCK;
         boolean wanted = switch (policy) {
             case ALWAYS -> true;
@@ -112,27 +114,30 @@ public final class BraceRewrite implements Rewrite {
         }
 
         context.record(TokenEdit.insert(
-                authority,
-                "braces added around a control statement body",
-                start,
-                TokenEdit.Bias.OUTERMOST_FIRST,
-                "{"));
+            authority,
+            "braces added around a control statement body",
+            start,
+            TokenEdit.Bias.OUTERMOST_FIRST,
+            "{"
+        ));
         context.record(TokenEdit.insert(
-                authority,
-                "braces added around a control statement body",
-                end,
-                TokenEdit.Bias.INNERMOST_FIRST,
-                "}"));
+            authority,
+            "braces added around a control statement body",
+            end,
+            TokenEdit.Bias.INNERMOST_FIRST,
+            "}"
+        ));
 
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(brace("{"), body, brace("}")));
     }
 
     /** Takes a single-statement block down to the statement itself, where that is safe. */
     private GreenNode unwrap(
-            GreenNode statement,
-            GreenNode body,
-            Option<BracePolicy> authority,
-            RewriteContext context) {
+        GreenNode statement,
+        GreenNode body,
+        Option<BracePolicy> authority,
+        RewriteContext context
+    ) {
         List<GreenNode> children = body.children();
         if (children.size() != 3) {
             return body;
@@ -167,9 +172,9 @@ public final class BraceRewrite implements Rewrite {
 
     /** Whether {@code body}, unbraced, would let this if's {@code else} bind to an if inside it. */
     private static boolean danglingElse(GreenNode statement, GreenNode body) {
-        return statement.kind() == SyntaxKind.IF_STATEMENT
-                && statement.children().getLast().kind() == SyntaxKind.ELSE_CLAUSE
-                && endsInOpenIf(body);
+        return statement.kind() == SyntaxKind.IF_STATEMENT &&
+            statement.children().getLast().kind() == SyntaxKind.ELSE_CLAUSE &&
+            endsInOpenIf(body);
     }
 
     /**
@@ -185,7 +190,7 @@ public final class BraceRewrite implements Rewrite {
                 yield last.kind() != SyntaxKind.ELSE_CLAUSE || endsInOpenIf(last.children().getLast());
             }
             case FOR_STATEMENT, ENHANCED_FOR_STATEMENT, WHILE_STATEMENT, LABELED_STATEMENT ->
-                    endsInOpenIf(statement.children().getLast());
+                endsInOpenIf(statement.children().getLast());
             case BLOCK -> statementsIn(statement) == 1 && endsInOpenIf(statement.children().get(1));
             default -> false;
         };

@@ -1,9 +1,5 @@
 package zone.rong.formatj.maven;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,12 +13,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Keeps the hand-written plugin descriptor honest.
@@ -41,13 +43,20 @@ class MavenPluginDescriptorTest {
 
     private static final Pattern MOJO = Pattern.compile("@Mojo\\(([^)]*)\\)", Pattern.DOTALL);
     private static final Pattern PARAMETER = Pattern.compile(
-            "@Parameter(?:\\(([^)]*)\\))?\\s+protected\\s+[\\w.<>, ]+?\\s+(\\w+)\\s*[;=]",
-            Pattern.DOTALL);
+        "@Parameter(?:\\(([^)]*)\\))?\\s+protected\\s+[\\w.<>, ]+?\\s+(\\w+)\\s*[;=]",
+        Pattern.DOTALL
+    );
     private static final Pattern ATTRIBUTE = Pattern.compile("(\\w+)\\s*=\\s*(\"[^\"]*\"|[\\w.]+)");
 
-    private record MojoSource(String goal, String phase, String resolution, String threadSafe, String implementation) {}
+    private record MojoSource(
+        String goal,
+        String phase,
+        String resolution,
+        String threadSafe,
+        String implementation
+    ) { }
 
-    private record ParameterSource(String name, String property, String defaultValue) {}
+    private record ParameterSource(String name, String property, String defaultValue) { }
 
     private static Document descriptor() throws Exception {
         Path path = Path.of(System.getProperty("formatj.descriptor"));
@@ -110,11 +119,12 @@ class MavenPluginDescriptorTest {
             assertTrue(matcher.find(), () -> fileName + " has no @Mojo annotation");
             Map<String, String> values = attributes(matcher.group(1));
             mojos.add(new MojoSource(
-                    values.get("name"),
-                    constantToId(values.get("defaultPhase")),
-                    constantToId(values.getOrDefault("requiresDependencyResolution", "ResolutionScope.NONE")),
-                    values.getOrDefault("threadSafe", "false"),
-                    "zone.rong.formatj.maven." + fileName.replace(".java", "")));
+                values.get("name"),
+                constantToId(values.get("defaultPhase")),
+                constantToId(values.getOrDefault("requiresDependencyResolution", "ResolutionScope.NONE")),
+                values.getOrDefault("threadSafe", "false"),
+                "zone.rong.formatj.maven." + fileName.replace(".java", "")
+            ));
         }
         return mojos;
     }
@@ -126,9 +136,10 @@ class MavenPluginDescriptorTest {
         while (matcher.find()) {
             Map<String, String> values = attributes(matcher.group(1) == null ? "" : matcher.group(1));
             parameters.add(new ParameterSource(
-                    matcher.group(2),
-                    values.getOrDefault("property", ""),
-                    values.getOrDefault("defaultValue", "")));
+                matcher.group(2),
+                values.getOrDefault("property", ""),
+                values.getOrDefault("defaultValue", "")
+            ));
         }
         assertTrue(parameters.size() > 5, () -> "found only " + parameters.size() + " parameters in the mojo source");
         return parameters;
@@ -174,15 +185,17 @@ class MavenPluginDescriptorTest {
                 Element element = wiring.getFirst();
                 if (!parameter.defaultValue().isEmpty()) {
                     assertEquals(
-                            parameter.defaultValue(),
-                            element.getAttribute("default-value"),
-                            () -> parameter.name() + " has a different default in the descriptor");
+                        parameter.defaultValue(),
+                        element.getAttribute("default-value"),
+                        () -> parameter.name() + " has a different default in the descriptor"
+                    );
                 }
                 if (!parameter.property().isEmpty()) {
                     assertEquals(
-                            "${" + parameter.property() + "}",
-                            element.getTextContent().trim(),
-                            () -> parameter.name() + " has a different property in the descriptor");
+                        "${" + parameter.property() + "}",
+                        element.getTextContent().trim(),
+                        () -> parameter.name() + " has a different property in the descriptor"
+                    );
                 }
             }
         }
@@ -210,9 +223,10 @@ class MavenPluginDescriptorTest {
     void theDeclaredVersionMatchesTheBuild() throws Exception {
         Document document = descriptor();
         assertEquals(
-                System.getProperty("formatj.version"),
-                text(document.getDocumentElement(), "version"),
-                "the processed plugin.xml version must match the build");
+            System.getProperty("formatj.version"),
+            text(document.getDocumentElement(), "version"),
+            "the processed plugin.xml version must match the build"
+        );
     }
 
     @Test

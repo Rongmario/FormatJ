@@ -1,10 +1,11 @@
 package zone.rong.formatj.core.comment;
 
-import zone.rong.formatj.core.lexer.Token;
-import zone.rong.formatj.core.lexer.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import zone.rong.formatj.core.lexer.Token;
+import zone.rong.formatj.core.lexer.TokenKind;
 
 /**
  * What a comment says, separated from how it is written.
@@ -61,7 +62,7 @@ public final class Prose {
 
     }
 
-    private Prose() {}
+    private Prose() { }
 
     // ------------------------------------------------------------- content
 
@@ -75,7 +76,8 @@ public final class Prose {
     public static List<String> contentLines(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
             return List.of(
-                    isMarkdownComment(comment) ? comment.text().substring(3) : stripLeadingSlashes(comment.text()));
+                isMarkdownComment(comment) ? comment.text().substring(3) : stripLeadingSlashes(comment.text())
+            );
         }
         return blockContentLines(comment.text());
     }
@@ -201,7 +203,7 @@ public final class Prose {
         while (index < content.length()) {
             int end = verbatimEnd(content, index, lineStart);
             if (end > index) {
-                ranges.add(new int[] {index, end});
+                ranges.add(new int[] { index, end });
                 lineStart = false;
                 index = end;
                 continue;
@@ -245,7 +247,7 @@ public final class Prose {
         if (content.startsWith("```", index) && atLineStart(content, index)) {
             return fenceEnd(content, index);
         }
-        for (String tag : new String[] {"{@code", "{@literal", "{@snippet"}) {
+        for (String tag : new String[] { "{@code", "{@literal", "{@snippet" }) {
             if (content.startsWith(tag, index) && endsTag(content, index + tag.length())) {
                 return matchingBrace(content, index);
             }
@@ -258,9 +260,9 @@ public final class Prose {
 
     /** Whether an inline tag's name ends here, rather than {@code {@codex} being read as {@code}. */
     private static boolean endsTag(String content, int index) {
-        return index >= content.length()
-                || Character.isWhitespace(content.charAt(index))
-                || content.charAt(index) == '}';
+        return index >= content.length() ||
+            Character.isWhitespace(content.charAt(index)) ||
+            content.charAt(index) == '}';
     }
 
     private static int matchingBrace(String content, int open) {

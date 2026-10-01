@@ -15,21 +15,24 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class TextBlockRules {
 
     public static final Option<TextBlockIndentPolicy> INDENT_POLICY = Option.ofEnum(
-            "text-blocks.indent-policy",
-            TextBlockIndentPolicy.PRESERVE,
-            "How incidental indentation is handled");
+        "text-blocks.indent-policy",
+        TextBlockIndentPolicy.PRESERVE,
+        "How incidental indentation is handled"
+    );
 
     public static final Option<Boolean> CLOSING_DELIMITER_ON_OWN_LINE = Option.ofBoolean(
-            "text-blocks.closing-delimiter-on-own-line",
-            false,
-            "Put the closing delimiter on its own line, adding the line terminator that implies");
+        "text-blocks.closing-delimiter-on-own-line",
+        false,
+        "Put the closing delimiter on its own line, adding the line terminator that implies"
+    );
 
     public static final Option<Boolean> ESCAPE_TRAILING_SPACES = Option.ofBoolean(
-            "text-blocks.escape-trailing-spaces",
-            false,
-            "Escape trailing spaces with \\s, making the ones the language would discard significant");
+        "text-blocks.escape-trailing-spaces",
+        false,
+        "Escape trailing spaces with \\s, making the ones the language would discard significant"
+    );
 
-    private TextBlockRules() {}
+    private TextBlockRules() { }
 
     /** Fluent view of the {@code text-blocks.*} rules. */
     public static final class Builder {

@@ -7,11 +7,12 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class SemicolonRules {
 
     public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
-            "semicolons.remove-redundant",
-            false,
-            "Remove stray semicolons between members and after a top-level type");
+        "semicolons.remove-redundant",
+        false,
+        "Remove stray semicolons between members and after a top-level type"
+    );
 
-    private SemicolonRules() {}
+    private SemicolonRules() { }
 
     /** Fluent view of the {@code semicolons.*} rules. */
     public static final class Builder {

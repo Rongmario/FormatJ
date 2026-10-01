@@ -24,16 +24,18 @@ import zone.rong.formatj.api.StyleBuilder;
 public final class ModifierRules {
 
     public static final Option<ModifierOrder> ORDER = Option.ofEnum(
-            "modifiers.order",
-            ModifierOrder.PRESERVE,
-            "Ordering of declaration modifiers");
+        "modifiers.order",
+        ModifierOrder.PRESERVE,
+        "Ordering of declaration modifiers"
+    );
 
     public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
-            "modifiers.remove-redundant",
-            false,
-            "Remove modifiers the language already implies");
+        "modifiers.remove-redundant",
+        false,
+        "Remove modifiers the language already implies"
+    );
 
-    private ModifierRules() {}
+    private ModifierRules() { }
 
     /** Fluent view of the {@code modifiers.*} rules. */
     public static final class Builder {

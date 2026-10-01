@@ -1,9 +1,10 @@
 package zone.rong.formatj.core.config;
 
+import java.util.List;
+
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.OptionRegistry;
 import zone.rong.formatj.api.Style;
-import java.util.List;
 
 /**
  * Renders a {@link Style} as a commented TOML document.
@@ -13,7 +14,7 @@ import java.util.List;
  */
 public final class TomlWriter {
 
-    private TomlWriter() {}
+    private TomlWriter() { }
 
     /** The whole catalogue with this style's effective values, grouped and commented. */
     public static String write(Style style) {

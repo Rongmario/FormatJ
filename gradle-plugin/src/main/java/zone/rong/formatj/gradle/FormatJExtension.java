@@ -1,16 +1,17 @@
 package zone.rong.formatj.gradle;
 
-import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.OptionRegistry;
-import zone.rong.formatj.api.Preset;
 import java.util.List;
 import java.util.Map;
+
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.SetProperty;
+import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.api.Option;
+import zone.rong.formatj.api.OptionRegistry;
+import zone.rong.formatj.api.Preset;
 
 /**
  * The {@code formatJ { }} block.

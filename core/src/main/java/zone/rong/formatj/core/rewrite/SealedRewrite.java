@@ -1,13 +1,14 @@
 package zone.rong.formatj.core.rewrite;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * Sorts the types in a {@code permits} clause.
@@ -64,12 +65,13 @@ public final class SealedRewrite implements Rewrite {
             return node;
         }
         context.record(new TokenEdit(
-                SealedRules.PERMITS_ORDER,
-                "permitted types reordered",
-                position,
-                run(children, slots, types),
-                run(children, slots, sorted),
-                TokenEdit.Bias.INNERMOST_FIRST));
+            SealedRules.PERMITS_ORDER,
+            "permitted types reordered",
+            position,
+            run(children, slots, types),
+            run(children, slots, sorted),
+            TokenEdit.Bias.INNERMOST_FIRST
+        ));
 
         List<GreenNode> rewritten = new ArrayList<>(children);
         for (int i = 0; i < slots.size(); i++) {
