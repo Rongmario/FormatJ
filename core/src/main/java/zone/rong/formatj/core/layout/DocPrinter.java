@@ -112,6 +112,16 @@ public final class DocPrinter {
 
             switch (doc) {
                 case Doc.Text text -> {
+                    if (!text.value().isEmpty() && endsLine(lineSuffixes)) {
+                        // A line comment is still waiting for the end of this line, and nothing may
+                        // follow it there. Code the layout put on the same line moves to the next,
+                        // and the space that would have separated them is dropped.
+                        if (!text.value().isBlank()) {
+                            commands.push(command);
+                        }
+                        commands.push(new Command(indent, Mode.BREAK, Doc.hardLine()));
+                        break;
+                    }
                     out.append(text.value());
                     column += text.value().length();
                     if (!text.value().isEmpty()) {
@@ -160,7 +170,7 @@ public final class DocPrinter {
                     // Handled by DocBreaks.propagate before printing starts.
                 }
                 case Doc.Break lineBreak -> {
-                    if (mode == Mode.FLAT && lineBreak.kind() != Doc.BreakKind.HARD) {
+                    if (mode == Mode.FLAT && lineBreak.kind() != Doc.BreakKind.HARD && !endsLine(lineSuffixes)) {
                         if (lineBreak.kind() == Doc.BreakKind.LINE) {
                             out.append(' ');
                             column++;
@@ -168,7 +178,7 @@ public final class DocPrinter {
                         break;
                     }
                     if (!lineSuffixes.isEmpty()) {
-                        commands.push(new Command(indent, mode, lineBreak));
+                        commands.push(new Command(indent, Mode.BREAK, lineBreak));
                         for (int i = lineSuffixes.size() - 1; i >= 0; i--) {
                             commands.push(new Command(indent, mode, lineSuffixes.get(i)));
                         }
@@ -260,6 +270,7 @@ public final class DocPrinter {
         Iterator<Command> following = rest.iterator();
         int left = remaining;
         boolean lineEnded = false;
+        boolean measuringRest = false;
 
         while (left >= 0) {
             if (queue.isEmpty()) {
@@ -267,15 +278,18 @@ public final class DocPrinter {
                     return true;
                 }
                 queue.push(following.next());
+                measuringRest = true;
                 continue;
             }
             Command command = queue.pop();
             Mode mode = command.mode();
             switch (command.doc()) {
                 case Doc.Text text -> {
-                    // A line comment runs to the end of the line, so text after it would be swallowed.
+                    // The printer moves text that follows a line comment to the next line. Inside the
+                    // document that is a break it did not plan for, so the document does not fit flat.
+                    // After it, the line simply ends there.
                     if (lineEnded && !text.value().isEmpty()) {
-                        return false;
+                        return measuringRest;
                     }
                     left -= text.value().length();
                 }
@@ -310,6 +324,15 @@ public final class DocPrinter {
                         left--;
                     }
                 }
+            }
+        }
+        return false;
+    }
+
+    private static boolean endsLine(List<Doc> lineSuffixes) {
+        for (Doc suffix : lineSuffixes) {
+            if (DocBreaks.forcesBreak(suffix)) {
+                return true;
             }
         }
         return false;

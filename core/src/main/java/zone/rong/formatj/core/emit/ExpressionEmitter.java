@@ -228,7 +228,8 @@ abstract class ExpressionEmitter extends EmitSupport {
     protected Doc emitBinary(GreenNode node) {
         List<GreenNode> operands = new ArrayList<>();
         List<Doc> operators = new ArrayList<>();
-        flattenBinary(node, operands, operators);
+        List<Boolean> commented = new ArrayList<>();
+        flattenBinary(node, operands, operators, commented);
 
         boolean spaced = rule(SpacingRules.AROUND_BINARY_OPERATORS);
         WrapPolicy policy = rule(WrappingRules.BINARY_OPERATORS);
@@ -246,19 +247,23 @@ abstract class ExpressionEmitter extends EmitSupport {
             return Doc.concat(flat);
         }
 
+        // Parts alternate operand and break, which a fill relies on.
         List<Doc> parts = new ArrayList<>();
-        parts.add(emit(operands.getFirst()));
+        Doc pending = emit(operands.getFirst());
         for (int i = 0; i < operators.size(); i++) {
             Doc operand = emit(operands.get(i + 1));
-            if (operatorFirst) {
-                parts.add(Doc.line());
-                parts.add(Doc.concat(operators.get(i), spaceIf(spaced), operand));
+            // An operator followed by a comment stays at the end of its line. Moved to the start of the
+            // next one, the comment would end up trailing the operator or whatever ends that line.
+            if (operatorFirst && !commented.get(i)) {
+                parts.add(pending);
+                pending = Doc.concat(operators.get(i), spaceIf(spaced), operand);
             } else {
-                parts.add(Doc.concat(spaceIf(spaced), operators.get(i)));
-                parts.add(Doc.line());
-                parts.add(operand);
+                parts.add(Doc.concat(pending, spaceIf(spaced), operators.get(i)));
+                pending = operand;
             }
+            parts.add(Doc.line());
         }
+        parts.add(pending);
         // A run of && or || reads as a list of conditions, so it breaks all at once; arithmetic and
         // string concatenation read as prose and fill the line instead. A run whose breaks have to
         // survive gets neither: a fill decides each break by what fits and a nested group is measured
@@ -347,7 +352,11 @@ abstract class ExpressionEmitter extends EmitSupport {
     }
 
     /** Splits a left-nested run of same-precedence operators into operands and operator documents. */
-    private void flattenBinary(GreenNode node, List<GreenNode> operands, List<Doc> operators) {
+    private void flattenBinary(
+            GreenNode node,
+            List<GreenNode> operands,
+            List<Doc> operators,
+            List<Boolean> commented) {
         List<GreenNode> children = node.children();
         GreenNode left = children.getFirst();
         List<Doc> operator = new ArrayList<>();
@@ -356,11 +365,13 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         String text = operatorText(children);
         if (left.kind() == SyntaxKind.BINARY_EXPRESSION && samePrecedence(operatorText(left.children()), text)) {
-            flattenBinary(left, operands, operators);
+            flattenBinary(left, operands, operators, commented);
         } else {
             operands.add(left);
         }
         operators.add(Doc.concat(operator));
+        commented.add(hasTrailingLineComment(children.get(children.size() - 2))
+                || hasLeadingComments(children.getLast()));
         operands.add(children.getLast());
     }
 

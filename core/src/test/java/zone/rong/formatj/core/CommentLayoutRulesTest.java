@@ -274,6 +274,24 @@ class CommentLayoutRulesTest {
     }
 
     /** 1-based column of the first {@code //} on the line that contains {@code needle}. */
+    @Test
+    void codePulledOntoACommentedLineStartsTheNextLine() {
+        String source = "class A {\n    void m() //x\n    { // pad\n    }\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("void m() //x\n    { // pad\n"), formatted);
+    }
+
+    @Test
+    void anOperatorFollowedByACommentStaysAtTheEndOfItsLine() {
+        String source = "class A {\n    boolean m() {\n        return a && // first\n                b;\n    }\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("return a && // first\n                b;"), formatted);
+    }
+
     private static int commentColumn(String source, String needle) {
         int found = source.indexOf(needle);
         assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);
