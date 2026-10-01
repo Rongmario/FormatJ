@@ -22,6 +22,8 @@ import java.util.List;
  * @param removed lexemes expected at {@code position}, which the edit deletes
  * @param inserted lexemes the edit puts at {@code position}
  * @param bias how to order this edit against others recorded at the same position
+ * @param order for an edit that only reorders: the stretches of original tokens, in the order they
+ *     are to be written; empty for every other edit
  */
 public record TokenEdit(
         Option<?> authority,
@@ -29,7 +31,24 @@ public record TokenEdit(
         int position,
         List<String> removed,
         List<String> inserted,
-        TokenEdit.Bias bias) {
+        TokenEdit.Bias bias,
+        List<TokenEdit.Span> order) {
+
+    /**
+     * A stretch of the original program tokens, from {@code start} up to but not including {@code end}.
+     *
+     * <p>A reordering edit applies after every splice, so a splice recorded inside a stretch travels
+     * with it.
+     */
+    public record Span(int start, int end) {
+
+        public Span {
+            if (start < 0 || end < start) {
+                throw new IllegalArgumentException("invalid span: " + start + ".." + end);
+            }
+        }
+
+    }
 
     /**
      * Which of two edits at one position comes first.
@@ -52,12 +71,29 @@ public record TokenEdit(
     public TokenEdit {
         removed = List.copyOf(removed);
         inserted = List.copyOf(inserted);
-        if (removed.isEmpty() && inserted.isEmpty()) {
-            throw new IllegalArgumentException("an edit must remove or insert something");
+        order = List.copyOf(order);
+        if (removed.isEmpty() && inserted.isEmpty() && order.isEmpty()) {
+            throw new IllegalArgumentException("an edit must remove, insert or reorder something");
         }
         if (position < 0) {
             throw new IllegalArgumentException("edit position must not be negative: " + position);
         }
+    }
+
+    public TokenEdit(
+            Option<?> authority,
+            String reason,
+            int position,
+            List<String> removed,
+            List<String> inserted,
+            Bias bias) {
+        this(authority, reason, position, removed, inserted, bias, List.of());
+    }
+
+    /** An edit that rewrites the stretches from {@code position} on in the given order. */
+    public static TokenEdit reorder(Option<?> authority, String reason, List<Span> order) {
+        int position = order.stream().mapToInt(Span::start).min().orElseThrow();
+        return new TokenEdit(authority, reason, position, List.of(), List.of(), Bias.INNERMOST_FIRST, order);
     }
 
     /** An edit that inserts tokens without removing any. */
@@ -72,7 +108,8 @@ public record TokenEdit(
 
     @Override
     public String toString() {
-        return authority.key() + " at token " + position + ": " + removed + " -> " + inserted;
+        return authority.key() + " at token " + position + ": "
+                + (order.isEmpty() ? removed + " -> " + inserted : "reordered " + order);
     }
 
 }

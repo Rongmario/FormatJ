@@ -6,12 +6,14 @@ import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
+import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.MemberGroup;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
@@ -91,7 +93,8 @@ public final class RewriteVerification {
      * The token stream the declared edits say the output must have.
      *
      * <p>Deletions are resolved first, so an edit that claims to remove a token which is not there,
-     * or which another edit already removed, is caught before anything is emitted.
+     * or which another edit already removed, is caught before anything is emitted. Reordering edits
+     * apply last, to what the other edits produced, so a splice inside a moved stretch moves with it.
      */
     static List<String> replay(List<String> original, List<TokenEdit> edits) {
         boolean[] deleted = new boolean[original.size()];
@@ -128,18 +131,68 @@ public final class RewriteVerification {
         }
         insertions.sort(ORDER);
 
-        List<String> expected = new ArrayList<>(original.size() + insertions.size());
+        List<List<String>> slots = new ArrayList<>(original.size() + 1);
         int next = 0;
         for (int position = 0; position <= original.size(); position++) {
+            List<String> slot = new ArrayList<>();
             while (next < insertions.size() && insertions.get(next).edit().position() == position) {
-                expected.addAll(insertions.get(next).edit().inserted());
+                slot.addAll(insertions.get(next).edit().inserted());
                 next++;
             }
             if (position < original.size() && !deleted[position]) {
-                expected.add(original.get(position));
+                slot.add(original.get(position));
+            }
+            slots.add(slot);
+        }
+        reorder(slots, edits);
+
+        List<String> expected = new ArrayList<>(original.size() + insertions.size());
+        slots.forEach(expected::addAll);
+        return List.copyOf(expected);
+    }
+
+    /**
+     * Applies the reordering edits, innermost first.
+     *
+     * <p>A stretch is moved as a whole, so a reordering inside one leaves the stretch where it was
+     * and the reordering around it sees the same slots in a different arrangement. The slots between
+     * two stretches belong to tokens a splice deleted, so they hold nothing and are dropped.
+     */
+    private static void reorder(List<List<String>> slots, List<TokenEdit> edits) {
+        List<TokenEdit> moves = edits.stream()
+                .filter(edit -> !edit.order().isEmpty())
+                .sorted(Comparator.comparingInt(RewriteVerification::runLength))
+                .toList();
+        for (TokenEdit move : moves) {
+            int start = move.position();
+            int end = start + runLength(move);
+            List<TokenEdit.Span> sorted = move.order()
+                    .stream()
+                    .sorted(Comparator.comparingInt(TokenEdit.Span::start))
+                    .toList();
+            for (int i = 1; i < sorted.size(); i++) {
+                if (sorted.get(i).start() < sorted.get(i - 1).end()) {
+                    throw new IllegalStateException(move.authority().key() + " reordered overlapping stretches");
+                }
+            }
+            if (end > slots.size()) {
+                throw new IllegalStateException(move.authority().key() + " reorders past the end of the file");
+            }
+            List<List<String>> moved = new ArrayList<>();
+            for (TokenEdit.Span span : move.order()) {
+                moved.addAll(List.copyOf(slots.subList(span.start(), span.end())));
+            }
+            List<List<String>> region = slots.subList(start, end);
+            int kept = moved.size();
+            for (int i = 0; i < region.size(); i++) {
+                region.set(i, i < kept ? moved.get(i) : List.of());
             }
         }
-        return List.copyOf(expected);
+    }
+
+    /** From the first token a reordering touches to one past the last. */
+    private static int runLength(TokenEdit move) {
+        return move.order().stream().mapToInt(TokenEdit.Span::end).max().orElse(0) - move.position();
     }
 
     /** An edit and where it sat in the ledger, which is the tiebreak for edits at one position. */
@@ -223,6 +276,92 @@ public final class RewriteVerification {
         }
         if (authority == SemicolonRules.REMOVE_REDUNDANT) {
             return checkSemicolonLaw(edit, before);
+        }
+        if (authority == MemberRules.ORDER) {
+            return checkMemberOrderLaw(edit, before);
+        }
+        return null;
+    }
+
+    /**
+     * The member order rule may rearrange the members of one type body into IntelliJ's group order,
+     * keeping members of one group in the order they were in.
+     *
+     * <p>The edit names stretches of the original tokens, so nothing can be added or dropped by it.
+     * What this checks is that the stretches are exactly the members of one body, that whatever lies
+     * between them is a stray semicolon another edit deleted, and that the order they are written in
+     * is the stable sort by group, which is re-derived from the original tree.
+     */
+    private static String checkMemberOrderLaw(TokenEdit edit, GreenNode before) {
+        String problem = MemberRules.ORDER.key() + " may only sort the members of one type body";
+        if (!edit.removed().isEmpty() || !edit.inserted().isEmpty()) {
+            return problem;
+        }
+        Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(before);
+        MemberBody body = bodyAt(before, edit.position(), positions);
+        if (body == null) {
+            return problem;
+        }
+
+        Map<TokenEdit.Span, Integer> originalIndex = new LinkedHashMap<>();
+        for (GreenNode member : body.members()) {
+            List<GreenNode.Leaf> leaves = ProgramTokens.leaves(member);
+            originalIndex.put(
+                    new TokenEdit.Span(positions.get(leaves.getFirst()), positions.get(leaves.getLast()) + 1),
+                    originalIndex.size());
+        }
+        if (edit.order().size() != originalIndex.size() || !originalIndex.keySet().containsAll(edit.order())) {
+            return problem;
+        }
+
+        List<String> tokens = ProgramTokens.lexemes(before);
+        List<TokenEdit.Span> spans = List.copyOf(originalIndex.keySet());
+        for (int i = 1; i < spans.size(); i++) {
+            for (int gap = spans.get(i - 1).end(); gap < spans.get(i).start(); gap++) {
+                if (!tokens.get(gap).equals(";")) {
+                    return problem;
+                }
+            }
+        }
+
+        int previousGroup = 0;
+        int previousIndex = -1;
+        for (TokenEdit.Span span : edit.order()) {
+            int index = originalIndex.get(span);
+            int group = MemberGroup.of(body.members().get(index), body.interfaceBody());
+            if (group < previousGroup || group == previousGroup && index < previousIndex) {
+                return MemberRules.ORDER.key() + " did not produce the stable order by member group";
+            }
+            previousGroup = group;
+            previousIndex = index;
+        }
+        return null;
+    }
+
+    /** The orderable members of a type body, and whether that body belongs to an interface. */
+    private record MemberBody(List<GreenNode> members, boolean interfaceBody) {}
+
+    /** The body whose first orderable member starts at {@code position}, or null. */
+    private static MemberBody bodyAt(GreenNode node, int position, Map<GreenNode.Leaf, Integer> positions) {
+        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION
+                || node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+        for (GreenNode child : node.children()) {
+            if (child.kind() == SyntaxKind.CLASS_BODY) {
+                List<GreenNode> members = child.children()
+                        .subList(1, child.children().size() - 1)
+                        .stream()
+                        .filter(member -> member.kind() != SyntaxKind.ENUM_CONSTANTS
+                                && member.kind() != SyntaxKind.EMPTY_STATEMENT)
+                        .toList();
+                if (!members.isEmpty()
+                        && positions.get(ProgramTokens.leaves(members.getFirst()).getFirst()) == position) {
+                    return new MemberBody(members, interfaceBody);
+                }
+            }
+            MemberBody found = bodyAt(child, position, positions);
+            if (found != null) {
+                return found;
+            }
         }
         return null;
     }

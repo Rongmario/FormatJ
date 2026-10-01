@@ -152,6 +152,7 @@ public final class DefaultFormatter implements Formatter {
             return FormatResult.failed(source, List.of(Diagnostic.error(attempt.problem())));
         } else {
             text = attempt.text();
+            diagnostics.addAll(attempt.warnings());
         }
 
         if (!wholeFile) {
@@ -217,7 +218,7 @@ public final class DefaultFormatter implements Formatter {
 
         String formatted = layout(SyntaxNode.root(rewritten.root()), source);
         if (!verify) {
-            return Attempt.success(formatted, rewrote);
+            return Attempt.success(formatted, rewrote, rewritten.warnings());
         }
 
         ParseResult formattedTree = JavaParser.parse(formatted, languageLevel, previewFeatures);
@@ -254,7 +255,7 @@ public final class DefaultFormatter implements Formatter {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
         }
 
-        return Attempt.success(formatted, rewrote);
+        return Attempt.success(formatted, rewrote, rewritten.warnings());
     }
 
     /**
@@ -262,15 +263,16 @@ public final class DefaultFormatter implements Formatter {
      *
      * @param rewrote whether the run actually changed the program, and so whether dropping the
      *     rewrites is a fallback worth trying
+     * @param warnings what the rewrites reported, which only a successful run passes on
      */
-    private record Attempt(String text, String problem, boolean rewrote) {
+    private record Attempt(String text, String problem, boolean rewrote, List<Diagnostic> warnings) {
 
-        static Attempt success(String text, boolean rewrote) {
-            return new Attempt(text, null, rewrote);
+        static Attempt success(String text, boolean rewrote, List<Diagnostic> warnings) {
+            return new Attempt(text, null, rewrote, warnings);
         }
 
         static Attempt failure(String problem, boolean rewrote) {
-            return new Attempt(null, problem, rewrote);
+            return new Attempt(null, problem, rewrote, List.of());
         }
 
         boolean failed() {

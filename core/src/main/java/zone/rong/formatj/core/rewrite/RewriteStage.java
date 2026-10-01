@@ -20,7 +20,9 @@ import java.util.List;
  * <p>Rewrites run in the fixed order declared here, once each, rather than being iterated to a
  * fixed point. Imports come first because they work on the file as a whole and nothing else has an
  * opinion about them. A fixed point would hide rules that disagree with each other; running once in a stated
- * order means two rules that fight produce a stable, explainable result. The order matters as more
+ * order means two rules that fight produce a stable, explainable result. Stray semicolons go next, and
+ * then member order, which has to see every member's tokens at their original positions and a body
+ * without empty declarations. The order matters as more
  * rules land: a rule that turns colon cases into arrow cases creates bodies that the brace rules have
  * an opinion about, so it runs before them. Text blocks come last because nothing else can produce
  * one and they can produce nothing else.
@@ -38,6 +40,8 @@ public final class RewriteStage {
 
     private static final List<Rewrite> REWRITES = List.of(
             new ImportRewrite(),
+            new SemicolonRewrite(),
+            new MemberOrderRewrite(),
             new RedundantModifierRewrite(),
             new ModifierRewrite(),
             new SealedRewrite(),
@@ -46,7 +50,6 @@ public final class RewriteStage {
             new LambdaRewrite(),
             new BraceRewrite(),
             new LiteralRewrite(),
-            new SemicolonRewrite(),
             new TextBlockRewrite(),
             new RedundantModifierRewrite(),
             new ArrayBracketRewrite());
@@ -80,7 +83,7 @@ public final class RewriteStage {
                 rewritten = visit(rewritten, rewrite, context);
             }
         }
-        return new RewriteResult(rewritten, ledger.edits());
+        return new RewriteResult(rewritten, ledger.edits(), context.warnings());
     }
 
     private static GreenNode visit(GreenNode node, Rewrite rewrite, RewriteContext context) {

@@ -192,6 +192,7 @@ TYPE public final class zone.rong.formatj.api.StyleBuilder
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.javadoc(java.util.function.Consumer<zone.rong.formatj.api.rules.JavadocRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.lambdas(java.util.function.Consumer<zone.rong.formatj.api.rules.LambdaRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.literals(java.util.function.Consumer<zone.rong.formatj.api.rules.LiteralRules$Builder>)
+  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.members(java.util.function.Consumer<zone.rong.formatj.api.rules.MemberRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modifiers(java.util.function.Consumer<zone.rong.formatj.api.rules.ModifierRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modules(java.util.function.Consumer<zone.rong.formatj.api.rules.ModuleRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.patterns(java.util.function.Consumer<zone.rong.formatj.api.rules.PatternRules$Builder>)
@@ -576,6 +577,19 @@ TYPE public final enum zone.rong.formatj.api.rules.LongSuffix
   FIELD public static final zone.rong.formatj.api.rules.LongSuffix zone.rong.formatj.api.rules.LongSuffix.UPPER
   METHOD public static zone.rong.formatj.api.rules.LongSuffix zone.rong.formatj.api.rules.LongSuffix.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.LongSuffix[] zone.rong.formatj.api.rules.LongSuffix.values()
+TYPE public final enum zone.rong.formatj.api.rules.MemberOrder
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.MemberOrder>
+  ENUM PRESERVE
+  ENUM INTELLIJ
+  FIELD public static final zone.rong.formatj.api.rules.MemberOrder zone.rong.formatj.api.rules.MemberOrder.INTELLIJ
+  FIELD public static final zone.rong.formatj.api.rules.MemberOrder zone.rong.formatj.api.rules.MemberOrder.PRESERVE
+  METHOD public static zone.rong.formatj.api.rules.MemberOrder zone.rong.formatj.api.rules.MemberOrder.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.MemberOrder[] zone.rong.formatj.api.rules.MemberOrder.values()
+TYPE public final class zone.rong.formatj.api.rules.MemberRules
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.MemberOrder> zone.rong.formatj.api.rules.MemberRules.ORDER
+TYPE public static final class zone.rong.formatj.api.rules.MemberRules$Builder
+  CTOR public zone.rong.formatj.api.rules.MemberRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.order(zone.rong.formatj.api.rules.MemberOrder)
 TYPE public final enum zone.rong.formatj.api.rules.ModifierOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ModifierOrder>
   ENUM PRESERVE

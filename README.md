@@ -782,6 +782,24 @@ changes only when every declarator has the same brackets.
 |----------------------------|---------------------|------------|-------------------------------------------------|------------------------------------------|
 | `arrays.c-style-brackets`  | `preserve`, `java`  | `preserve` | Placement of array brackets on declared variables | `java`: `int a[], b[]` becomes `int[] a, b` |
 
+### `members`
+
+`intellij` sorts each type body by IntelliJ IDEA's default arrangement and keeps members of one group
+in the order they were written. The groups are, in order, static final fields, static fields, static
+initializers, final fields, fields, instance initializers, constructors, static methods, methods,
+nested enums, nested interfaces, static nested classes and inner classes. Fields are ordered by access
+within their group, from `public` to `private`. A member moves with its comments and annotations,
+and enum constants stay first.
+
+A body is left alone when it holds a formatter-off region or a stray semicolon. It is also left alone,
+with a warning, when the sort would swap two field initializers or initializer blocks whose order
+matters. Two fields may swap only when their initializers are built from literals, operators, casts
+and names, and neither names the other.
+
+| Key             | Values                  | Default    | Effect                                | Example                                         |
+|-----------------|-------------------------|------------|---------------------------------------|-------------------------------------------------|
+| `members.order` | `preserve`, `intellij`  | `preserve` | Ordering of the members of a type body | `intellij`: a static field moves above a method |
+
 ## Runtime
 
 Published artifacts — the core library, the CLI, the Gradle plugin, and the Maven plugin — target

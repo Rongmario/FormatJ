@@ -1,9 +1,11 @@
 package zone.rong.formatj.core.rewrite;
 
+import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +24,7 @@ public final class RewriteContext {
     private final Style style;
     private final EditLedger ledger;
     private final Map<GreenNode.Leaf, Integer> positions;
+    private final List<Diagnostic> warnings = new ArrayList<>();
 
     RewriteContext(Style style, EditLedger ledger, GreenNode original) {
         this.style = style;
@@ -39,6 +42,15 @@ public final class RewriteContext {
 
     public void record(TokenEdit edit) {
         ledger.record(edit);
+    }
+
+    /** Reports something the rewrite left alone and the user should know about. */
+    public void warn(String message, int line, int column) {
+        warnings.add(Diagnostic.warning(message, line, column));
+    }
+
+    List<Diagnostic> warnings() {
+        return List.copyOf(warnings);
     }
 
     /**

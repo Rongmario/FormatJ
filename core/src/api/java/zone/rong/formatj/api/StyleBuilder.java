@@ -12,6 +12,7 @@ import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.JavadocRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
+import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.api.rules.PatternRules;
@@ -183,6 +184,11 @@ public final class StyleBuilder {
 
     public StyleBuilder arrays(Consumer<ArrayRules.Builder> rules) {
         rules.accept(new ArrayRules.Builder(this));
+        return this;
+    }
+
+    public StyleBuilder members(Consumer<MemberRules.Builder> rules) {
+        rules.accept(new MemberRules.Builder(this));
         return this;
     }
 
