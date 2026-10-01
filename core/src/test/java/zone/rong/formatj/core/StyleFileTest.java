@@ -1,6 +1,7 @@
 package zone.rong.formatj.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,6 +14,7 @@ import zone.rong.formatj.api.rules.ModuleRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.StyleFiles;
 import zone.rong.formatj.core.config.TomlReader;
 import java.io.IOException;
@@ -246,6 +248,39 @@ class StyleFileTest {
     @Test
     void discoveryFallsBackToDefaultsWhenThereIsNoFile(@TempDir Path root) {
         assertEquals(4, StyleFiles.discoverOrDefault(root).get(IndentRules.SIZE));
+    }
+
+    @Test
+    void filesIncludeAndExcludeDoNotLeakIntoTheStyleOrFailAsUnknownOptions() {
+        Style style =
+                StyleFiles.parse(
+                        """
+                        [files]
+                        include = ["src/**"]
+                        exclude = ["**/generated/**"]
+
+                        [indent]
+                        size = 2
+                        """);
+        assertEquals(2, style.get(IndentRules.SIZE));
+    }
+
+    @Test
+    void fileSelectionIsRelativeToTheStyleFilesDirectory(@TempDir Path root) throws IOException {
+        Path toml = root.resolve("formatj.toml");
+        Files.writeString(
+                toml,
+                """
+                [files]
+                include = ["src/**"]
+                exclude = ["**/generated/**"]
+                """);
+        FileSelection selection = StyleFiles.fileSelection(toml);
+
+        assertTrue(selection.matches(root.resolve("src/main/A.java")));
+        assertTrue(selection.matches(root.resolve("./src/main/A.java")));
+        assertFalse(selection.matches(root.resolve("other/A.java")));
+        assertFalse(selection.matches(root.resolve("src/generated/A.java")));
     }
 
 }

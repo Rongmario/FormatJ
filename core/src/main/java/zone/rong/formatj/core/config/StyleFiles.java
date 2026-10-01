@@ -8,6 +8,8 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,7 +17,9 @@ import java.util.Optional;
  * Loads and saves {@code formatj.toml} style files.
  *
  * <p>A style file may open with a top-level {@code preset = "google"}, which chooses the starting
- * point; every other key overrides one rule on top of it.
+ * point; every other key overrides one rule on top of it. A {@code [files]} table with
+ * {@code include}/{@code exclude} glob arrays steers which files are formatted rather than how;
+ * see {@link #fileSelection(Path)}.
  */
 public final class StyleFiles {
 
@@ -23,6 +27,8 @@ public final class StyleFiles {
     public static final String DEFAULT_FILE_NAME = "formatj.toml";
 
     private static final String PRESET_KEY = "preset";
+    private static final String FILES_INCLUDE_KEY = "files.include";
+    private static final String FILES_EXCLUDE_KEY = "files.exclude";
 
     private StyleFiles() { }
 
@@ -51,8 +57,54 @@ public final class StyleFiles {
         if (preset != null) {
             builder.apply(Preset.of(preset).style());
         }
+        // [files] is peeled off like preset: it steers which files are formatted rather than how,
+        // so it is not a registered Option and must not trip "Unknown option" below.
+        entries.remove(FILES_INCLUDE_KEY);
+        entries.remove(FILES_EXCLUDE_KEY);
         entries.forEach(builder::setRaw);
         return builder.build();
+    }
+
+    /** The {@code [files] include/exclude} globs a style file declares, relative to its directory. */
+    public static FileSelection fileSelection(Path file) {
+        Map<String, String> entries;
+        try {
+            entries = TomlReader.read(Files.readString(file, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read style file " + file, e);
+        }
+        Path base = file.toAbsolutePath().getParent();
+        return new FileSelection(base, globArray(entries.get(FILES_INCLUDE_KEY)), globArray(entries.get(FILES_EXCLUDE_KEY)));
+    }
+
+    /** The file selection of the nearest style file to {@code start}, or none when there is none. */
+    public static FileSelection discoverFileSelection(Path start) {
+        return discover(start).map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
+    }
+
+    /** A TOML string array, as {@code files.include}/{@code files.exclude} write it. */
+    private static List<String> globArray(String raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        String body = raw.trim();
+        if (body.startsWith("[") && body.endsWith("]")) {
+            body = body.substring(1, body.length() - 1);
+        }
+        List<String> globs = new ArrayList<>();
+        for (String element : body.split(",")) {
+            String trimmed = element.trim();
+            if (!trimmed.isEmpty()) {
+                globs.add(unquote(trimmed));
+            }
+        }
+        return List.copyOf(globs);
+    }
+
+    private static String unquote(String value) {
+        return value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")
+                ? value.substring(1, value.length() - 1)
+                : value;
     }
 
     /** Writes a style out as a commented TOML document. */

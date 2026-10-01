@@ -7,6 +7,7 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.TomlReader;
 import zone.rong.formatj.core.config.TomlWriter;
 import zone.rong.formatj.core.io.SourceFiles;
@@ -15,10 +16,8 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -107,7 +106,7 @@ final class CliRunner {
     private int runFiles(StyleResolver styles) {
         List<Path> files;
         try {
-            files = discover();
+            files = discover(styles);
         } catch (IOException e) {
             err.println("formatj: " + e.getMessage());
             return ERROR;
@@ -210,16 +209,17 @@ final class CliRunner {
     }
 
     /** Expands the given paths into the Java files to format. */
-    private List<Path> discover() throws IOException {
-        List<PathMatcher> includes = matchers(options.includes());
-        List<PathMatcher> excludes = matchers(options.excludes());
+    private List<Path> discover(StyleResolver styles) throws IOException {
+        // Relative to the working directory, with the leading "./" a root like "." contributes
+        // normalized away, so "--include 'src/**' ." matches the paths a user would type.
+        FileSelection cliSelection = new FileSelection(Path.of(""), options.includes(), options.excludes());
         List<Path> files = new ArrayList<>();
         for (Path path : options.paths()) {
             if (!Files.exists(path)) {
                 throw new IOException("no such file or directory: " + path);
             }
             if (Files.isRegularFile(path)) {
-                if (matches(path, includes, excludes)) {
+                if (selected(path, styles, cliSelection)) {
                     files.add(path);
                 }
                 continue;
@@ -227,7 +227,7 @@ final class CliRunner {
             try (var walk = Files.walk(path)) {
                 walk.filter(Files::isRegularFile)
                         .filter(candidate -> candidate.toString().endsWith(".java"))
-                        .filter(candidate -> matches(candidate, includes, excludes))
+                        .filter(candidate -> selected(candidate, styles, cliSelection))
                         .sorted()
                         .forEach(files::add);
             } catch (UncheckedIOException e) {
@@ -237,29 +237,9 @@ final class CliRunner {
         return List.copyOf(files);
     }
 
-    private static boolean matches(Path path, List<PathMatcher> includes, List<PathMatcher> excludes) {
-        for (PathMatcher exclude : excludes) {
-            if (exclude.matches(path)) {
-                return false;
-            }
-        }
-        if (includes.isEmpty()) {
-            return true;
-        }
-        for (PathMatcher include : includes) {
-            if (include.matches(path)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static List<PathMatcher> matchers(List<String> globs) {
-        List<PathMatcher> matchers = new ArrayList<>(globs.size());
-        for (String glob : globs) {
-            matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
-        }
-        return List.copyOf(matchers);
+    /** A path must pass both the CLI's own --include/--exclude and the style file's [files] table. */
+    private static boolean selected(Path path, StyleResolver styles, FileSelection cliSelection) {
+        return cliSelection.matches(path) && styles.fileSelectionFor(path).matches(path);
     }
 
     private static String version() {

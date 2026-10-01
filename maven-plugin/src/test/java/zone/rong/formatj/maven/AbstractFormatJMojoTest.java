@@ -6,6 +6,8 @@ import zone.rong.formatj.api.rules.IndentRules;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +34,39 @@ class AbstractFormatJMojoTest {
         mojo.preset = "google";
 
         assertEquals(2, mojo.style().get(IndentRules.SIZE));
+    }
+
+    @Test
+    void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root) throws IOException, MojoExecutionException {
+        Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
+        Path kept = Files.createDirectories(sourceRoot.resolve("kept"));
+        Path skipped = Files.createDirectories(sourceRoot.resolve("skipped"));
+        Files.writeString(kept.resolve("Kept.java"), "");
+        Files.writeString(skipped.resolve("Skipped.java"), "");
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        mojo.project.setFile(root.resolve("pom.xml").toFile());
+        mojo.project.addCompileSourceRoot(sourceRoot.toString());
+        mojo.includeTestSources = false;
+        mojo.includes = List.of("kept/**");
+
+        assertEquals(List.of(kept.resolve("Kept.java")), mojo.sourceFiles());
+    }
+
+    @Test
+    void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root) throws IOException, MojoExecutionException {
+        Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
+        Files.writeString(sourceRoot.resolve("Kept.java"), "");
+        Path generated = Files.createDirectories(sourceRoot.resolve("generated"));
+        Files.writeString(generated.resolve("Skipped.java"), "");
+        Files.writeString(root.resolve("formatj.toml"), "[files]\nexclude = [\"**/generated/**\"]\n");
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        mojo.project.setFile(root.resolve("pom.xml").toFile());
+        mojo.project.addCompileSourceRoot(sourceRoot.toString());
+        mojo.includeTestSources = false;
+
+        assertEquals(List.of(sourceRoot.resolve("Kept.java")), mojo.sourceFiles());
     }
 
 }

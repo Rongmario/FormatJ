@@ -146,6 +146,26 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void theStyleFilesFilesTableExcludesSourcesAcrossEverySourceSet() throws IOException {
+        Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+                """);
+        Files.writeString(projectDirectory.resolve("formatj.toml"), "[files]\nexclude = [\"**/sample/**\"]\n");
+        // Unformatted, so without the exclude taking effect the check below would fail.
+        Files.writeString(
+                projectDirectory.resolve("src/main/java/sample/Sample.java"),
+                "package sample;\n\nclass Sample {\n\n    void run() {\n        int x=1;\n    }\n\n}\n");
+
+        BuildResult result = run("formatJavaCheck");
+        assertEquals(TaskOutcome.SUCCESS, result.task(":formatJavaCheck").getOutcome());
+    }
+
+    @Test
     void checkTaskIsWiredIntoTheLifecycleCheckTask() {
         BuildResult result = run("check");
         assertTrue(result.getOutput().contains("formatJavaCheck"), result.getOutput());

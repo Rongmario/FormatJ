@@ -10,20 +10,20 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
+import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.StyleFiles;
 import zone.rong.formatj.core.io.SourceFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -178,6 +178,17 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         return builder.build();
     }
 
+    /** The style file driving {@link #style()}, if any: explicit, or the nearest discovered one. */
+    private Optional<Path> styleFileInUse() {
+        if (styleFile != null) {
+            return Optional.of(styleFile.toPath());
+        }
+        if (preset != null && !preset.isBlank()) {
+            return Optional.empty();
+        }
+        return StyleFiles.discover(project.getBasedir().toPath());
+    }
+
     private Formatter formatter() {
         return FormatJ.newFormatter()
                 .style(style())
@@ -192,18 +203,20 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         if (includeTestSources) {
             roots.addAll(project.getTestCompileSourceRoots());
         }
-        List<PathMatcher> includeMatchers = matchers(includes);
-        List<PathMatcher> excludeMatchers = matchers(excludes);
+        // The style file's own [files] table, relative to its directory; a style's includes/excludes
+        // apply everywhere, unlike <includes>/<excludes> below which are relative to each source root.
+        FileSelection tomlSelection = styleFileInUse().map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
         List<Path> files = new ArrayList<>();
         for (String root : roots) {
             Path directory = Path.of(root);
             if (!Files.isDirectory(directory)) {
                 continue;
             }
+            FileSelection rootSelection = new FileSelection(directory, includes, excludes);
             try (Stream<Path> walk = Files.walk(directory)) {
                 walk.filter(Files::isRegularFile)
                         .filter(path -> path.toString().endsWith(".java"))
-                        .filter(path -> allowed(path, includeMatchers, excludeMatchers))
+                        .filter(path -> rootSelection.matches(path) && tomlSelection.matches(path))
                         .sorted()
                         .forEach(files::add);
             } catch (IOException | UncheckedIOException e) {
@@ -211,31 +224,6 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             }
         }
         return files;
-    }
-
-    private static boolean allowed(Path path, List<PathMatcher> includes, List<PathMatcher> excludes) {
-        for (PathMatcher exclude : excludes) {
-            if (exclude.matches(path)) {
-                return false;
-            }
-        }
-        if (includes.isEmpty()) {
-            return true;
-        }
-        for (PathMatcher include : includes) {
-            if (include.matches(path)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static List<PathMatcher> matchers(List<String> globs) {
-        List<PathMatcher> matchers = new ArrayList<>();
-        for (String glob : globs) {
-            matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
-        }
-        return matchers;
     }
 
 }

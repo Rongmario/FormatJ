@@ -1,6 +1,7 @@
 package zone.rong.formatj.gradle;
 
 import zone.rong.formatj.api.LanguageLevel;
+import zone.rong.formatj.core.config.FileSelection;
 import zone.rong.formatj.core.config.StyleFiles;
 import java.nio.file.Path;
 import java.util.List;
@@ -35,7 +36,6 @@ public class FormatJPlugin implements Plugin<Project> {
         extension.getPreviewFeatures().convention(false);
         extension.getEnforceOnCheck().convention(true);
 
-        Provider<FileCollection> sources = project.provider(() -> javaSources(project, extension));
         // Neither styleFile nor preset was set explicitly: fall back to the nearest formatj.toml
         // above the project directory, the same discovery the CLI does. A Provider keeps this an
         // input the task can declare, so the build cache invalidates when that file changes.
@@ -43,11 +43,13 @@ public class FormatJPlugin implements Plugin<Project> {
                 project.getLayout().file(project.provider(() -> extension.getPreset().isPresent()
                         ? null
                         : StyleFiles.discover(project.getProjectDir().toPath()).map(Path::toFile).orElse(null)));
+        Provider<RegularFile> resolvedStyleFile = extension.getStyleFile().orElse(discoveredStyleFile);
+        Provider<FileCollection> sources = project.provider(() -> javaSources(project, extension, resolvedStyleFile));
 
         TaskProvider<FormatJTask> apply = project.getTasks().register(APPLY_TASK_NAME, FormatJTask.class, task -> {
             task.setGroup(TASK_GROUP);
             task.setDescription("Formats Java sources in place with FormatJ.");
-            configure(task, extension, sources, discoveredStyleFile);
+            configure(task, extension, sources, resolvedStyleFile);
             task.getCheckOnly().set(false);
             task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/apply.marker"));
             // The only durable output of apply is the source tree it mutates. Reusing a
@@ -60,7 +62,7 @@ public class FormatJPlugin implements Plugin<Project> {
         TaskProvider<FormatJTask> check = project.getTasks().register(CHECK_TASK_NAME, FormatJTask.class, task -> {
             task.setGroup(TASK_GROUP);
             task.setDescription("Fails if any Java source is not formatted to the configured style.");
-            configure(task, extension, sources, discoveredStyleFile);
+            configure(task, extension, sources, resolvedStyleFile);
             task.getCheckOnly().set(true);
             task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/check.marker"));
         });
@@ -78,9 +80,9 @@ public class FormatJPlugin implements Plugin<Project> {
             FormatJTask task,
             FormatJExtension extension,
             Provider<FileCollection> sources,
-            Provider<RegularFile> discoveredStyleFile) {
+            Provider<RegularFile> resolvedStyleFile) {
         task.getSource().from(sources);
-        task.getStyleFile().set(extension.getStyleFile().orElse(discoveredStyleFile));
+        task.getStyleFile().set(resolvedStyleFile);
         task.getStyle().set(extension.getStyle());
         task.getPreset().set(extension.getPreset());
         task.getRules().set(extension.getRules());
@@ -88,7 +90,8 @@ public class FormatJPlugin implements Plugin<Project> {
         task.getPreviewFeatures().set(extension.getPreviewFeatures());
     }
 
-    private static FileCollection javaSources(Project project, FormatJExtension extension) {
+    private static FileCollection javaSources(
+            Project project, FormatJExtension extension, Provider<RegularFile> resolvedStyleFile) {
         JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
         if (java == null) {
             return project.files();
@@ -97,6 +100,12 @@ public class FormatJPlugin implements Plugin<Project> {
         // A ListProperty nobody set still answers with an empty list rather than with nothing, so an
         // empty selection is what "the user said nothing" looks like: it means every source set.
         List<String> selected = extension.getSourceSets().getOrElse(List.of());
+        // The style file's own [files] table, relative to its directory; applies on top of the
+        // extension's own include/exclude, which Gradle already matches relative to each source set.
+        FileSelection tomlSelection =
+                resolvedStyleFile
+                        .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
+                        .getOrElse(FileSelection.NONE);
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
             if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
@@ -105,7 +114,9 @@ public class FormatJPlugin implements Plugin<Project> {
                                 sourceSet.getAllJava()
                                         .matching(patterns -> patterns.include(extension.getIncludes().get()).exclude(
                                                 extension.getExcludes().get()))
-                                        .filter(file -> file.getName().endsWith(".java")));
+                                        .filter(
+                                                file -> file.getName().endsWith(".java")
+                                                        && tomlSelection.matches(file.toPath())));
             }
         }
         return files;
