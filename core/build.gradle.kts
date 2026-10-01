@@ -33,6 +33,9 @@ apiSources.java.setSrcDirs(listOf("src/api/java"))
 
 tasks.jar {
     from(apiSources.output)
+    manifest {
+        attributes("Automatic-Module-Name" to "zone.rong.formatj")
+    }
 }
 
 tasks.named<Jar>("sourcesJar") {
