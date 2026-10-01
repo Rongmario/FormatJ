@@ -301,6 +301,15 @@ class CommentLayoutRulesTest {
         assertTrue(formatted.contains("f(a, /*b*/ true, c /*d*/);"), formatted);
     }
 
+    @Test
+    void aJavadocLineWithoutAStarKeepsItsIndentation() {
+        String source = "class A {\n  /**\n * Sample:\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n */\n  void m() {}\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n"), formatted);
+    }
+
     private static int commentColumn(String source, String needle) {
         int found = source.indexOf(needle);
         assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);

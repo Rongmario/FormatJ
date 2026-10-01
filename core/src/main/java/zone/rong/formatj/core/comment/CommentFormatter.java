@@ -151,7 +151,9 @@ public final class CommentFormatter {
 
     private Doc javadoc(Token comment) {
         Javadoc parsed = Javadoc.parse(comment.text());
-        if (!restructures(parsed)) {
+        // Javadoc keeps the indentation of a line without a leading star, so such a line can be
+        // neither starred nor re-indented without changing what the documentation shows.
+        if (!restructures(parsed) || hasStarlessLine(comment.text())) {
             return verbatim(comment);
         }
         if (parsed.singleLine() && parsed.tags().isEmpty() && rule(JavadocRules.KEEP_SINGLE_LINE)) {
@@ -809,11 +811,25 @@ public final class CommentFormatter {
             parts.add(Doc.hardLine());
             if (alignStars && trimmed.startsWith("*")) {
                 parts.add(Doc.text(" " + trimmed));
+            } else if (trimmed.isEmpty() || trimmed.startsWith("*")) {
+                parts.add(Doc.text(trimmed));
             } else {
-                parts.add(Doc.text(line.stripLeading().isEmpty() ? "" : line.strip()));
+                // Without a star, the indentation is the content: a code sample in a Javadoc keeps it.
+                parts.add(Doc.lineIndent(0, Doc.text(line)));
             }
         }
         return Doc.concat(parts);
+    }
+
+    private static boolean hasStarlessLine(String text) {
+        String[] lines = text.split("\r\n|\r|\n", -1);
+        for (int i = 1; i < lines.length; i++) {
+            String trimmed = lines[i].strip();
+            if (!trimmed.isEmpty() && !trimmed.startsWith("*")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String stripTrailing(String text) {
