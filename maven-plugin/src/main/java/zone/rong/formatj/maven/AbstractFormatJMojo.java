@@ -125,7 +125,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
                 if (diagnostic.severity() == Diagnostic.Severity.ERROR) {
                     failures.add(diagnostic.format(file.toString()));
                 } else {
-                    getLog().debug(diagnostic.format(file.toString()));
+                    getLog().warn(diagnostic.format(file.toString()));
                 }
             }
             if (result.isUnchanged() || result.hasErrors()) {
@@ -206,10 +206,18 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         // The style file's own [files] table, relative to its directory; a style's includes/excludes
         // apply everywhere, unlike <includes>/<excludes> below which are relative to each source root.
         FileSelection tomlSelection = styleFileInUse().map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
+        String buildDirectoryProperty = project.getBuild() == null ? null : project.getBuild().getDirectory();
+        Path buildDirectory =
+                buildDirectoryProperty == null ? null : Path.of(buildDirectoryProperty).toAbsolutePath().normalize();
         List<Path> files = new ArrayList<>();
         for (String root : roots) {
             Path directory = Path.of(root);
             if (!Files.isDirectory(directory)) {
+                continue;
+            }
+            if (buildDirectory != null && directory.toAbsolutePath().normalize().startsWith(buildDirectory)) {
+                // e.g. target/generated-sources: not something a developer wrote, so not FormatJ's to touch.
+                getLog().warn("FormatJ skipping generated source root " + directory);
                 continue;
             }
             FileSelection rootSelection = new FileSelection(directory, includes, excludes);

@@ -148,6 +148,24 @@ class CliRunnerTest {
     }
 
     @Test
+    void hiddenAndBuildDirectoriesAreSkippedByDefaultButAnExplicitFileIsNot(@TempDir Path root) throws IOException {
+        Path good = Files.createDirectories(root.resolve("src"));
+        Files.writeString(good.resolve("A.java"), SOURCE);
+        Path hidden = Files.createDirectories(root.resolve(".git"));
+        Files.writeString(hidden.resolve("B.java"), "package sample;\nclass B{}\n");
+        Path build = Files.createDirectories(root.resolve("build/generated"));
+        Path generated = build.resolve("C.java");
+        Files.writeString(generated, "package sample;\nclass C{}\n");
+
+        Run walked = run("", "--check", "--verbose", root.toString());
+        assertEquals(0, walked.exitCode(), walked.err());
+        assertTrue(walked.err().contains("1 files, 0 changed, 0 failed"), walked.err());
+
+        Run explicit = run("", "--check", generated.toString());
+        assertEquals(1, explicit.exitCode(), "an explicitly named file is still formatted");
+    }
+
+    @Test
     void excludeGlobsSkipFiles(@TempDir Path root) throws IOException {
         Path generated = Files.createDirectories(root.resolve("generated"));
         Files.writeString(generated.resolve("A.java"), SOURCE);

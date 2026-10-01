@@ -69,4 +69,21 @@ class AbstractFormatJMojoTest {
         assertEquals(List.of(sourceRoot.resolve("Kept.java")), mojo.sourceFiles());
     }
 
+    @Test
+    void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root) throws IOException, MojoExecutionException {
+        Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
+        Files.writeString(sourceRoot.resolve("Kept.java"), "");
+        Path generatedRoot = Files.createDirectories(root.resolve("target/generated-sources/annotations"));
+        Files.writeString(generatedRoot.resolve("Generated.java"), "");
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        mojo.project.setFile(root.resolve("pom.xml").toFile());
+        mojo.project.getBuild().setDirectory(root.resolve("target").toString());
+        mojo.project.addCompileSourceRoot(sourceRoot.toString());
+        mojo.project.addCompileSourceRoot(generatedRoot.toString());
+        mojo.includeTestSources = false;
+
+        assertEquals(List.of(sourceRoot.resolve("Kept.java")), mojo.sourceFiles());
+    }
+
 }

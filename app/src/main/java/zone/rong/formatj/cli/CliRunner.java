@@ -14,10 +14,12 @@ import zone.rong.formatj.core.io.SourceFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -219,22 +221,43 @@ final class CliRunner {
                 throw new IOException("no such file or directory: " + path);
             }
             if (Files.isRegularFile(path)) {
+                // A file named explicitly is formatted regardless of the default directory skips.
                 if (selected(path, styles, cliSelection)) {
                     files.add(path);
                 }
                 continue;
             }
-            try (var walk = Files.walk(path)) {
-                walk.filter(Files::isRegularFile)
-                        .filter(candidate -> candidate.toString().endsWith(".java"))
-                        .filter(candidate -> selected(candidate, styles, cliSelection))
-                        .sorted()
-                        .forEach(files::add);
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
-            }
+            List<Path> found = new ArrayList<>();
+            Files.walkFileTree(path, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attrs) {
+                    return !directory.equals(path) && isSkippedDirectory(directory)
+                            ? FileVisitResult.SKIP_SUBTREE
+                            : FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    if (file.toString().endsWith(".java") && selected(file, styles, cliSelection)) {
+                        found.add(file);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            found.sort(null);
+            files.addAll(found);
         }
         return List.copyOf(files);
+    }
+
+    /** Hidden directories and the usual build output directories are skipped unless named explicitly. */
+    private static boolean isSkippedDirectory(Path directory) {
+        Path name = directory.getFileName();
+        if (name == null) {
+            return false;
+        }
+        String text = name.toString();
+        return text.startsWith(".") || text.equals("build") || text.equals("target") || text.equals("out");
     }
 
     /** A path must pass both the CLI's own --include/--exclude and the style file's [files] table. */
