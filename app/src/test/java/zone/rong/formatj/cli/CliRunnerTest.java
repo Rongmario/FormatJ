@@ -92,6 +92,38 @@ class CliRunnerTest {
     }
 
     @Test
+    void invalidUtf8OnStandardInputFailsInsteadOfBeingReplaced() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        InputStream in = new ByteArrayInputStream(new byte[] {'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF});
+
+        int exitCode =
+                new CliRunner(
+                        CliOptions.parse(new String[] {"--stdin"}),
+                        new PrintStream(out, true, StandardCharsets.UTF_8),
+                        new PrintStream(err, true, StandardCharsets.UTF_8),
+                        in).run();
+
+        assertEquals(2, exitCode);
+        assertEquals(0, out.size());
+        String message = err.toString(StandardCharsets.UTF_8);
+        assertTrue(message.contains("not valid UTF-8"), message);
+        assertTrue(message.contains("malformed input at byte 8"), message);
+    }
+
+    @Test
+    void invalidUtf8InAFileFailsWithAByteOffset(@TempDir Path root) throws IOException {
+        Path file = root.resolve("A.java");
+        Files.write(file, new byte[] {'c', 'l', 'a', 's', 's', ' ', 'A', (byte) 0xFF});
+
+        Run result = run("", "--check", file.toString());
+
+        assertEquals(2, result.exitCode());
+        assertTrue(result.err().contains("not valid UTF-8"), result.err());
+        assertTrue(result.err().contains("malformed input at byte 8"), result.err());
+    }
+
+    @Test
     void missingPathsAreReportedAsAnError(@TempDir Path root) {
         Run result = run("", "--check", root.resolve("absent").toString());
 

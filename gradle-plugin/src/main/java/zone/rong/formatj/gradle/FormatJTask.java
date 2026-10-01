@@ -11,6 +11,7 @@ import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.StyleFiles;
+import zone.rong.formatj.core.io.SourceFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -174,7 +175,7 @@ public abstract class FormatJTask extends DefaultTask {
 
     private static FormatResult format(Formatter formatter, File file) {
         try {
-            String source = Files.readString(file.toPath(), FileRules.charset(formatter.style()));
+            String source = SourceFiles.readString(file.toPath(), FileRules.charset(formatter.style()));
             return formatter.format(FormatRequest.of(source).withName(file.getPath()));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + file, e);

@@ -11,6 +11,7 @@ import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.StyleFiles;
+import zone.rong.formatj.core.io.SourceFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -110,7 +111,7 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         for (Path file : files) {
             String source;
             try {
-                source = Files.readString(file, charset);
+                source = SourceFiles.readString(file, charset);
             } catch (IOException e) {
                 throw new MojoExecutionException("Cannot read " + file, e);
             }

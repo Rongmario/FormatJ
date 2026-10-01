@@ -9,6 +9,7 @@ import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.core.FormatJ;
 import zone.rong.formatj.core.config.TomlReader;
 import zone.rong.formatj.core.config.TomlWriter;
+import zone.rong.formatj.core.io.SourceFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -75,7 +76,7 @@ final class CliRunner {
         Style style = styles.forStandardInput();
         String source;
         try {
-            source = new String(in.readAllBytes(), FileRules.charset(style));
+            source = SourceFiles.decode(in.readAllBytes(), FileRules.charset(style));
         } catch (IOException e) {
             err.println("formatj: cannot read standard input: " + e.getMessage());
             return ERROR;
@@ -154,7 +155,7 @@ final class CliRunner {
         Charset charset = FileRules.charset(style);
         String source;
         try {
-            source = Files.readString(file, charset);
+            source = SourceFiles.readString(file, charset);
         } catch (IOException e) {
             err.println("formatj: cannot read " + file + ": " + e.getMessage());
             failed.incrementAndGet();
