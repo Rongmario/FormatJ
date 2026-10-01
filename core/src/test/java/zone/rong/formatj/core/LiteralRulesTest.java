@@ -3,7 +3,7 @@ package zone.rong.formatj.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.LiteralRules;
+import zone.rong.formatj.api.rules.HexDigitCase;
 import zone.rong.formatj.api.rules.LongSuffix;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +33,40 @@ class LiteralRulesTest {
     void longSuffixLeavesOtherLiteralsAlone() {
         String source = "class T {\n\n    double d = 1.5e3f + 0x1p3d;\n    String s = \"10l\";\n    Object l = x10l;\n\n}\n";
         assertEquals(source, format(source));
+    }
+
+    private static String hex(String source, HexDigitCase digits) {
+        return format(source, Style.builder().literals(literals -> literals.hexDigits(digits)).build());
+    }
+
+    @Test
+    void hexDigitsAreRecased() {
+        assertEquals(field("0xCAFE_BABEl"), hex(field("0xcafe_BABEl"), HexDigitCase.UPPER));
+        assertEquals(field("0xcafe_babeL"), hex(field("0xCAFE_BABEL"), HexDigitCase.LOWER));
+    }
+
+    @Test
+    void hexDigitsAndLongSuffixCombine() {
+        Style style = Style.builder()
+                .literals(literals -> literals.hexDigits(HexDigitCase.UPPER).longSuffix(LongSuffix.UPPER))
+                .build();
+        assertEquals(field("0xCAFEL"), format(field("0xcafel"), style));
+    }
+
+    @Test
+    void hexDigitsKeepPrefixSuffixAndExponent() {
+        assertEquals(field("0xABCDl"), hex(field("0xabcdl"), HexDigitCase.UPPER));
+        assertEquals(field("0Xabcdl"), hex(field("0XABCDl"), HexDigitCase.LOWER));
+        String floats = "class T {\n\n    double d = 0xA.bCp-3f + 0x.Fp1D;\n\n}\n";
+        assertEquals(floats.replace("0xA.bC", "0xA.BC"), hex(floats, HexDigitCase.UPPER));
+        assertEquals(floats.replace("0xA.bC", "0xa.bc").replace("0x.F", "0x.f"), hex(floats, HexDigitCase.LOWER));
+    }
+
+    @Test
+    void hexDigitsLeaveOtherRadixesAlone() {
+        String source = "class T {\n\n    long a = 0b1010 + 017 + 12e3 + 1_0D + 0xFFFF_FFFF;\n\n}\n";
+        assertEquals(source.replace("0xFFFF_FFFF", "0xffff_ffff"), hex(source, HexDigitCase.LOWER));
+        assertEquals(source, hex(source, HexDigitCase.UPPER));
     }
 
     @Test

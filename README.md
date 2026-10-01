@@ -716,11 +716,13 @@ that line rather than along the one they look like they should.
 ### `literals`
 
 Both rules change only the case of characters in a numeric literal's text, never its value. A literal
-written with a Unicode escape is left alone.
+written with a Unicode escape is left alone. `hex-digits` changes the digits `a` to `f` of `0x`
+integer and hex floating literals. It leaves the `0x` prefix, the `p` exponent and every suffix alone.
 
-| Key                    | Values               | Default    | Effect                              | Example                          |
-|------------------------|----------------------|------------|-------------------------------------|----------------------------------|
-| `literals.long-suffix` | `preserve`, `upper`  | `preserve` | Case of the suffix on long literals | `upper`: `10l` becomes `10L`     |
+| Key                    | Values                       | Default    | Effect                                         | Example                          |
+|------------------------|------------------------------|------------|------------------------------------------------|----------------------------------|
+| `literals.long-suffix` | `preserve`, `upper`          | `preserve` | Case of the suffix on long literals            | `upper`: `10l` becomes `10L`     |
+| `literals.hex-digits`  | `preserve`, `upper`, `lower` | `preserve` | Case of the digits `a` to `f` in hex literals  | `upper`: `0xcafe` becomes `0xCAFE` |
 
 ### `preservation`
 

@@ -11,6 +11,11 @@ public final class LiteralRules {
             LongSuffix.PRESERVE,
             "Case of the suffix on long literals");
 
+    public static final Option<HexDigitCase> HEX_DIGITS = Option.ofEnum(
+            "literals.hex-digits",
+            HexDigitCase.PRESERVE,
+            "Case of the digits a to f in hexadecimal literals");
+
     private LiteralRules() {}
 
     /** Fluent view of the {@code literals.*} rules. */
@@ -24,6 +29,11 @@ public final class LiteralRules {
 
         public Builder longSuffix(LongSuffix value) {
             style.set(LONG_SUFFIX, value);
+            return this;
+        }
+
+        public Builder hexDigits(HexDigitCase value) {
+            style.set(HEX_DIGITS, value);
             return this;
         }
 

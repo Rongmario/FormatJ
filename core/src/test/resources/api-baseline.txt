@@ -416,6 +416,16 @@ TYPE public static final class zone.rong.formatj.api.rules.FileRules$Builder
   METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.lineEnding(zone.rong.formatj.api.rules.LineEnding)
   METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.tabWidth(int)
   METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.trimTrailingWhitespace(boolean)
+TYPE public final enum zone.rong.formatj.api.rules.HexDigitCase
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.HexDigitCase>
+  ENUM PRESERVE
+  ENUM UPPER
+  ENUM LOWER
+  FIELD public static final zone.rong.formatj.api.rules.HexDigitCase zone.rong.formatj.api.rules.HexDigitCase.LOWER
+  FIELD public static final zone.rong.formatj.api.rules.HexDigitCase zone.rong.formatj.api.rules.HexDigitCase.PRESERVE
+  FIELD public static final zone.rong.formatj.api.rules.HexDigitCase zone.rong.formatj.api.rules.HexDigitCase.UPPER
+  METHOD public static zone.rong.formatj.api.rules.HexDigitCase zone.rong.formatj.api.rules.HexDigitCase.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.HexDigitCase[] zone.rong.formatj.api.rules.HexDigitCase.values()
 TYPE public final class zone.rong.formatj.api.rules.ImportRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ImportRules.BLANK_LINE_BETWEEN_GROUPS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ImportRules.MODULE_IMPORTS_FIRST
@@ -533,9 +543,11 @@ TYPE public final enum zone.rong.formatj.api.rules.LineEnding
   METHOD public static zone.rong.formatj.api.rules.LineEnding zone.rong.formatj.api.rules.LineEnding.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.LineEnding[] zone.rong.formatj.api.rules.LineEnding.values()
 TYPE public final class zone.rong.formatj.api.rules.LiteralRules
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.HexDigitCase> zone.rong.formatj.api.rules.LiteralRules.HEX_DIGITS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.LongSuffix> zone.rong.formatj.api.rules.LiteralRules.LONG_SUFFIX
 TYPE public static final class zone.rong.formatj.api.rules.LiteralRules$Builder
   CTOR public zone.rong.formatj.api.rules.LiteralRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.LiteralRules$Builder zone.rong.formatj.api.rules.LiteralRules$Builder.hexDigits(zone.rong.formatj.api.rules.HexDigitCase)
   METHOD public zone.rong.formatj.api.rules.LiteralRules$Builder zone.rong.formatj.api.rules.LiteralRules$Builder.longSuffix(zone.rong.formatj.api.rules.LongSuffix)
 TYPE public final enum zone.rong.formatj.api.rules.LongSuffix
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.LongSuffix>

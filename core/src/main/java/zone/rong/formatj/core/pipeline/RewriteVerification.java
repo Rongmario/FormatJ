@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -209,13 +210,16 @@ public final class RewriteVerification {
                 || authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
             return checkTextBlockLaw(edit);
         }
-        if (authority == LiteralRules.LONG_SUFFIX) {
+        if (authority == LiteralRules.LONG_SUFFIX || authority == LiteralRules.HEX_DIGITS) {
             return checkLiteralLaw(edit);
         }
         return null;
     }
 
-    /** A literal rule may change the case of one literal's characters, and only the ones it owns. */
+    /**
+     * A literal rule may change the case of one literal's characters, and only the ones it owns: the
+     * long suffix, and the hex digits before any {@code p} exponent.
+     */
     private static String checkLiteralLaw(TokenEdit edit) {
         if (edit.removed().size() != 1 || edit.inserted().size() != 1) {
             return edit.authority().key() + " may only rewrite one literal";
@@ -228,8 +232,17 @@ public final class RewriteVerification {
         for (int i = 0; i < before.length(); i++) {
             char was = before.charAt(i);
             char now = after.charAt(i);
-            boolean suffix = i == before.length() - 1 && was == 'l' && now == 'L';
-            if (was != now && !suffix) {
+            boolean suffix = edit.authority() == LiteralRules.LONG_SUFFIX
+                    && i == before.length() - 1
+                    && was == 'l'
+                    && now == 'L';
+            boolean digit = before.regionMatches(true, 0, "0x", 0, 2)
+                    && i >= 2
+                    && before.substring(0, i).toLowerCase(Locale.ROOT).indexOf('p') < 0
+                    && Character.toLowerCase(was) == Character.toLowerCase(now)
+                    && Character.toLowerCase(was) >= 'a'
+                    && Character.toLowerCase(was) <= 'f';
+            if (was != now && !suffix && !digit) {
                 return edit.authority().key() + " changed '" + was + "' in " + before;
             }
         }
