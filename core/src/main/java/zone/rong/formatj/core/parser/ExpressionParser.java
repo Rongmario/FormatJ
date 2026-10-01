@@ -444,6 +444,8 @@ abstract class ExpressionParser extends ParserBase {
                 return !next.is(")") && !next.is(";") && !next.is(",");
             }
             // For a reference type only an operand may follow; (a) + b is addition, not a cast.
+            // A primitive type keyword only ever starts an operand here as a class literal,
+            // e.g. (Class<Object>) int.class.
             return next.kind() == TokenKind.IDENTIFIER
                     || next.kind() == TokenKind.STRING_LITERAL
                     || next.kind() == TokenKind.TEXT_BLOCK
@@ -456,7 +458,8 @@ abstract class ExpressionParser extends ParserBase {
                     || next.is("super")
                     || next.is("new")
                     || next.is("switch")
-                    || LITERAL_KEYWORDS.contains(next.decodedText());
+                    || LITERAL_KEYWORDS.contains(next.decodedText())
+                    || PRIMITIVE_TYPES.contains(next.decodedText());
         } catch (ParseFailure failure) {
             return false;
         } finally {

@@ -113,6 +113,7 @@ class ParserTest {
                 "class A { Runnable r = () -> {}; Function<Integer, Integer> g = (Integer x) -> x * 2; }\n",
                 "class A { Object o = new Object() { public String toString() { return \"anon\"; } }; }\n",
                 "class A { int x = (int) 3.5; Object y = (Runnable & Serializable) r; }\n",
+                "class A { Object o = (Class<Object>) int.class; }\n",
                 "class A { Class<?> c = String.class; Map<String, List<Integer>> m = new HashMap<>(); }\n",
                 "class A { int x = a >> 2; int y = b >>> 3; int z = c << 1; boolean t = a > b; }\n",
                 "class A { void f() { x >>= 2; y >>>= 1; z <<= 3; } }\n",
