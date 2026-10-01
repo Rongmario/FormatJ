@@ -273,4 +273,15 @@ class StyleFileTest {
         assertFalse(selection.matches(root.resolve("src/generated/A.java")));
     }
 
+    @Test
+    void fileSelectionGlobsMayContainCommas(@TempDir Path root) throws IOException {
+        Path toml = root.resolve("formatj.toml");
+        Files.writeString(toml, "[files]\nexclude = [\"**/{a,b}/**\", \"**/c/**\"]\n");
+        FileSelection selection = StyleFiles.fileSelection(toml);
+
+        assertFalse(selection.matches(root.resolve("src/b/A.java")));
+        assertFalse(selection.matches(root.resolve("src/c/A.java")));
+        assertTrue(selection.matches(root.resolve("src/d/A.java")));
+    }
+
 }

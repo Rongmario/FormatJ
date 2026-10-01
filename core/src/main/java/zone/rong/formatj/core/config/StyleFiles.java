@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,20 +93,11 @@ public final class StyleFiles {
         if (body.startsWith("[") && body.endsWith("]")) {
             body = body.substring(1, body.length() - 1);
         }
-        List<String> globs = new ArrayList<>();
-        for (String element : body.split(",")) {
-            String trimmed = element.trim();
-            if (!trimmed.isEmpty()) {
-                globs.add(unquote(trimmed));
-            }
-        }
-        return List.copyOf(globs);
-    }
-
-    private static String unquote(String value) {
-        return value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")
-                ? value.substring(1, value.length() - 1)
-                : value;
+        return TomlReader.splitTopLevel(body, ',').stream()
+                .map(String::trim)
+                .filter(element -> !element.isEmpty())
+                .map(element -> TomlReader.unquote(element, 0))
+                .toList();
     }
 
     /** Writes a style out as a commented TOML document. */

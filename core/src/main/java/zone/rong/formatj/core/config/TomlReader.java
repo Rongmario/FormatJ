@@ -157,7 +157,7 @@ public final class TomlReader {
     }
 
     /** Splits {@code body} on a top-level {@code separator}, skipping one nested inside brackets or a string. */
-    private static List<String> splitTopLevel(String body, char separator) {
+    static List<String> splitTopLevel(String body, char separator) {
         boolean[] quoted = quotedPositions(body);
         List<String> parts = new ArrayList<>();
         int start = 0;
@@ -219,7 +219,7 @@ public final class TomlReader {
      * Removes a scalar's surrounding quotes. A basic string's escapes are decoded; a literal
      * string's content is kept exactly as written, since TOML gives it no escapes at all.
      */
-    private static String unquote(String value, int lineNumber) {
+    static String unquote(String value, int lineNumber) {
         if (value.length() >= 2 && value.startsWith("'") && value.endsWith("'")) {
             return value.substring(1, value.length() - 1);
         }
