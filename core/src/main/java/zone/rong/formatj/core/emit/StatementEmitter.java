@@ -576,12 +576,16 @@ abstract class StatementEmitter extends ExpressionEmitter {
      *     the {@code =} of the first is what the assignment rule lines up.
      */
     protected Doc emitDeclarationLine(List<GreenNode> children, AnnotationPlacement placement, AlignmentSite nameSite) {
-        List<Doc> parts = new ArrayList<>();
+        List<Doc> head = new ArrayList<>();
+        List<Doc> parts = head;
         boolean firstDeclarator = true;
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (i > 0 && is(child, ";")) {
                 parts.add(semicolonLead());
+            } else if (child.kind() == SyntaxKind.VARIABLE_DECLARATOR && !firstDeclarator) {
+                // Further declarators wrap together, so a long or commented list gets a line each.
+                parts.add(Doc.line());
             } else if (i > 0 && !is(child, ",")) {
                 GreenNode previous = children.get(i - 1);
                 boolean afterAnnotation = previous.kind() == SyntaxKind.ANNOTATION
@@ -595,12 +599,16 @@ abstract class StatementEmitter extends ExpressionEmitter {
                 if (i > 0 && nameSite != null) {
                     parts.add(alignmentMark(nameSite));
                 }
-                parts.add(emitVariableDeclarator(child, true));
+                head.add(emitVariableDeclarator(child, true));
+                parts = new ArrayList<>();
                 continue;
             }
             parts.add(emit(child));
         }
-        return Doc.concat(parts);
+        if (parts == head) {
+            return Doc.concat(head);
+        }
+        return Doc.concat(Doc.concat(head), Doc.group(Doc.indent(continuation(), Doc.concat(parts))));
     }
 
     protected Doc emitVariableDeclarator(GreenNode node) {

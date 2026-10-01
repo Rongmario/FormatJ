@@ -86,7 +86,14 @@ abstract class ExpressionEmitter extends EmitSupport {
         List<Doc> elements = new ArrayList<>();
         List<Doc> current = new ArrayList<>();
         for (GreenNode child : middle) {
-            current.add(emit(child));
+            if (current.isEmpty() && hasLeadingComments(child)) {
+                // A comment above an element ends its own line, not one inside the element.
+                HoistedLeading hoisted = hoistLeadingTrivia(child);
+                current.add(hoisted.leading());
+                current.add(emit(hoisted.node()));
+            } else {
+                current.add(emit(child));
+            }
             if (is(child, ",")) {
                 elements.add(Doc.concat(current));
                 current = new ArrayList<>();
@@ -244,7 +251,8 @@ abstract class ExpressionEmitter extends EmitSupport {
         List<GreenNode> operands = new ArrayList<>();
         List<Doc> operators = new ArrayList<>();
         List<Boolean> commented = new ArrayList<>();
-        flattenBinary(node, operands, operators, commented);
+        List<Boolean> ownLine = new ArrayList<>();
+        flattenBinary(node, operands, operators, commented, ownLine);
 
         boolean spaced = rule(SpacingRules.AROUND_BINARY_OPERATORS);
         WrapPolicy policy = rule(WrappingRules.BINARY_OPERATORS);
@@ -267,16 +275,17 @@ abstract class ExpressionEmitter extends EmitSupport {
         Doc pending = emit(operands.getFirst());
         for (int i = 0; i < operators.size(); i++) {
             Doc operand = emit(operands.get(i + 1));
-            // An operator followed by a comment stays at the end of its line. Moved to the start of the
-            // next one, the comment would end up trailing the operator or whatever ends that line.
-            if (operatorFirst && !commented.get(i)) {
+            // An operator followed by a comment stays at the end of its line, and one with a comment
+            // above it starts its line. Moved, the comment would end up trailing the wrong code.
+            if (ownLine.get(i) || operatorFirst && !commented.get(i)) {
                 parts.add(pending);
+                parts.add(ownLine.get(i) ? Doc.hardLine() : Doc.line());
                 pending = Doc.concat(operators.get(i), spaceIf(spaced), operand);
             } else {
                 parts.add(Doc.concat(pending, spaceIf(spaced), operators.get(i)));
+                parts.add(Doc.line());
                 pending = operand;
             }
-            parts.add(Doc.line());
         }
         parts.add(pending);
         // A run of && or || reads as a list of conditions, so it breaks all at once; arithmetic and
@@ -371,7 +380,8 @@ abstract class ExpressionEmitter extends EmitSupport {
             GreenNode node,
             List<GreenNode> operands,
             List<Doc> operators,
-            List<Boolean> commented) {
+            List<Boolean> commented,
+            List<Boolean> ownLine) {
         List<GreenNode> children = node.children();
         GreenNode left = children.getFirst();
         List<Doc> operator = new ArrayList<>();
@@ -380,13 +390,14 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         String text = operatorText(children);
         if (left.kind() == SyntaxKind.BINARY_EXPRESSION && samePrecedence(operatorText(left.children()), text)) {
-            flattenBinary(left, operands, operators, commented);
+            flattenBinary(left, operands, operators, commented, ownLine);
         } else {
             operands.add(left);
         }
         operators.add(Doc.concat(operator));
         commented.add(hasTrailingLineComment(children.get(children.size() - 2))
                 || hasLeadingComments(children.getLast()));
+        ownLine.add(hasLeadingComments(children.get(1)));
         operands.add(children.getLast());
     }
 

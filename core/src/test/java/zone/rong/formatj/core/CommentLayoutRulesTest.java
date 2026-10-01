@@ -310,6 +310,33 @@ class CommentLayoutRulesTest {
         assertTrue(formatted.contains("\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n"), formatted);
     }
 
+    @Test
+    void aCommentAboveAnElementLeavesTheElementOnOneLine() {
+        String source = "class A {\n    int[][] p = {\n        // note\n        {7, 4},\n        {7, 5}};\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("        // note\n        {7, 4},\n"), formatted);
+    }
+
+    @Test
+    void aCommentAboveAnOperatorStaysAboveIt() {
+        String source = "class A {\n    String s = \"a\"\n            // note\n            + \"b\";\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("String s = \"a\"\n            // note\n            + \"b\";"), formatted);
+    }
+
+    @Test
+    void commentedDeclaratorsTakeALineEach() {
+        String source = "class A {\n    int a = 1, // one\n    b = 2;\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("int a = 1, // one\n            b = 2;"), formatted);
+    }
+
     private static int commentColumn(String source, String needle) {
         int found = source.indexOf(needle);
         assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);
