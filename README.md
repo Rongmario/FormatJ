@@ -419,7 +419,7 @@ placement rule only chooses the side of a break and does not force one.
 | `blank-lines.before-record-compact-constructor` | `1`     | Blank lines before a compact canonical constructor         | `1`: one blank line before `R {` inside `record R(...)` |
 | `blank-lines.after-enum-constants`              | `0`     | Blank lines between the constants and the body of an enum  | `1`: blank line after `A, B;`                           |
 | `blank-lines.before-first-enum-constant`        | `0`     | Blank lines between an enum's brace and its first constant | `1`: `enum E {`<br>``<br>`····A,`                       |
-| `blank-lines.between-member-groups`             | `1`     | Blank lines between neighbouring members of different kinds | `1`: a blank line between a static and an instance field |
+| `blank-lines.between-member-groups`             | `1`     | Blank lines between neighbouring members of different kinds; access level and `final` do not split a run of fields | `1`: a blank line between a static and an instance field |
 | `blank-lines.between-switch-cases`              | `0`     | Blank lines between the cases of a switch                  | `1`: a blank line separates each `case`                 |
 
 ### `alignment`

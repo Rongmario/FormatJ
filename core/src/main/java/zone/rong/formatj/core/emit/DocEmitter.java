@@ -460,8 +460,8 @@ public final class DocEmitter extends StatementEmitter {
 
     @Override
     protected int minimumBetween(GreenNode previous, GreenNode next) {
-        int previousGroup = MemberGroup.of(previous, inInterfaceBody);
-        int nextGroup = MemberGroup.of(next, inInterfaceBody);
+        int previousGroup = MemberGroup.section(previous, inInterfaceBody);
+        int nextGroup = MemberGroup.section(next, inInterfaceBody);
         int groupGap = previousGroup != nextGroup && previousGroup != MemberGroup.NONE && nextGroup != MemberGroup.NONE
                 ? rule(BlankLineRules.BETWEEN_MEMBER_GROUPS)
                 : 0;

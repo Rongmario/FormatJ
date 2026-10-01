@@ -35,7 +35,6 @@ import java.util.Set;
 abstract class EmitSupport {
 
     protected final Style style;
-
     private final CommentFormatter comments;
 
     EmitSupport(Style style) {

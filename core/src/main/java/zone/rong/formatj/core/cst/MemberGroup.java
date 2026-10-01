@@ -59,6 +59,18 @@ public final class MemberGroup {
         };
     }
 
+    /**
+     * The section a member sits in for blank-line purposes: its group with access level and finality
+     * folded away, so a run of static fields or of instance fields reads as one block.
+     */
+    public static int section(GreenNode member, boolean interfaceBody) {
+        int group = of(member, interfaceBody);
+        if (group >= STATIC_FINAL_FIELDS && group < STATIC_INITIALIZER) {
+            return STATIC_FINAL_FIELDS;
+        }
+        return group >= FINAL_FIELDS && group < INSTANCE_INITIALIZER ? FINAL_FIELDS : group;
+    }
+
     private static int access(List<String> modifiers, boolean interfaceBody) {
         if (interfaceBody || modifiers.contains("public")) {
             return 0;

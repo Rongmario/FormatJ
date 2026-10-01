@@ -71,9 +71,7 @@ class MemberOrderTest {
         String expected = """
                 class Everything {
                     public static final int PUBLIC_CONST = 5;
-
                     static int packageStatic = 6;
-
                     private static int privateStatic;
 
                     static {
@@ -81,15 +79,10 @@ class MemberOrderTest {
                     }
 
                     public final int publicFinal = 2;
-
                     private final int privateFinal = 4;
-
                     public int publicField = 3;
-
                     protected int protectedField;
-
                     int packageField;
-
                     private int privateField = 1;
 
                     {
@@ -176,7 +169,7 @@ class MemberOrderTest {
                 """;
 
         FormatResult once = format(source, INTELLIJ);
-        assertEquals(source.replace(";\n    public", ";\n\n    public"), once.text());
+        assertEquals(source, once.text());
         assertEquals(1, once.diagnostics().size(), once.diagnostics().toString());
         Diagnostic warning = once.diagnostics().getFirst();
         assertEquals(Diagnostic.Severity.WARNING, warning.severity());
@@ -212,7 +205,6 @@ class MemberOrderTest {
         String expected = """
                 class Foo {
                     public static final String B = "b" + Integer.MAX_VALUE;
-
                     private static final int A = 1 + (int) 2L;
                 }
                 """;

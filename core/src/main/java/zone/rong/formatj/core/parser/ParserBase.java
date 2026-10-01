@@ -40,7 +40,6 @@ abstract class ParserBase {
 
     private final List<Token> tokens;
     private final List<Diagnostic> diagnostics = new ArrayList<>();
-
     private int index;
 
     ParserBase(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
