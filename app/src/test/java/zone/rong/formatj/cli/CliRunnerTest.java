@@ -12,6 +12,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -249,6 +251,24 @@ class CliRunnerTest {
         assertEquals(2, result.exitCode());
         assertTrue(result.err().contains(style.toString()), result.err());
         assertFalse(result.err().contains("unexpected failure"), result.err());
+    }
+
+    @Test
+    void outputStaysInFileOrderUnderParallelJobs(@TempDir Path root) throws IOException {
+        List<Path> expected = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            Path file = root.resolve(String.format("File%02d.java", i));
+            // Varying size varies how long each file takes to format, so completion order would
+            // scramble without the fix.
+            Files.writeString(file, "package sample;\nclass File%02d{void run(){%s}}\n".formatted(i, "g();".repeat(i)));
+            expected.add(file);
+        }
+
+        Run result = run("", "--write", "-j", "8", root.toString());
+
+        assertEquals(0, result.exitCode());
+        List<String> expectedLines = expected.stream().map(file -> "formatted " + file).toList();
+        assertEquals(expectedLines, result.out().lines().toList());
     }
 
     @Test

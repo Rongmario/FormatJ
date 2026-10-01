@@ -120,14 +120,17 @@ final class CliRunner {
 
         AtomicInteger changed = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
-        List<Future<?>> pending = new ArrayList<>(files.size());
+        List<Future<FileOutput>> pending = new ArrayList<>(files.size());
         try (ExecutorService pool = Executors.newFixedThreadPool(options.parallelism())) {
             for (Path file : files) {
                 pending.add(pool.submit(() -> processFile(file, styles, changed, failed)));
             }
-            for (Future<?> future : pending) {
+            // Printed in submission order, not completion order, so -j keeps output deterministic.
+            for (int i = 0; i < pending.size(); i++) {
                 try {
-                    future.get();
+                    FileOutput output = pending.get(i).get();
+                    err.print(output.err());
+                    out.print(output.out());
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return ERROR;
@@ -151,29 +154,34 @@ final class CliRunner {
         return SUCCESS;
     }
 
-    private void processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
+    /** One file's output, buffered rather than printed directly so {@code -j} can print it in order. */
+    private record FileOutput(String out, String err) { }
+
+    private FileOutput processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
+        StringBuilder out = new StringBuilder();
+        StringBuilder err = new StringBuilder();
         Style style = styles.forFile(file);
         Charset charset = FileRules.charset(style);
         String source;
         try {
             source = SourceFiles.readString(file, charset);
         } catch (IOException e) {
-            err.println("formatj: cannot read " + file + ": " + e.getMessage());
+            err.append("formatj: cannot read ").append(file).append(": ").append(e.getMessage()).append('\n');
             failed.incrementAndGet();
-            return;
+            return new FileOutput(out.toString(), err.toString());
         }
 
         FormatResult result = formatter(style).format(FormatRequest.of(source).withName(file.toString()));
-        reportDiagnostics(file.toString(), result);
+        appendDiagnostics(err, file.toString(), result);
         if (result.hasErrors()) {
             failed.incrementAndGet();
-            return;
+            return new FileOutput(out.toString(), err.toString());
         }
         if (result.isUnchanged()) {
             if (options.verbose()) {
-                out.println("unchanged " + file);
+                out.append("unchanged ").append(file).append('\n');
             }
-            return;
+            return new FileOutput(out.toString(), err.toString());
         }
 
         changed.incrementAndGet();
@@ -181,23 +189,30 @@ final class CliRunner {
             case WRITE -> {
                 try {
                     SourceFiles.writeAtomic(file, result.text(), charset);
-                    out.println("formatted " + file);
+                    out.append("formatted ").append(file).append('\n');
                 } catch (IOException e) {
-                    err.println("formatj: cannot write " + file + ": " + e.getMessage());
+                    err.append("formatj: cannot write ").append(file).append(": ").append(e.getMessage()).append('\n');
                     failed.incrementAndGet();
                 }
             }
-            case DIFF -> out.print(UnifiedDiff.between(file.toString(), source, result.text()));
-            default -> out.println(file);
+            case DIFF -> out.append(UnifiedDiff.between(file.toString(), source, result.text()));
+            default -> out.append(file).append('\n');
         }
+        return new FileOutput(out.toString(), err.toString());
     }
 
     private void reportDiagnostics(String name, FormatResult result) {
+        StringBuilder buffer = new StringBuilder();
+        appendDiagnostics(buffer, name, result);
+        err.print(buffer);
+    }
+
+    private void appendDiagnostics(StringBuilder buffer, String name, FormatResult result) {
         for (Diagnostic diagnostic : result.diagnostics()) {
             if (diagnostic.severity() == Diagnostic.Severity.INFO && !options.verbose()) {
                 continue;
             }
-            err.println(diagnostic.format(name));
+            buffer.append(diagnostic.format(name)).append('\n');
         }
     }
 
