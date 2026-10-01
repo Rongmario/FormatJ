@@ -38,6 +38,7 @@ public final class RewriteStage {
 
     private static final List<Rewrite> REWRITES = List.of(
             new ImportRewrite(),
+            new RedundantModifierRewrite(),
             new ModifierRewrite(),
             new SealedRewrite(),
             new SwitchCaseRewrite(),

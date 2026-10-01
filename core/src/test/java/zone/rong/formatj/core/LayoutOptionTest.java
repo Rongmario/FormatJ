@@ -16,6 +16,7 @@ import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
+import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
@@ -816,6 +817,19 @@ class LayoutOptionTest {
         String source = "class A {\n    void f() {}\n    int x;\n}\n";
 
         assertTrue(format(source, style -> {}).contains("void f() {}\n\n    int x;"));
+    }
+
+    @Test
+    void redundantModifiersGoBeforeTheRestAreOrdered() {
+        String source = "interface I {\n    final static public int X = 1;\n}\nclass C {\n    static private final int Z = 2;\n}\n";
+
+        String formatted = format(
+                source,
+                style -> style.modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL)
+                        .removeRedundant(true)));
+
+        assertTrue(formatted.contains("    int X = 1;"), formatted);
+        assertTrue(formatted.contains("    private static final int Z = 2;"), formatted);
     }
 
     private static String format(String source, Consumer<StyleBuilder> configure) {
