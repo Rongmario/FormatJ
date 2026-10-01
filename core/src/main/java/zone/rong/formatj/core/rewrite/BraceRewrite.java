@@ -25,8 +25,8 @@ import java.util.List;
  *
  * <ul>
  *   <li>a declaration cannot be the unbraced body of a control statement, so the braces stay;
- *   <li>an {@code if} with an {@code else} keeps the braces around a body containing an {@code if},
- *       because removing them lets the {@code else} reattach to the inner {@code if};
+ *   <li>an {@code if} with an {@code else} keeps the braces around a body that ends in an
+ *       {@code if} without one, because removing them lets the {@code else} reattach to it;
  *   <li>braces carrying comments stay, because there is no unambiguous home for the comment once the
  *       brace it was attached to is gone.
  * </ul>
@@ -91,6 +91,11 @@ public final class BraceRewrite implements Rewrite {
                     case WHEN_MULTI_STATEMENT -> braced ? statementsIn(body) != 1 : false;
                     case PRESERVE -> braced;
                 };
+        // A loop inside this body may already have lost its braces, which can leave an if open at its
+        // end. Braces here are then what keeps the else attached to this if.
+        if (!braced && danglingElse(statement, body)) {
+            wanted = true;
+        }
 
         if (wanted == braced) {
             return body;
@@ -163,17 +168,30 @@ public final class BraceRewrite implements Rewrite {
         return only;
     }
 
-    /**
-     * Whether unbracing this body would let a following {@code else} bind to the wrong {@code if}.
-     *
-     * <p>Conservative on purpose: any {@code if} inside the body of an {@code if} that has an
-     * {@code else} keeps its braces, without working out whether that particular inner {@code if}
-     * would actually capture the {@code else}.
-     */
-    private boolean danglingElse(GreenNode statement, GreenNode only) {
+    /** Whether {@code body}, unbraced, would let this if's {@code else} bind to an if inside it. */
+    private static boolean danglingElse(GreenNode statement, GreenNode body) {
         return statement.kind() == SyntaxKind.IF_STATEMENT
-                && statement.children().size() > 5
-                && only.kind() == SyntaxKind.IF_STATEMENT;
+                && statement.children().getLast().kind() == SyntaxKind.ELSE_CLAUSE
+                && endsInOpenIf(body);
+    }
+
+    /**
+     * Whether a statement ends in an {@code if} without an {@code else}, which a following
+     * {@code else} would attach to.
+     *
+     * <p>A single-statement block counts as open too: the same pass may be about to take its braces off.
+     */
+    private static boolean endsInOpenIf(GreenNode statement) {
+        return switch (statement.kind()) {
+            case IF_STATEMENT -> {
+                GreenNode last = statement.children().getLast();
+                yield last.kind() != SyntaxKind.ELSE_CLAUSE || endsInOpenIf(last.children().getLast());
+            }
+            case FOR_STATEMENT, ENHANCED_FOR_STATEMENT, WHILE_STATEMENT, LABELED_STATEMENT ->
+                    endsInOpenIf(statement.children().getLast());
+            case BLOCK -> statementsIn(statement) == 1 && endsInOpenIf(statement.children().get(1));
+            default -> false;
+        };
     }
 
     private static int statementsIn(GreenNode block) {

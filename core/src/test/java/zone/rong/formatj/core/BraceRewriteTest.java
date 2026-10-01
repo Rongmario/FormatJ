@@ -100,6 +100,9 @@ class BraceRewriteTest {
     @Test
     void anIfWithAnElseKeepsBracesRoundAnInnerIf() {
         assertTrue(rewrite("        if (n > 0) { if (n > 1) log(n); } else log(0);", BracePolicy.NEVER).unchanged());
+        assertTrue(rewrite("        if (n > 0) { l: if (n > 1) log(n); } else log(0);", BracePolicy.NEVER).unchanged());
+        String loop = tokensAfter("        if (n > 0) { for (;;) { if (n > 1) log(n); } } else log(0);", BracePolicy.NEVER);
+        assertTrue(loop.contains("if ( n > 0 ) { for ( ; ; ) if ( n > 1 ) log ( n ) ; } else"), loop);
     }
 
     @Test
