@@ -47,8 +47,13 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     @Parameter(property = "formatj.styleFile")
     protected File styleFile;
 
-    /** Preset to start from: {@code formatj} or {@code google}. */
-    @Parameter(property = "formatj.preset", defaultValue = "formatj")
+    /**
+     * Preset to start from: {@code formatj} or {@code google}.
+     *
+     * <p>Left unset, and with no {@link #styleFile} either, the nearest {@code formatj.toml} above
+     * the project directory is discovered and used; failing that, the {@code formatj} preset.
+     */
+    @Parameter(property = "formatj.preset")
     protected String preset;
 
     /** Individual rule overrides keyed by dotted option key, applied last. */
@@ -151,9 +156,18 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         getLog().info("FormatJ checked " + files.size() + " file(s), formatted " + formatted);
     }
 
-    /** The style these goals apply, resolved from preset, style file and inline rules. */
+    /**
+     * The style these goals apply, resolved from preset, style file and inline rules.
+     *
+     * <p>Neither {@link #preset} nor {@link #styleFile} was set: discover the nearest
+     * {@code formatj.toml} above the project directory, the same lookup the CLI does.
+     */
     protected Style style() {
         StyleBuilder builder = Style.builder();
+        boolean explicit = (preset != null && !preset.isBlank()) || styleFile != null;
+        if (!explicit) {
+            StyleFiles.discover(project.getBasedir().toPath()).ifPresent(file -> builder.apply(StyleFiles.load(file)));
+        }
         if (preset != null && !preset.isBlank()) {
             builder.apply(Preset.of(preset).style());
         }

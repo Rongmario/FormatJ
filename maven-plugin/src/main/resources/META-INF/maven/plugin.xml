@@ -113,7 +113,7 @@
       <configuration>
         <project implementation="org.apache.maven.project.MavenProject" default-value="${project}"/>
         <styleFile implementation="java.io.File">${formatj.styleFile}</styleFile>
-        <preset implementation="java.lang.String" default-value="formatj">${formatj.preset}</preset>
+        <preset implementation="java.lang.String">${formatj.preset}</preset>
         <rules implementation="java.util.Map"></rules>
         <includes implementation="java.util.List"></includes>
         <excludes implementation="java.util.List"></excludes>
@@ -222,7 +222,7 @@
       <configuration>
         <project implementation="org.apache.maven.project.MavenProject" default-value="${project}"/>
         <styleFile implementation="java.io.File">${formatj.styleFile}</styleFile>
-        <preset implementation="java.lang.String" default-value="formatj">${formatj.preset}</preset>
+        <preset implementation="java.lang.String">${formatj.preset}</preset>
         <rules implementation="java.util.Map"></rules>
         <includes implementation="java.util.List"></includes>
         <excludes implementation="java.util.List"></excludes>

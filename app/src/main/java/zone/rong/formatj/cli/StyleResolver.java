@@ -46,7 +46,16 @@ final class StyleResolver {
         if (options.styleFile().isPresent() || options.preset().isPresent()) {
             return explicit;
         }
-        return StyleFiles.discoverOrDefault(Path.of("").toAbsolutePath()).mergedWith(explicit);
+        return StyleFiles.discoverOrDefault(stdinNameDirectory()).mergedWith(explicit);
+    }
+
+    /**
+     * The directory to discover from for {@code --stdin}: the directory of {@code --stdin-name}
+     * when it names a path, falling back to the working directory for the unnamed default.
+     */
+    private Path stdinNameDirectory() {
+        Path parent = Path.of(options.stdinName()).toAbsolutePath().getParent();
+        return parent != null ? parent : Path.of("").toAbsolutePath();
     }
 
 }

@@ -1,11 +1,13 @@
 package zone.rong.formatj.gradle;
 
 import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Preset;
+import zone.rong.formatj.core.config.StyleFiles;
+import java.nio.file.Path;
 import java.util.List;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.RegularFile;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
@@ -32,14 +34,20 @@ public class FormatJPlugin implements Plugin<Project> {
         extension.getLanguageLevel().convention(LanguageLevel.LATEST);
         extension.getPreviewFeatures().convention(false);
         extension.getEnforceOnCheck().convention(true);
-        extension.getPreset().convention(Preset.FORMATJ);
 
         Provider<FileCollection> sources = project.provider(() -> javaSources(project, extension));
+        // Neither styleFile nor preset was set explicitly: fall back to the nearest formatj.toml
+        // above the project directory, the same discovery the CLI does. A Provider keeps this an
+        // input the task can declare, so the build cache invalidates when that file changes.
+        Provider<RegularFile> discoveredStyleFile =
+                project.getLayout().file(project.provider(() -> extension.getPreset().isPresent()
+                        ? null
+                        : StyleFiles.discover(project.getProjectDir().toPath()).map(Path::toFile).orElse(null)));
 
         TaskProvider<FormatJTask> apply = project.getTasks().register(APPLY_TASK_NAME, FormatJTask.class, task -> {
             task.setGroup(TASK_GROUP);
             task.setDescription("Formats Java sources in place with FormatJ.");
-            configure(task, extension, sources);
+            configure(task, extension, sources, discoveredStyleFile);
             task.getCheckOnly().set(false);
             task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/apply.marker"));
             // The only durable output of apply is the source tree it mutates. Reusing a
@@ -52,7 +60,7 @@ public class FormatJPlugin implements Plugin<Project> {
         TaskProvider<FormatJTask> check = project.getTasks().register(CHECK_TASK_NAME, FormatJTask.class, task -> {
             task.setGroup(TASK_GROUP);
             task.setDescription("Fails if any Java source is not formatted to the configured style.");
-            configure(task, extension, sources);
+            configure(task, extension, sources, discoveredStyleFile);
             task.getCheckOnly().set(true);
             task.getMarkerFile().set(project.getLayout().getBuildDirectory().file("formatj/check.marker"));
         });
@@ -66,9 +74,13 @@ public class FormatJPlugin implements Plugin<Project> {
         check.configure(task -> task.mustRunAfter(apply));
     }
 
-    private static void configure(FormatJTask task, FormatJExtension extension, Provider<FileCollection> sources) {
+    private static void configure(
+            FormatJTask task,
+            FormatJExtension extension,
+            Provider<FileCollection> sources,
+            Provider<RegularFile> discoveredStyleFile) {
         task.getSource().from(sources);
-        task.getStyleFile().set(extension.getStyleFile());
+        task.getStyleFile().set(extension.getStyleFile().orElse(discoveredStyleFile));
         task.getStyle().set(extension.getStyle());
         task.getPreset().set(extension.getPreset());
         task.getRules().set(extension.getRules());

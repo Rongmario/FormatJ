@@ -124,6 +124,28 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void aFormatjTomlInTheProjectDirectoryIsDiscoveredWithoutConfiguration() throws IOException {
+        Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+                """);
+        Files.writeString(projectDirectory.resolve("formatj.toml"), "[indent]\nsize = 2\n");
+
+        BuildResult failure = runner("formatJavaCheck").buildAndFail();
+        assertEquals(TaskOutcome.FAILED, failure.task(":formatJavaCheck").getOutcome());
+        assertTrue(failure.getOutput().contains("not formatted"), failure.getOutput());
+
+        assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
+        assertTrue(
+                Files.readString(projectDirectory.resolve("src/main/java/sample/Sample.java"))
+                        .contains("\n  void run()"));
+    }
+
+    @Test
     void checkTaskIsWiredIntoTheLifecycleCheckTask() {
         BuildResult result = run("check");
         assertTrue(result.getOutput().contains("formatJavaCheck"), result.getOutput());

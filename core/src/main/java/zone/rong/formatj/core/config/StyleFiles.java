@@ -64,7 +64,13 @@ public final class StyleFiles {
         }
     }
 
-    /** Searches {@code start} and its ancestors for a style file. */
+    /**
+     * Searches {@code start} and its ancestors for a style file.
+     *
+     * <p>The nearest file wins; parent style files are not merged in. A multi-module repository
+     * that wants one shared style keeps a single {@code formatj.toml} at the root and no other
+     * module overrides it, rather than relying on merging.
+     */
     public static Optional<Path> discover(Path start) {
         Path directory = Files.isDirectory(start) ? start : start.getParent();
         while (directory != null) {

@@ -1,10 +1,10 @@
 package zone.rong.formatj.gradle;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import zone.rong.formatj.api.Preset;
 import java.util.Map;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,7 +51,8 @@ class FormatJExtensionTest {
     void defaultsMatchTheDocumentedConventions() {
         FormatJExtension extension = extensionOf(ProjectBuilder.builder().build());
 
-        assertEquals(Preset.FORMATJ, extension.getPreset().get());
+        // Left unset, so FormatJTask falls back to discovery and then to FormatJ's own defaults.
+        assertFalse(extension.getPreset().isPresent());
         assertEquals(Boolean.FALSE, extension.getPreviewFeatures().get());
         assertEquals(Boolean.TRUE, extension.getEnforceOnCheck().get());
     }

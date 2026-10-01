@@ -124,6 +124,22 @@ class CliRunnerTest {
     }
 
     @Test
+    void stdinNameDiscoversTheStyleFileNearThatPathNotTheWorkingDirectory(@TempDir Path root) throws IOException {
+        Path nested = Files.createDirectories(root.resolve("module/src/main/java"));
+        Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 2\n");
+
+        Run result =
+                run(
+                        "class A {\n    void run() { }\n}\n",
+                        "--diff",
+                        "--stdin-name",
+                        nested.resolve("A.java").toString());
+
+        assertEquals(1, result.exitCode());
+        assertTrue(result.out().contains("+  void run()"), result.out());
+    }
+
+    @Test
     void missingPathsAreReportedAsAnError(@TempDir Path root) {
         Run result = run("", "--check", root.resolve("absent").toString());
 

@@ -21,6 +21,8 @@ dependencies {
     compileOnly(libs.maven.plugin.api)
     compileOnly(libs.maven.core)
     compileOnly(libs.maven.plugin.annotations)
+    testImplementation(libs.maven.plugin.api)
+    testImplementation(libs.maven.core)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

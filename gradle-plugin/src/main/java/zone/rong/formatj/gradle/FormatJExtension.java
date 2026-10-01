@@ -29,7 +29,12 @@ import org.gradle.api.provider.SetProperty;
  */
 public abstract class FormatJExtension {
 
-    /** Starting point for the rules. Defaults to {@link Preset#FORMATJ}. */
+    /**
+     * Starting point for the rules.
+     *
+     * <p>Left unset, and with no {@link #getStyleFile()} either, the nearest {@code formatj.toml}
+     * above the project directory is discovered and used; failing that, {@link Preset#FORMATJ}.
+     */
     public abstract Property<Preset> getPreset();
 
     /** A style file whose rules are applied on top of the preset. */
