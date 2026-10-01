@@ -22,7 +22,9 @@ public sealed interface Doc {
         /** Renders as nothing when flat, a line break when broken. */
         SOFT,
         /** Always a line break; forces every enclosing group to break. */
-        HARD
+        HARD,
+        /** As {@link #HARD}, except that it prints nothing on a line that holds only indentation. */
+        FRESH
 
     }
 
@@ -144,6 +146,11 @@ public sealed interface Doc {
 
     static Doc hardLine() {
         return new Concat(List.of(new Break(BreakKind.HARD), new BreakParent()));
+    }
+
+    /** A hard line break that is skipped when the line is still empty; see {@link BreakKind#FRESH}. */
+    static Doc freshLine() {
+        return new Concat(List.of(new Break(BreakKind.FRESH), new BreakParent()));
     }
 
     static Doc group(Doc content) {

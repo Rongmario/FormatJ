@@ -379,6 +379,11 @@ abstract class EmitSupport {
                 parts.add(comments.ownLine(run));
                 parts.add(spaceIf(last + 1 < leading.size()));
             } else {
+                // A comment the author put on a line of its own starts one, even where the layout has
+                // no break of its own in front of the code it leads.
+                if (i > 0 && leading.get(i - 1).hasLineTerminator()) {
+                    parts.add(Doc.freshLine());
+                }
                 parts.add(placedOwnLine(run, leading, i));
                 int cap =
                         Math.min(

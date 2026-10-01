@@ -337,6 +337,15 @@ class CommentLayoutRulesTest {
         assertTrue(formatted.contains("int a = 1, // one\n            b = 2;"), formatted);
     }
 
+    @Test
+    void aCommentOnItsOwnLineAboveAReturnValueStaysThere() {
+        String source = "class A {\n    int m() {\n        return\n            // note\n            a;\n    }\n}\n";
+
+        String formatted = format(source, style -> { });
+
+        assertTrue(formatted.contains("return\n                // note\n                a;"), formatted);
+    }
+
     private static int commentColumn(String source, String needle) {
         int found = source.indexOf(needle);
         assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);

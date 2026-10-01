@@ -32,7 +32,8 @@ public final class DocBreaks {
             case Doc.Text text -> new Rewritten(text, false);
             case Doc.BreakParent parent -> new Rewritten(parent, true);
             case Doc.Mark mark -> new Rewritten(mark, false);
-            case Doc.Break lineBreak -> new Rewritten(lineBreak, lineBreak.kind() == Doc.BreakKind.HARD);
+            case Doc.Break lineBreak -> new Rewritten(lineBreak, lineBreak.kind() != Doc.BreakKind.LINE
+                    && lineBreak.kind() != Doc.BreakKind.SOFT);
             case Doc.Concat concat -> {
                 List<Doc> parts = new ArrayList<>(concat.parts().size());
                 boolean forced = false;

@@ -170,7 +170,11 @@ public final class DocPrinter {
                     // Handled by DocBreaks.propagate before printing starts.
                 }
                 case Doc.Break lineBreak -> {
-                    if (mode == Mode.FLAT && lineBreak.kind() != Doc.BreakKind.HARD && !endsLine(lineSuffixes)) {
+                    boolean hard = lineBreak.kind() == Doc.BreakKind.HARD || lineBreak.kind() == Doc.BreakKind.FRESH;
+                    if (lineBreak.kind() == Doc.BreakKind.FRESH && lineSuffixes.isEmpty() && lineIsAllWhitespace(out)) {
+                        break;
+                    }
+                    if (mode == Mode.FLAT && !hard && !endsLine(lineSuffixes)) {
                         if (lineBreak.kind() == Doc.BreakKind.LINE) {
                             out.append(' ');
                             column++;
@@ -316,7 +320,7 @@ public final class DocPrinter {
                     // A mark has no width, so it can never be what pushes a line past the margin.
                 }
                 case Doc.Break lineBreak -> {
-                    if (mode == Mode.BREAK || lineBreak.kind() == Doc.BreakKind.HARD) {
+                    if (mode == Mode.BREAK || lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT) {
                         // The line ends here, so everything measured so far did fit.
                         return mode == Mode.BREAK || stopAtHardBreak;
                     }

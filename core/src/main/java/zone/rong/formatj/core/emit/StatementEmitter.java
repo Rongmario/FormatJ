@@ -545,6 +545,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
             if (is(child, ":") && rule(SpacingRules.AROUND_TERNARY_OPERATORS)) {
                 parts.add(Doc.EMPTY);
             }
+            if (i > 0 && authorBrokeBefore(child) && hasLeadingComments(child)) {
+                // A comment on its own line above the value takes the value down with it.
+                HoistedLeading hoisted = hoistLeadingTrivia(child);
+                parts.add(Doc.indent(continuation(), Doc.concat(hoisted.leading(), emit(hoisted.node()))));
+                continue;
+            }
             parts.add(emit(child));
         }
         return Doc.concat(parts);
