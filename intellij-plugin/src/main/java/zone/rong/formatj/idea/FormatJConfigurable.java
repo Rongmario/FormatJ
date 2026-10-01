@@ -26,6 +26,7 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
     private static final String PRESET_GOOGLE = "google";
 
     private final Project project;
+
     private JCheckBox enabled;
     private TextFieldWithBrowseButton styleFile;
     private ComboBox<PresetItem> preset;

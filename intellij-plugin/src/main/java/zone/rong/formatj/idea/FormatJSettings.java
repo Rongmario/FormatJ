@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 public final class FormatJSettings implements PersistentStateComponent<FormatJSettings.State> {
 
     private final Project project;
+
     private State state = new State();
     private volatile FormatJEngine engine;
 
