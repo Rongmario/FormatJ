@@ -28,6 +28,12 @@ class RangeFormattingTest {
 
     private static final Formatter FORMATTER = FormatJ.defaultFormatter();
 
+    private static FormatResult format(String source, int start, int end) {
+        return FORMATTER.format(
+            FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end)))
+        );
+    }
+
     @Test
     void onlyTheMethodCoveredByTheRangeIsReformatted() {
         String source = """
@@ -361,12 +367,6 @@ class RangeFormattingTest {
         );
 
         assertEquals(source, result.text());
-    }
-
-    private static FormatResult format(String source, int start, int end) {
-        return FORMATTER.format(
-            FormatRequest.of(source).withName("A.java").withRanges(List.of(new SourceRange(start, end)))
-        );
     }
 
 }

@@ -31,6 +31,22 @@ class JavadocParagraphMarkerTest {
         return result.text();
     }
 
+    private static void assertFixedPoint(Consumer<StyleBuilder> rules) {
+        String body = "    /**\n     * First paragraph long enough to be refilled to the margin.\n" +
+            "     * <p> Second paragraph also long enough to need refilling at the margin.\n" +
+            "     * <p/> Third paragraph marked with a self-closing tag.\n     */\n    void f() { }\n";
+        String once = format(rules, body);
+        StyleBuilder builder = Style.builder();
+        rules.accept(builder);
+        FormatResult twice = FormatJ.newFormatter()
+            .style(builder.build())
+            .languageLevel(LanguageLevel.LATEST)
+            .build()
+            .format(FormatRequest.of(once).withName("T.java"));
+        assertFalse(twice.hasErrors(), () -> twice.diagnostics().toString());
+        assertEquals(once, twice.text());
+    }
+
     @Test
     void closingFormPreservesByDefault() {
         String formatted = format(
@@ -126,22 +142,6 @@ class JavadocParagraphMarkerTest {
             .set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST)
             .set(JavadocRules.WRAP, true)
             .set(WrappingRules.MAX_LINE_LENGTH, 60));
-    }
-
-    private static void assertFixedPoint(Consumer<StyleBuilder> rules) {
-        String body = "    /**\n     * First paragraph long enough to be refilled to the margin.\n" +
-            "     * <p> Second paragraph also long enough to need refilling at the margin.\n" +
-            "     * <p/> Third paragraph marked with a self-closing tag.\n     */\n    void f() { }\n";
-        String once = format(rules, body);
-        StyleBuilder builder = Style.builder();
-        rules.accept(builder);
-        FormatResult twice = FormatJ.newFormatter()
-            .style(builder.build())
-            .languageLevel(LanguageLevel.LATEST)
-            .build()
-            .format(FormatRequest.of(once).withName("T.java"));
-        assertFalse(twice.hasErrors(), () -> twice.diagnostics().toString());
-        assertEquals(once, twice.text());
     }
 
 }

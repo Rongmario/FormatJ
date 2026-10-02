@@ -24,8 +24,74 @@ import zone.rong.formatj.core.ir.Doc;
 /** Layout for blocks, statements and switch bodies. */
 abstract class StatementEmitter extends ExpressionEmitter {
 
+    /** The placement a field or local variable asks of the annotations in its modifier list. */
+    protected AnnotationPlacement modifierPlacement;
+
     StatementEmitter(Style style) {
         super(style);
+    }
+
+    /**
+     * A hard break, or the choice between it and a space.
+     *
+     * <p>{@link Doc.IfBreak} is what lets one body serve both shapes: its two branches are never
+     * scanned for forced breaks, so the hard breaks of the ordinary layout can sit inside it without
+     * forcing the group they are in to break. Whatever else in the body does force a break — a nested
+     * multi-line statement, a text block, a comment that ends a line — breaks the group, and the
+     * ordinary branch is what prints.
+     */
+    private static Doc optional(Doc broken, boolean inline) {
+        return inline ? Doc.ifBreak(broken, Doc.line()) : broken;
+    }
+
+    /**
+     * Whether these case labels are exactly {@code null} and {@code default}.
+     *
+     * <p>The pair is one idea rather than a list of two, which is why it has a rule of its own.
+     */
+    private static boolean isNullDefault(List<GreenNode> children) {
+        boolean nullLabel = false;
+        boolean defaultLabel = false;
+        for (GreenNode child : children.subList(1, children.size())) {
+            if (is(child, ",") || child.kind() == SyntaxKind.CASE_GUARD) {
+                continue;
+            }
+            if (is(child, "default")) {
+                defaultLabel = true;
+            } else if (lexeme(child).equals("null") || child.kind() != SyntaxKind.TOKEN && isNullLiteral(child)) {
+                nullLabel = true;
+            } else {
+                return false;
+            }
+        }
+        return nullLabel && defaultLabel;
+    }
+
+    /** Whether a label node is the literal {@code null}. */
+    private static boolean isNullLiteral(GreenNode node) {
+        return node.kind() == SyntaxKind.LITERAL &&
+            node.children().size() == 1 &&
+            is(node.children().getFirst(), "null");
+    }
+
+    private static List<Doc> withSeparator(List<Doc> elements, Doc separator) {
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < elements.size(); i++) {
+            if (i > 0) {
+                parts.add(separator);
+            }
+            parts.add(elements.get(i));
+        }
+        return parts;
+    }
+
+    protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            if (is(children.get(i), lexeme)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -170,19 +236,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
         );
         Doc braced = Doc.concat(emit(open), contents, closing);
         return inline ? Doc.group(braced) : braced;
-    }
-
-    /**
-     * A hard break, or the choice between it and a space.
-     *
-     * <p>{@link Doc.IfBreak} is what lets one body serve both shapes: its two branches are never
-     * scanned for forced breaks, so the hard breaks of the ordinary layout can sit inside it without
-     * forcing the group they are in to break. Whatever else in the body does force a break — a nested
-     * multi-line statement, a text block, a comment that ends a line — breaks the group, and the
-     * ordinary branch is what prints.
-     */
-    private static Doc optional(Doc broken, boolean inline) {
-        return inline ? Doc.ifBreak(broken, Doc.line()) : broken;
     }
 
     /** Whether any statement of this body turns formatting off. */
@@ -595,9 +648,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
         );
     }
 
-    /** The placement a field or local variable asks of the annotations in its modifier list. */
-    protected AnnotationPlacement modifierPlacement;
-
     /** Modifiers, a type, declarators and a semicolon, in one line unless something wraps. */
     protected Doc emitDeclarationLine(List<GreenNode> children) {
         return emitDeclarationLine(children, rule(AnnotationRules.FIELD_PLACEMENT), AlignmentSite.FIELD_NAME);
@@ -796,62 +846,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return authorGroup(node, Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
     }
 
-    /**
-     * Whether these case labels are exactly {@code null} and {@code default}.
-     *
-     * <p>The pair is one idea rather than a list of two, which is why it has a rule of its own.
-     */
-    private static boolean isNullDefault(List<GreenNode> children) {
-        boolean nullLabel = false;
-        boolean defaultLabel = false;
-        for (GreenNode child : children.subList(1, children.size())) {
-            if (is(child, ",") || child.kind() == SyntaxKind.CASE_GUARD) {
-                continue;
-            }
-            if (is(child, "default")) {
-                defaultLabel = true;
-            } else if (lexeme(child).equals("null") || child.kind() != SyntaxKind.TOKEN && isNullLiteral(child)) {
-                nullLabel = true;
-            } else {
-                return false;
-            }
-        }
-        return nullLabel && defaultLabel;
-    }
-
-    /** Whether a label node is the literal {@code null}. */
-    private static boolean isNullLiteral(GreenNode node) {
-        return node.kind() == SyntaxKind.LITERAL &&
-            node.children().size() == 1 &&
-            is(node.children().getFirst(), "null");
-    }
-
-    private static List<Doc> withSeparator(List<Doc> elements, Doc separator) {
-        List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < elements.size(); i++) {
-            if (i > 0) {
-                parts.add(separator);
-            }
-            parts.add(elements.get(i));
-        }
-        return parts;
-    }
-
     protected Doc emitCaseGuard(GreenNode node) {
         List<GreenNode> children = node.children();
         Doc guard = Doc.concat(emit(children.get(0)), space(), emit(children.get(1)));
         return rule(SwitchRules.GUARD_ON_SAME_LINE)
             ? guard
             : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
-    }
-
-    protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {
-        for (int i = children.size() - 1; i >= 0; i--) {
-            if (is(children.get(i), lexeme)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
 }

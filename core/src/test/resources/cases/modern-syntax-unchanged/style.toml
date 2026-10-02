@@ -3,3 +3,6 @@ size = 4
 
 [wrapping]
 max-line-length = 120
+
+[members]
+order = "preserve"

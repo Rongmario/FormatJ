@@ -8,7 +8,7 @@ public final class MemberRules {
 
     public static final Option<MemberOrder> ORDER = Option.ofEnum(
         "members.order",
-        MemberOrder.PRESERVE,
+        MemberOrder.INTELLIJ,
         "Ordering of the members of a type body"
     );
 

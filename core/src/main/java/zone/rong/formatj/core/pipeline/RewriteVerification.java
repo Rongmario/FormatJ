@@ -53,6 +53,36 @@ import zone.rong.formatj.core.text.TextBlocks;
  */
 public final class RewriteVerification {
 
+    /**
+     * Position first; then, for edits landing on the same token, the bias each edit declared.
+     *
+     * <p>Rewriting runs innermost-first, so ledger order is inner before outer. A closing delimiter
+     * wants that order and an opening delimiter wants the reverse, which is the whole reason a bias
+     * exists.
+     */
+    private static final Comparator<Sequenced> ORDER = Comparator
+        .comparingInt((Sequenced entry) -> entry.edit().position())
+        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
+        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
+            ? -entry.sequence()
+            : entry.sequence());
+
+    private static final Set<String> MODIFIERS = Set.of(
+        "public",
+        "protected",
+        "private",
+        "abstract",
+        "default",
+        "static",
+        "final",
+        "transient",
+        "volatile",
+        "synchronized",
+        "native",
+        "strictfp",
+        "sealed"
+    );
+
     private RewriteVerification() { }
 
     /**
@@ -200,23 +230,6 @@ public final class RewriteVerification {
         return move.order().stream().mapToInt(TokenEdit.Span::end).max().orElse(0) - move.position();
     }
 
-    /** An edit and where it sat in the ledger, which is the tiebreak for edits at one position. */
-    private record Sequenced(TokenEdit edit, int sequence) { }
-
-    /**
-     * Position first; then, for edits landing on the same token, the bias each edit declared.
-     *
-     * <p>Rewriting runs innermost-first, so ledger order is inner before outer. A closing delimiter
-     * wants that order and an opening delimiter wants the reverse, which is the whole reason a bias
-     * exists.
-     */
-    private static final Comparator<Sequenced> ORDER = Comparator
-        .comparingInt((Sequenced entry) -> entry.edit().position())
-        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST ? 0 : 1)
-        .thenComparingInt(entry -> entry.edit().bias() == TokenEdit.Bias.OUTERMOST_FIRST
-            ? -entry.sequence()
-            : entry.sequence());
-
     // -------------------------------------------------------------- edit laws
 
     /**
@@ -343,9 +356,6 @@ public final class RewriteVerification {
         }
         return null;
     }
-
-    /** The orderable members of a type body, and whether that body belongs to an interface. */
-    private record MemberBody(List<GreenNode> members, boolean interfaceBody) { }
 
     /** The body whose first orderable member starts at {@code position}, or null. */
     private static MemberBody bodyAt(GreenNode node, int position, Map<GreenNode.Leaf, Integer> positions) {
@@ -619,22 +629,6 @@ public final class RewriteVerification {
         return checkOnly(edit, "modifiers", "public", "abstract", "static", "final", "private");
     }
 
-    private static final Set<String> MODIFIERS = Set.of(
-        "public",
-        "protected",
-        "private",
-        "abstract",
-        "default",
-        "static",
-        "final",
-        "transient",
-        "volatile",
-        "synchronized",
-        "native",
-        "strictfp",
-        "sealed"
-    );
-
     private static boolean isDeclaredModifierSpan(GreenNode tree, TokenEdit edit) {
         Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(tree);
         return containsModifierSpan(tree, edit, positions);
@@ -767,14 +761,6 @@ public final class RewriteVerification {
             }
         }
         return null;
-    }
-
-    private record ModifierElement(boolean annotation, List<String> tokens) {
-
-        private ModifierElement {
-            tokens = List.copyOf(tokens);
-        }
-
     }
 
     /**
@@ -1006,6 +992,20 @@ public final class RewriteVerification {
             return "expected " + expected.size() + " entries but found " + actual.size();
         }
         return null;
+    }
+
+    /** An edit and where it sat in the ledger, which is the tiebreak for edits at one position. */
+    private record Sequenced(TokenEdit edit, int sequence) { }
+
+    /** The orderable members of a type body, and whether that body belongs to an interface. */
+    private record MemberBody(List<GreenNode> members, boolean interfaceBody) { }
+
+    private record ModifierElement(boolean annotation, List<String> tokens) {
+
+        private ModifierElement {
+            tokens = List.copyOf(tokens);
+        }
+
     }
 
 }

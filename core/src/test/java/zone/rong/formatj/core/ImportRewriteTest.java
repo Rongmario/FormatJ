@@ -19,6 +19,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** What the import rules reorder, what they delete, and what they refuse to touch. */
 class ImportRewriteTest {
 
+    private static final String MIXED = """
+            package demo;
+
+            import zone.rong.Thing;
+            import java.util.Map;
+            import static org.junit.Assertions.assertTrue;
+            import javax.annotation.Nullable;
+            import java.util.List;
+
+            class T {
+
+                List<String> run(Map<String, String> in, @Nullable Thing t) {
+                    assertTrue(in != null);
+                    return List.of();
+                }
+
+            }
+            """;
+
+    // -------------------------------------------------------------- removal
+
+    private static final String UNUSED = """
+            package demo;
+
+            import java.util.List;
+            import java.util.Map;
+            import java.util.concurrent.*;
+            import java.util.Listener;
+
+            /**
+             * Hands back a {@link Map}.
+             */
+            class T {
+
+                List<String> run() {
+                    return List.of();
+                }
+
+            }
+            """;
+
     private static String format(String source, UnaryOperator<StyleBuilder> rules) {
         Style style = rules.apply(Style.builder().set(ImportRules.ORDER, SortOrder.ASCENDING)).build();
         Formatter formatter = FormatJ.newFormatter().style(style).build();
@@ -39,25 +80,6 @@ class ImportRewriteTest {
         }
         return List.copyOf(lines);
     }
-
-    private static final String MIXED = """
-            package demo;
-
-            import zone.rong.Thing;
-            import java.util.Map;
-            import static org.junit.Assertions.assertTrue;
-            import javax.annotation.Nullable;
-            import java.util.List;
-
-            class T {
-
-                List<String> run(Map<String, String> in, @Nullable Thing t) {
-                    assertTrue(in != null);
-                    return List.of();
-                }
-
-            }
-            """;
 
     @Test
     void preserveLeavesTheRunExactlyAsWritten() {
@@ -237,28 +259,6 @@ class ImportRewriteTest {
                 """;
         assertEquals(List.of("import java.util.List;", "import java.util.Map;"), importsOf(format(source, s -> s)));
     }
-
-    // -------------------------------------------------------------- removal
-
-    private static final String UNUSED = """
-            package demo;
-
-            import java.util.List;
-            import java.util.Map;
-            import java.util.concurrent.*;
-            import java.util.Listener;
-
-            /**
-             * Hands back a {@link Map}.
-             */
-            class T {
-
-                List<String> run() {
-                    return List.of();
-                }
-
-            }
-            """;
 
     @Test
     void nothingIsRemovedUnlessAsked() {

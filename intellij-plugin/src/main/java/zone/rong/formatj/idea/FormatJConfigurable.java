@@ -39,6 +39,10 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
         this.project = project;
     }
 
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
     @Override
     public @NotNull
     String getId() {
@@ -136,10 +140,6 @@ public final class FormatJConfigurable implements SearchableConfigurable, Config
     private String selectedPreset() {
         PresetItem item = preset.getItem();
         return item == null ? PRESET_NONE : item.id;
-    }
-
-    private static String nullToEmpty(String value) {
-        return value == null ? "" : value;
     }
 
     private record PresetItem(String id, String label) {

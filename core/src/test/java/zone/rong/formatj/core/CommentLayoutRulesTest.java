@@ -21,6 +21,31 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CommentLayoutRulesTest {
 
+    private static int commentColumn(String source, String needle) {
+        int found = source.indexOf(needle);
+        assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);
+        int lineStart = source.lastIndexOf('\n', found) + 1;
+        int lineEnd = source.indexOf('\n', found);
+        String line = source.substring(lineStart, lineEnd < 0 ? source.length() : lineEnd);
+        int comment = line.indexOf("//");
+        assertTrue(comment >= 0, () -> "no trailing comment on: " + line);
+        return comment + 1;
+    }
+
+    private static void assertFixedPoint(String source, Consumer<StyleBuilder> configure) {
+        String once = format(source, configure);
+        assertEquals(once, format(once, configure));
+    }
+
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
+
     @Test
     void trailingCommentsArePaddedToTheConfiguredColumn() {
         String source = "class A {\n\n    private int x; // one\n    private String name; // two\n\n}\n";
@@ -347,31 +372,6 @@ class CommentLayoutRulesTest {
         String formatted = format(source, style -> { });
 
         assertTrue(formatted.contains("return\n            // note\n            a;"), formatted);
-    }
-
-    private static int commentColumn(String source, String needle) {
-        int found = source.indexOf(needle);
-        assertTrue(found >= 0, () -> "missing " + needle + " in:\n" + source);
-        int lineStart = source.lastIndexOf('\n', found) + 1;
-        int lineEnd = source.indexOf('\n', found);
-        String line = source.substring(lineStart, lineEnd < 0 ? source.length() : lineEnd);
-        int comment = line.indexOf("//");
-        assertTrue(comment >= 0, () -> "no trailing comment on: " + line);
-        return comment + 1;
-    }
-
-    private static void assertFixedPoint(String source, Consumer<StyleBuilder> configure) {
-        String once = format(source, configure);
-        assertEquals(once, format(once, configure));
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

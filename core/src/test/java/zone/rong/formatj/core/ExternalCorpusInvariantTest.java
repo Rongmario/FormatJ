@@ -15,12 +15,6 @@ import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
-import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.BracePolicy;
-import zone.rong.formatj.api.rules.BraceRules;
-import zone.rong.formatj.api.rules.ImportRules;
-import zone.rong.formatj.api.rules.LambdaRules;
-import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.core.lexer.JavaLexer;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
@@ -33,6 +27,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ExternalCorpusInvariantTest {
 
     private static final Set<String> EXPECTED_SAFE_FAILURES = Set.of();
+
+    private static Path root() {
+        Path root = Path.of(System.getProperty("formatj.external.corpus")).toAbsolutePath().normalize();
+        assertTrue(Files.isDirectory(root), () -> "external corpus does not exist: " + root);
+        return root;
+    }
+
+    private static List<Path> sources(Path root) throws IOException {
+        try (Stream<Path> files = Files.walk(root)) {
+            List<Path> sources = files.filter(Files::isRegularFile)
+                .filter(path -> path.toString().endsWith(".java"))
+                .sorted()
+                .toList();
+            assertTrue(sources.size() > 10, () -> "external corpus is too small: " + sources.size());
+            return sources;
+        }
+    }
 
     @Test
     void parserCompletelyCoversAtLeastNinetyPercentOfTheCorpus() throws IOException {
@@ -57,16 +68,7 @@ class ExternalCorpusInvariantTest {
         Path root = root();
         List<Path> sources = sources(root);
 
-        // The default style rewrites tokens, and the rewrite tests cover those. This one holds the
-        // layout to the tokens it was given.
-        Style layoutOnly = Style.builder()
-            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
-            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
-            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
-            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
-            .set(ImportRules.ORDER, SortOrder.PRESERVE)
-            .build();
-        Formatter formatter = FormatJ.newFormatter().style(layoutOnly).build();
+        Formatter formatter = FormatJ.newFormatter().style(CorpusInvariantTest.layoutOnly()).build();
         return sources.stream().map(path -> DynamicTest.dynamicTest(root.relativize(path).toString(), () -> {
             String relative = root.relativize(path).toString().replace('\\', '/');
             String source = Files.readString(path, StandardCharsets.UTF_8);
@@ -93,23 +95,6 @@ class ExternalCorpusInvariantTest {
             FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
             assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
         }));
-    }
-
-    private static Path root() {
-        Path root = Path.of(System.getProperty("formatj.external.corpus")).toAbsolutePath().normalize();
-        assertTrue(Files.isDirectory(root), () -> "external corpus does not exist: " + root);
-        return root;
-    }
-
-    private static List<Path> sources(Path root) throws IOException {
-        try (Stream<Path> files = Files.walk(root)) {
-            List<Path> sources = files.filter(Files::isRegularFile)
-                .filter(path -> path.toString().endsWith(".java"))
-                .sorted()
-                .toList();
-            assertTrue(sources.size() > 10, () -> "external corpus is too small: " + sources.size());
-            return sources;
-        }
     }
 
 }

@@ -18,6 +18,8 @@ import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.LineEnding;
+import zone.rong.formatj.api.rules.MemberOrder;
+import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.WrapPolicy;
 
@@ -28,6 +30,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Layout rules that were in the catalogue before the emitter consulted them. */
 class LayoutOptionTest {
+
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        // Layout is the subject here, so a lambda's block body is left as written.
+        StyleBuilder builder = Style.builder().lambdas(lambdas -> lambdas.bodyBraces(BracePolicy.PRESERVE));
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
 
     @Test
     void anEmptyMethodBodyFollowsItsOwnRuleNotTheClassBodyRule() {
@@ -852,7 +864,11 @@ class LayoutOptionTest {
     void aFieldAfterAMethodIsSetApart() {
         String source = "class A {\n    void f() {}\n    int x;\n}\n";
 
-        assertTrue(format(source, style -> { }).contains("void f() { }\n\n    int x;"));
+        assertTrue(
+            format(source, style -> style.set(MemberRules.ORDER, MemberOrder.PRESERVE)).contains(
+                "void f() { }\n\n    int x;"
+            )
+        );
     }
 
     @Test
@@ -877,16 +893,6 @@ class LayoutOptionTest {
             "class A {\n\n    void f() {\n        g();\n\n        h();\n    }\n\n}\n",
             format(source, style -> style.blankLines(blank -> blank.stripAtBraceEdges(true)))
         );
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        // Layout is the subject here, so a lambda's block body is left as written.
-        StyleBuilder builder = Style.builder().lambdas(lambdas -> lambdas.bodyBraces(BracePolicy.PRESERVE));
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

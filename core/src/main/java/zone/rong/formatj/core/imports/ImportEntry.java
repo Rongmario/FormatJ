@@ -83,6 +83,19 @@ public record ImportEntry(
         return new ImportEntry(node, isStatic, isModule, isWildcard, dotted, simpleName);
     }
 
+    private static String trimTrailingDot(String name) {
+        return name.endsWith(".") ? name.substring(0, name.length() - 1) : name;
+    }
+
+    private static String lastSegment(String dotted) {
+        int dot = dotted.lastIndexOf('.');
+        return dot < 0 ? dotted : dotted.substring(dot + 1);
+    }
+
+    private static String decoded(String text) {
+        return text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
+    }
+
     /** The declaration's tokens, which is what an edit to the import run is expressed in. */
     public List<String> lexemes() {
         return ProgramTokens.lexemes(node);
@@ -103,19 +116,6 @@ public record ImportEntry(
      */
     public boolean isRemovable() {
         return simpleName != null;
-    }
-
-    private static String trimTrailingDot(String name) {
-        return name.endsWith(".") ? name.substring(0, name.length() - 1) : name;
-    }
-
-    private static String lastSegment(String dotted) {
-        int dot = dotted.lastIndexOf('.');
-        return dot < 0 ? dotted : dotted.substring(dot + 1);
-    }
-
-    private static String decoded(String text) {
-        return text.indexOf('\\') < 0 ? text : UnicodeEscapes.decode(text);
     }
 
 }

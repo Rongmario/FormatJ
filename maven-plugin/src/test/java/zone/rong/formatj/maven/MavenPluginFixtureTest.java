@@ -38,57 +38,6 @@ class MavenPluginFixtureTest {
 
     @TempDir Path temp;
 
-    @Test
-    void formatGoalRewritesAndCheckThenPasses() throws Exception {
-        String version = requiredProperty("formatj.version");
-        Path pluginJar = Path.of(requiredProperty("formatj.maven.plugin.jar"));
-        Path coreJar = Path.of(requiredProperty("formatj.core.jar"));
-        assertTrue(Files.isRegularFile(pluginJar), () -> "missing plugin jar: " + pluginJar);
-        assertTrue(Files.isRegularFile(coreJar), () -> "missing core jar: " + coreJar);
-
-        Path fixture = temp.resolve("fixture");
-        copyFixture(fixture);
-        replaceVersion(fixture.resolve("pom.xml"), version);
-        Path sample = fixture.resolve("src/main/java/sample/Sample.java");
-        String unformatted = Files.readString(sample, StandardCharsets.UTF_8);
-        assertTrue(unformatted.contains("int x=1;"), unformatted);
-
-        Path localRepo = temp.resolve("repo");
-        installArtifact(localRepo, "zone.rong.formatj", "formatj", version, coreJar, corePom(version));
-        installArtifact(localRepo, "zone.rong.formatj", "formatj-maven-plugin", version, pluginJar, pluginPom(version));
-
-        Path mavenHome = mavenHome();
-        Run mavenVersion = runProcess(
-            List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
-            fixture,
-            Duration.ofMinutes(1)
-        );
-        assertEquals(0, mavenVersion.exitCode, mavenVersion.out + mavenVersion.err);
-        assertTrue(
-            mavenVersion.out.contains("Apache Maven " + MAVEN_VERSION),
-            () -> "expected Maven " + MAVEN_VERSION + ":\n" + mavenVersion.out + mavenVersion.err
-        );
-        String plugin = "zone.rong.formatj:formatj-maven-plugin:" + version;
-        Run checkDirty = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
-        assertNotEquals(0, checkDirty.exitCode, checkDirty.out + checkDirty.err);
-        assertTrue(
-            (checkDirty.out + checkDirty.err).toLowerCase().contains("not formatted") ||
-                (checkDirty.out + checkDirty.err).contains("Sample.java"),
-            checkDirty.out + checkDirty.err
-        );
-
-        Run format = maven(mavenHome, localRepo, fixture, version, plugin + ":format");
-        assertEquals(0, format.exitCode, format.out + format.err);
-        String formatted = Files.readString(sample, StandardCharsets.UTF_8);
-        assertTrue(formatted.contains("int x = 1;"), formatted);
-        assertTrue(formatted.contains("class Sample"), formatted);
-        assertTrue(formatted.contains("public static class Nested"), formatted);
-
-        Run checkClean = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
-        assertEquals(0, checkClean.exitCode, checkClean.out + checkClean.err);
-        assertEquals(formatted, Files.readString(sample, StandardCharsets.UTF_8));
-    }
-
     private static Run maven(Path mavenHome, Path localRepo, Path fixture, String version, String goal)
         throws Exception {
         Path mvn = mavenHome.resolve("bin/mvn");
@@ -268,6 +217,57 @@ class MavenPluginFixtureTest {
             Files.deleteIfExists(outFile);
             Files.deleteIfExists(errFile);
         }
+    }
+
+    @Test
+    void formatGoalRewritesAndCheckThenPasses() throws Exception {
+        String version = requiredProperty("formatj.version");
+        Path pluginJar = Path.of(requiredProperty("formatj.maven.plugin.jar"));
+        Path coreJar = Path.of(requiredProperty("formatj.core.jar"));
+        assertTrue(Files.isRegularFile(pluginJar), () -> "missing plugin jar: " + pluginJar);
+        assertTrue(Files.isRegularFile(coreJar), () -> "missing core jar: " + coreJar);
+
+        Path fixture = temp.resolve("fixture");
+        copyFixture(fixture);
+        replaceVersion(fixture.resolve("pom.xml"), version);
+        Path sample = fixture.resolve("src/main/java/sample/Sample.java");
+        String unformatted = Files.readString(sample, StandardCharsets.UTF_8);
+        assertTrue(unformatted.contains("int x=1;"), unformatted);
+
+        Path localRepo = temp.resolve("repo");
+        installArtifact(localRepo, "zone.rong.formatj", "formatj", version, coreJar, corePom(version));
+        installArtifact(localRepo, "zone.rong.formatj", "formatj-maven-plugin", version, pluginJar, pluginPom(version));
+
+        Path mavenHome = mavenHome();
+        Run mavenVersion = runProcess(
+            List.of(mavenHome.resolve("bin/mvn").toString(), "--version"),
+            fixture,
+            Duration.ofMinutes(1)
+        );
+        assertEquals(0, mavenVersion.exitCode, mavenVersion.out + mavenVersion.err);
+        assertTrue(
+            mavenVersion.out.contains("Apache Maven " + MAVEN_VERSION),
+            () -> "expected Maven " + MAVEN_VERSION + ":\n" + mavenVersion.out + mavenVersion.err
+        );
+        String plugin = "zone.rong.formatj:formatj-maven-plugin:" + version;
+        Run checkDirty = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
+        assertNotEquals(0, checkDirty.exitCode, checkDirty.out + checkDirty.err);
+        assertTrue(
+            (checkDirty.out + checkDirty.err).toLowerCase().contains("not formatted") ||
+                (checkDirty.out + checkDirty.err).contains("Sample.java"),
+            checkDirty.out + checkDirty.err
+        );
+
+        Run format = maven(mavenHome, localRepo, fixture, version, plugin + ":format");
+        assertEquals(0, format.exitCode, format.out + format.err);
+        String formatted = Files.readString(sample, StandardCharsets.UTF_8);
+        assertTrue(formatted.contains("int x = 1;"), formatted);
+        assertTrue(formatted.contains("class Sample"), formatted);
+        assertTrue(formatted.contains("public static class Nested"), formatted);
+
+        Run checkClean = maven(mavenHome, localRepo, fixture, version, plugin + ":check");
+        assertEquals(0, checkClean.exitCode, checkClean.out + checkClean.err);
+        assertEquals(formatted, Files.readString(sample, StandardCharsets.UTF_8));
     }
 
     private record Run(int exitCode, String out, String err) { }

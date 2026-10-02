@@ -30,47 +30,9 @@ import zone.rong.formatj.core.config.StyleFiles;
  */
 public final class FormatJEngine {
 
-    /**
-     * Explicit style pins from the IDE. A null style file and null preset means walk up for
-     * {@code formatj.toml}, the same as the CLI with no flags.
-     */
-    public record Settings(Path styleFile, Preset preset) {
-
-        public static Settings discover() {
-            return new Settings(null, null);
-        }
-
-        boolean explicit() {
-            return styleFile != null || preset != null;
-        }
-
-    }
-
-    public record Request(
-        String source,
-        String name,
-        Path path,
-        List<SourceRange> ranges,
-        LanguageLevel languageLevel,
-        boolean previewFeatures,
-        boolean rewrites
-    ) { }
-
-    public record Outcome(String text, boolean unchanged, List<Diagnostic> diagnostics) {
-
-        public boolean hasErrors() {
-            return diagnostics.stream().anyMatch(diagnostic -> diagnostic.severity() == Diagnostic.Severity.ERROR);
-        }
-
-    }
-
-    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) { }
+    private static final int MAX_FORMATTERS = 8;
 
     private final Settings settings;
-
-    private record LoadedStyle(FileTime lastModified, Style style) { }
-
-    private static final int MAX_FORMATTERS = 8;
 
     // Bounded: every edit of formatj.toml yields a new Style and so a new key.
     private final Map<CacheKey, Formatter> formatters = Collections.synchronizedMap(new LinkedHashMap<>(
@@ -165,5 +127,43 @@ public final class FormatJEngine {
         }
         return new Outcome(result.text(), result.isUnchanged(), result.diagnostics());
     }
+
+    /**
+     * Explicit style pins from the IDE. A null style file and null preset means walk up for
+     * {@code formatj.toml}, the same as the CLI with no flags.
+     */
+    public record Settings(Path styleFile, Preset preset) {
+
+        public static Settings discover() {
+            return new Settings(null, null);
+        }
+
+        boolean explicit() {
+            return styleFile != null || preset != null;
+        }
+
+    }
+
+    public record Request(
+        String source,
+        String name,
+        Path path,
+        List<SourceRange> ranges,
+        LanguageLevel languageLevel,
+        boolean previewFeatures,
+        boolean rewrites
+    ) { }
+
+    public record Outcome(String text, boolean unchanged, List<Diagnostic> diagnostics) {
+
+        public boolean hasErrors() {
+            return diagnostics.stream().anyMatch(diagnostic -> diagnostic.severity() == Diagnostic.Severity.ERROR);
+        }
+
+    }
+
+    private record CacheKey(Style style, LanguageLevel languageLevel, boolean previewFeatures, boolean rewrites) { }
+
+    private record LoadedStyle(FileTime lastModified, Style style) { }
 
 }

@@ -33,35 +33,6 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 public final class Prose {
 
-    /**
-     * One indivisible piece of a comment.
-     *
-     * @param verbatim whether the text is content rather than prose, and so must survive unaltered
-     * @param text the characters themselves, line breaks included when verbatim
-     */
-    public record Atom(boolean verbatim, String text) {
-
-        /** A word: a run of non-whitespace that may be moved to another line but not changed. */
-        public static Atom word(String text) {
-            return new Atom(false, text);
-        }
-
-        /** A region whose own whitespace is content, which nothing may reformat. */
-        public static Atom verbatim(String text) {
-            return new Atom(true, text);
-        }
-
-        /** Whether this atom is a paragraph marker, which is layout rather than prose. */
-        public boolean isParagraphMarker() {
-            if (verbatim) {
-                return false;
-            }
-            String lower = text.toLowerCase(Locale.ROOT);
-            return lower.equals("<p>") || lower.equals("</p>") || lower.equals("<p/>");
-        }
-
-    }
-
     private Prose() { }
 
     // ------------------------------------------------------------- content
@@ -360,6 +331,35 @@ public final class Prose {
             }
         }
         return -1;
+    }
+
+    /**
+     * One indivisible piece of a comment.
+     *
+     * @param verbatim whether the text is content rather than prose, and so must survive unaltered
+     * @param text the characters themselves, line breaks included when verbatim
+     */
+    public record Atom(boolean verbatim, String text) {
+
+        /** A word: a run of non-whitespace that may be moved to another line but not changed. */
+        public static Atom word(String text) {
+            return new Atom(false, text);
+        }
+
+        /** A region whose own whitespace is content, which nothing may reformat. */
+        public static Atom verbatim(String text) {
+            return new Atom(true, text);
+        }
+
+        /** Whether this atom is a paragraph marker, which is layout rather than prose. */
+        public boolean isParagraphMarker() {
+            if (verbatim) {
+                return false;
+            }
+            String lower = text.toLowerCase(Locale.ROOT);
+            return lower.equals("<p>") || lower.equals("</p>") || lower.equals("<p/>");
+        }
+
     }
 
 }

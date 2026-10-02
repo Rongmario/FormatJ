@@ -17,25 +17,6 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  */
 public final class ArrayBracketRewrite implements Rewrite {
 
-    @Override
-    public String name() {
-        return ArrayRules.C_STYLE_BRACKETS.key();
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(ArrayRules.C_STYLE_BRACKETS) == BracketStyle.JAVA;
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        return switch (node.kind()) {
-            case FIELD_DECLARATION, LOCAL_VARIABLE_DECLARATION -> rewriteDeclarators(node, context);
-            case PARAMETER -> rewriteParameter(node, context);
-            default -> node;
-        };
-    }
-
     private static GreenNode rewriteDeclarators(GreenNode declaration, RewriteContext context) {
         List<GreenNode> children = declaration.children();
         int first = -1;
@@ -193,6 +174,25 @@ public final class ArrayBracketRewrite implements Rewrite {
         List<GreenNode> all = new ArrayList<>(first);
         all.addAll(second);
         return all;
+    }
+
+    @Override
+    public String name() {
+        return ArrayRules.C_STYLE_BRACKETS.key();
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(ArrayRules.C_STYLE_BRACKETS) == BracketStyle.JAVA;
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        return switch (node.kind()) {
+            case FIELD_DECLARATION, LOCAL_VARIABLE_DECLARATION -> rewriteDeclarators(node, context);
+            case PARAMETER -> rewriteParameter(node, context);
+            default -> node;
+        };
     }
 
 }

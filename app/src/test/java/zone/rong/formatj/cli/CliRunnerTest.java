@@ -31,8 +31,6 @@ class CliRunnerTest {
             }
             """;
 
-    private record Run(int exitCode, String out, String err) { }
-
     private static Run run(String stdin, String... arguments) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -307,5 +305,7 @@ class CliRunnerTest {
         assertEquals(0, run("", "--help").exitCode());
         assertTrue(run("", "--version").out().startsWith("formatj "));
     }
+
+    private record Run(int exitCode, String out, String err) { }
 
 }

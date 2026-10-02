@@ -51,6 +51,18 @@ public final class JavaParser extends StatementParser {
         return parser.parseCompilationUnit();
     }
 
+    private static List<GreenNode> withModifiers(List<GreenNode> modifiers) {
+        List<GreenNode> children = new ArrayList<>();
+        if (!modifiers.isEmpty()) {
+            children.add(branch(SyntaxKind.MODIFIERS, modifiers));
+        }
+        return children;
+    }
+
+    private static String nameOf(GreenNode name) {
+        return name instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
+    }
+
     private ParseResult parseCompilationUnit() {
         List<GreenNode> children = new ArrayList<>();
 
@@ -617,18 +629,6 @@ public final class JavaParser extends StatementParser {
         children.add(identifier());
         parseDeclaratorDimensions(children);
         return branch(SyntaxKind.PARAMETER, children);
-    }
-
-    private static List<GreenNode> withModifiers(List<GreenNode> modifiers) {
-        List<GreenNode> children = new ArrayList<>();
-        if (!modifiers.isEmpty()) {
-            children.add(branch(SyntaxKind.MODIFIERS, modifiers));
-        }
-        return children;
-    }
-
-    private static String nameOf(GreenNode name) {
-        return name instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
     }
 
 }

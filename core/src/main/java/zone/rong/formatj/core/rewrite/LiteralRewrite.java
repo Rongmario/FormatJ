@@ -22,6 +22,30 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 public final class LiteralRewrite implements Rewrite {
 
+    /**
+     * Recases the digits of a hex literal. The prefix, the {@code p} exponent and everything after
+     * it (the exponent, and the {@code f} or {@code d} suffix of a hex float) are left as written,
+     * and so is the {@code l} suffix of a hex integer.
+     */
+    private static String withHexDigitCase(String text, HexDigitCase digits) {
+        if (digits == HexDigitCase.PRESERVE || !(text.startsWith("0x") || text.startsWith("0X"))) {
+            return text;
+        }
+        int end = text.length();
+        for (int i = 2; i < text.length(); i++) {
+            if (text.charAt(i) == 'p' || text.charAt(i) == 'P') {
+                end = i;
+                break;
+            }
+        }
+        if (end == text.length() && (text.endsWith("l") || text.endsWith("L"))) {
+            end--;
+        }
+        String mantissa = text.substring(2, end);
+        mantissa = digits == HexDigitCase.UPPER ? mantissa.toUpperCase(Locale.ROOT) : mantissa.toLowerCase(Locale.ROOT);
+        return text.substring(0, 2) + mantissa + text.substring(end);
+    }
+
     @Override
     public String name() {
         return "literals";
@@ -87,30 +111,6 @@ public final class LiteralRewrite implements Rewrite {
             Token.synthetic(TokenKind.NUMBER_LITERAL, rewritten),
             syntax.trailing()
         ));
-    }
-
-    /**
-     * Recases the digits of a hex literal. The prefix, the {@code p} exponent and everything after
-     * it (the exponent, and the {@code f} or {@code d} suffix of a hex float) are left as written,
-     * and so is the {@code l} suffix of a hex integer.
-     */
-    private static String withHexDigitCase(String text, HexDigitCase digits) {
-        if (digits == HexDigitCase.PRESERVE || !(text.startsWith("0x") || text.startsWith("0X"))) {
-            return text;
-        }
-        int end = text.length();
-        for (int i = 2; i < text.length(); i++) {
-            if (text.charAt(i) == 'p' || text.charAt(i) == 'P') {
-                end = i;
-                break;
-            }
-        }
-        if (end == text.length() && (text.endsWith("l") || text.endsWith("L"))) {
-            end--;
-        }
-        String mantissa = text.substring(2, end);
-        mantissa = digits == HexDigitCase.UPPER ? mantissa.toUpperCase(Locale.ROOT) : mantissa.toLowerCase(Locale.ROOT);
-        return text.substring(0, 2) + mantissa + text.substring(end);
     }
 
 }

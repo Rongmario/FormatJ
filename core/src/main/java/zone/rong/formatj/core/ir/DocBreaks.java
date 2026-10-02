@@ -25,8 +25,6 @@ public final class DocBreaks {
         return rewrite(doc).forcesBreak();
     }
 
-    private record Rewritten(Doc doc, boolean forcesBreak) { }
-
     private static Rewritten rewrite(Doc doc) {
         return switch (doc) {
             case Doc.Text text -> new Rewritten(text, false);
@@ -100,5 +98,7 @@ public final class DocBreaks {
             case Doc.LineSuffix suffix -> new Rewritten(Doc.lineSuffix(rewrite(suffix.content()).doc()), false);
         };
     }
+
+    private record Rewritten(Doc doc, boolean forcesBreak) { }
 
 }

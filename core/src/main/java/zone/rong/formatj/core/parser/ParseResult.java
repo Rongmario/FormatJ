@@ -19,6 +19,18 @@ public record ParseResult(SyntaxNode root, List<Diagnostic> diagnostics) {
         diagnostics = List.copyOf(diagnostics);
     }
 
+    private static boolean containsUnparsed(GreenNode node) {
+        if (node.kind() == SyntaxKind.UNPARSED) {
+            return true;
+        }
+        for (GreenNode child : node.children()) {
+            if (containsUnparsed(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean hasErrors() {
         return diagnostics.stream().anyMatch(d -> d.severity() == Diagnostic.Severity.ERROR);
     }
@@ -30,18 +42,6 @@ public record ParseResult(SyntaxNode root, List<Diagnostic> diagnostics) {
      */
     public boolean complete() {
         return !containsUnparsed(root.green());
-    }
-
-    private static boolean containsUnparsed(GreenNode node) {
-        if (node.kind() == SyntaxKind.UNPARSED) {
-            return true;
-        }
-        for (GreenNode child : node.children()) {
-            if (containsUnparsed(child)) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }

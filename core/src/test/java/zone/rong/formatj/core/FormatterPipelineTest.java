@@ -29,6 +29,10 @@ class FormatterPipelineTest {
             }
             """;
 
+    private static FormatResult format(String source) {
+        return FormatJ.defaultFormatter().format(FormatRequest.of(source).withName("E.java"));
+    }
+
     @Test
     void theBuilderProducesAFormatterCarryingItsConfiguration() {
         Formatter formatter = FormatJ.newFormatter()
@@ -193,10 +197,6 @@ class FormatterPipelineTest {
         String twice = formatter.format(FormatRequest.of(once)).text();
         assertEquals(once, twice);
         assertEquals(true, style.get(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON));
-    }
-
-    private static FormatResult format(String source) {
-        return FormatJ.defaultFormatter().format(FormatRequest.of(source).withName("E.java"));
     }
 
 }

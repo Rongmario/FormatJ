@@ -10,20 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** The packaged Maven plugin must stay on the documented Java 21 floor. */
 class RuntimeFloorTest {
 
-    @Test
-    void pluginCompilesToJava21() throws IOException {
-        assertEquals(
-            65,
-            majorVersion("zone/rong/formatj/maven/FormatMojo.class"),
-            "Maven format mojo must be Java 21 bytecode"
-        );
-        assertEquals(
-            65,
-            majorVersion("zone/rong/formatj/maven/CheckMojo.class"),
-            "Maven check mojo must be Java 21 bytecode"
-        );
-    }
-
     private static int majorVersion(String resource) throws IOException {
         try (InputStream in = RuntimeFloorTest.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
@@ -37,8 +23,22 @@ class RuntimeFloorTest {
                 header[3] != (byte) 0xBE) {
                 throw new IOException("not a class file: " + resource);
             }
-            return ((header[6] & 0xff) << 8) | (header[7] & 0xff);
+            return ((header[6] & 0xFF) << 8) | (header[7] & 0xFF);
         }
+    }
+
+    @Test
+    void pluginCompilesToJava21() throws IOException {
+        assertEquals(
+            65,
+            majorVersion("zone/rong/formatj/maven/FormatMojo.class"),
+            "Maven format mojo must be Java 21 bytecode"
+        );
+        assertEquals(
+            65,
+            majorVersion("zone/rong/formatj/maven/CheckMojo.class"),
+            "Maven check mojo must be Java 21 bytecode"
+        );
     }
 
 }

@@ -46,36 +46,47 @@ abstract class StatementParser extends ExpressionParser {
         Token token = peek();
         if (token.kind() == TokenKind.KEYWORD) {
             switch (token.decodedText()) {
-                case "if":
+                case "if" -> {
                     return parseIf();
-                case "for":
+                }
+                case "for" -> {
                     return parseFor();
-                case "while":
+                }
+                case "while" -> {
                     return parseWhile();
-                case "do":
+                }
+                case "do" -> {
                     return parseDo();
-                case "switch":
+                }
+                case "switch" -> {
                     return parseSwitchStatement();
-                case "try":
+                }
+                case "try" -> {
                     return parseTry();
-                case "return":
+                }
+                case "return" -> {
                     return parseSimpleStatement(SyntaxKind.RETURN_STATEMENT, true);
-                case "throw":
+                }
+                case "throw" -> {
                     return parseThrow();
-                case "break":
+                }
+                case "break" -> {
                     return parseBreakOrContinue(SyntaxKind.BREAK_STATEMENT);
-                case "continue":
+                }
+                case "continue" -> {
                     return parseBreakOrContinue(SyntaxKind.CONTINUE_STATEMENT);
-                case "synchronized":
+                }
+                case "synchronized" -> {
                     return parseSynchronized();
-                case "assert":
+                }
+                case "assert" -> {
                     return parseAssert();
-                case "class":
-                case "interface":
-                case "enum":
+                }
+                case "class", "interface", "enum" -> {
                     return parseLocalTypeDeclaration();
-                default:
-                    break;
+                }
+                default -> {
+                }
             }
         }
         if (at("{")) {

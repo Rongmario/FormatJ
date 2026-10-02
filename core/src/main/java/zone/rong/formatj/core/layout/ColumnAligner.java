@@ -45,6 +45,47 @@ public final class ColumnAligner {
         this.trailingCommentColumn = trailingCommentColumn;
     }
 
+    /** Whether two marks belong to the same run. */
+    private static boolean continues(Position previous, Position next) {
+        return next.line() == previous.line() + 1 && next.indent().equals(previous.indent());
+    }
+
+    private static String indent(String text, int lineStart) {
+        int end = lineStart;
+        while (end < text.length() && (text.charAt(end) == ' ' || text.charAt(end) == '\t')) {
+            end++;
+        }
+        return text.substring(lineStart, end);
+    }
+
+    /** Padding is written with spaces whatever the indentation setting: it is not indentation. */
+    private static String apply(String text, List<Insertion> insertions) {
+        StringBuilder out = new StringBuilder(text.length() + insertions.size() * 4);
+        int copied = 0;
+        for (Insertion insertion : insertions) {
+            out.append(text, copied, insertion.offset());
+            out.append(" ".repeat(insertion.spaces()));
+            copied = insertion.offset();
+        }
+        out.append(text, copied, text.length());
+        return out.toString();
+    }
+
+    private static void shift(List<DocPrinter.Mark> marks, List<Insertion> insertions) {
+        for (int i = 0; i < marks.size(); i++) {
+            DocPrinter.Mark mark = marks.get(i);
+            int shift = 0;
+            for (Insertion insertion : insertions) {
+                if (insertion.offset() <= mark.offset()) {
+                    shift += insertion.spaces();
+                }
+            }
+            if (shift > 0) {
+                marks.set(i, new DocPrinter.Mark(mark.offset() + shift, mark.site()));
+            }
+        }
+    }
+
     /** The printed text with every alignment run padded to its shared column. */
     public String align(DocPrinter.Printed printed) {
         if (printed.marks().isEmpty()) {
@@ -66,9 +107,6 @@ public final class ColumnAligner {
         }
         return text;
     }
-
-    /** One run's worth of padding at one mark. */
-    private record Insertion(int offset, int spaces) { }
 
     private List<Insertion> insertionsFor(String text, List<DocPrinter.Mark> marks, AlignmentSite site) {
         List<Position> positions = positions(text, marks, site);
@@ -119,18 +157,6 @@ public final class ColumnAligner {
         return insertions;
     }
 
-    /** Whether two marks belong to the same run. */
-    private static boolean continues(Position previous, Position next) {
-        return next.line() == previous.line() + 1 && next.indent().equals(previous.indent());
-    }
-
-    /**
-     * @param line the mark's line number
-     * @param column the visual column the mark sits at, with tabs expanded
-     * @param indent the line's leading whitespace, which two lines must share to align with each other
-     */
-    private record Position(int offset, int line, int column, String indent) { }
-
     /**
      * Where each mark for one site sits, at most one per line.
      *
@@ -177,40 +203,14 @@ public final class ColumnAligner {
         return column;
     }
 
-    private static String indent(String text, int lineStart) {
-        int end = lineStart;
-        while (end < text.length() && (text.charAt(end) == ' ' || text.charAt(end) == '\t')) {
-            end++;
-        }
-        return text.substring(lineStart, end);
-    }
+    /** One run's worth of padding at one mark. */
+    private record Insertion(int offset, int spaces) { }
 
-    /** Padding is written with spaces whatever the indentation setting: it is not indentation. */
-    private static String apply(String text, List<Insertion> insertions) {
-        StringBuilder out = new StringBuilder(text.length() + insertions.size() * 4);
-        int copied = 0;
-        for (Insertion insertion : insertions) {
-            out.append(text, copied, insertion.offset());
-            out.append(" ".repeat(insertion.spaces()));
-            copied = insertion.offset();
-        }
-        out.append(text, copied, text.length());
-        return out.toString();
-    }
-
-    private static void shift(List<DocPrinter.Mark> marks, List<Insertion> insertions) {
-        for (int i = 0; i < marks.size(); i++) {
-            DocPrinter.Mark mark = marks.get(i);
-            int shift = 0;
-            for (Insertion insertion : insertions) {
-                if (insertion.offset() <= mark.offset()) {
-                    shift += insertion.spaces();
-                }
-            }
-            if (shift > 0) {
-                marks.set(i, new DocPrinter.Mark(mark.offset() + shift, mark.site()));
-            }
-        }
-    }
+    /**
+     * @param line the mark's line number
+     * @param column the visual column the mark sits at, with tabs expanded
+     * @param indent the line's leading whitespace, which two lines must share to align with each other
+     */
+    private record Position(int offset, int line, int column, String indent) { }
 
 }

@@ -25,6 +25,52 @@ public final class FormatJFormattingService extends AsyncDocumentFormattingServi
     private static final Set<Feature> FEATURES = Set.of(Feature.FORMAT_FRAGMENTS, Feature.OPTIMIZE_IMPORTS);
     private static final Set<ImportOptimizer> IMPORT_OPTIMIZERS = Set.of(new FormatJImportOptimizer());
 
+    static List<SourceRange> ranges(String source, List<TextRange> textRanges) {
+        if (textRanges == null || textRanges.isEmpty()) {
+            return List.of();
+        }
+        if (textRanges.size() == 1) {
+            TextRange range = textRanges.getFirst();
+            if (range.getStartOffset() == 0 && range.getEndOffset() >= source.length()) {
+                return List.of();
+            }
+        }
+        List<SourceRange> ranges = new ArrayList<>(textRanges.size());
+        for (TextRange range : textRanges) {
+            int start = clamp(range.getStartOffset(), source.length());
+            int end = Math.max(start, clamp(range.getEndOffset(), source.length()));
+            ranges.add(new SourceRange(start, end));
+        }
+        return ranges;
+    }
+
+    private static int clamp(int offset, int length) {
+        if (offset < 0) {
+            return 0;
+        }
+        return Math.min(offset, length);
+    }
+
+    private static int offset(String source, Diagnostic diagnostic) {
+        if (diagnostic.line() <= 0) {
+            return -1;
+        }
+        int line = 1;
+        int column = 0;
+        for (int i = 0; i < source.length(); i++) {
+            if (line == diagnostic.line() && column == Math.max(0, diagnostic.column() - 1)) {
+                return i;
+            }
+            if (source.charAt(i) == '\n') {
+                line++;
+                column = 0;
+            } else {
+                column++;
+            }
+        }
+        return -1;
+    }
+
     @Override
     public boolean canFormat(@NotNull PsiFile file) {
         return FormatJFiles.isJava(file) && FormatJSettings.getInstance(file.getProject()).isEnabled();
@@ -120,52 +166,6 @@ public final class FormatJFormattingService extends AsyncDocumentFormattingServi
             return true;
         }
 
-    }
-
-    static List<SourceRange> ranges(String source, List<TextRange> textRanges) {
-        if (textRanges == null || textRanges.isEmpty()) {
-            return List.of();
-        }
-        if (textRanges.size() == 1) {
-            TextRange range = textRanges.getFirst();
-            if (range.getStartOffset() == 0 && range.getEndOffset() >= source.length()) {
-                return List.of();
-            }
-        }
-        List<SourceRange> ranges = new ArrayList<>(textRanges.size());
-        for (TextRange range : textRanges) {
-            int start = clamp(range.getStartOffset(), source.length());
-            int end = Math.max(start, clamp(range.getEndOffset(), source.length()));
-            ranges.add(new SourceRange(start, end));
-        }
-        return ranges;
-    }
-
-    private static int clamp(int offset, int length) {
-        if (offset < 0) {
-            return 0;
-        }
-        return Math.min(offset, length);
-    }
-
-    private static int offset(String source, Diagnostic diagnostic) {
-        if (diagnostic.line() <= 0) {
-            return -1;
-        }
-        int line = 1;
-        int column = 0;
-        for (int i = 0; i < source.length(); i++) {
-            if (line == diagnostic.line() && column == Math.max(0, diagnostic.column() - 1)) {
-                return i;
-            }
-            if (source.charAt(i) == '\n') {
-                line++;
-                column = 0;
-            } else {
-                column++;
-            }
-        }
-        return -1;
     }
 
 }

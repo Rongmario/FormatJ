@@ -33,37 +33,8 @@ import zone.rong.formatj.core.lexer.Token;
  */
 public final class MemberOrderRewrite implements Rewrite {
 
-    @Override
-    public String name() {
-        return "members";
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(MemberRules.ORDER) != MemberOrder.PRESERVE;
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION ||
-            node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
-        List<GreenNode> rewritten = null;
-        List<GreenNode> children = node.children();
-        for (int i = 0; i < children.size(); i++) {
-            GreenNode child = children.get(i);
-            if (child.kind() != SyntaxKind.CLASS_BODY) {
-                continue;
-            }
-            GreenNode sorted = sort(child, node, interfaceBody, context);
-            if (sorted != child) {
-                if (rewritten == null) {
-                    rewritten = new ArrayList<>(children);
-                }
-                rewritten.set(i, sorted);
-            }
-        }
-        return rewritten == null ? node : GreenNode.branch(node.kind(), rewritten);
-    }
+    private static final int STATIC_INITIALIZER = 9;
+    private static final int INSTANCE_INITIALIZER = 18;
 
     private static GreenNode sort(GreenNode body, GreenNode owner, boolean interfaceBody, RewriteContext context) {
         List<GreenNode> children = body.children();
@@ -173,9 +144,6 @@ public final class MemberOrderRewrite implements Rewrite {
         }
         return null;
     }
-
-    private static final int STATIC_INITIALIZER = 9;
-    private static final int INSTANCE_INITIALIZER = 18;
 
     private static boolean isStatic(int group) {
         return group <= STATIC_INITIALIZER;
@@ -288,6 +256,38 @@ public final class MemberOrderRewrite implements Rewrite {
             }
         }
         return "an anonymous class";
+    }
+
+    @Override
+    public String name() {
+        return "members";
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(MemberRules.ORDER) != MemberOrder.PRESERVE;
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        boolean interfaceBody = node.kind() == SyntaxKind.INTERFACE_DECLARATION ||
+            node.kind() == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+        List<GreenNode> rewritten = null;
+        List<GreenNode> children = node.children();
+        for (int i = 0; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (child.kind() != SyntaxKind.CLASS_BODY) {
+                continue;
+            }
+            GreenNode sorted = sort(child, node, interfaceBody, context);
+            if (sorted != child) {
+                if (rewritten == null) {
+                    rewritten = new ArrayList<>(children);
+                }
+                rewritten.set(i, sorted);
+            }
+        }
+        return rewritten == null ? node : GreenNode.branch(node.kind(), rewritten);
     }
 
 }

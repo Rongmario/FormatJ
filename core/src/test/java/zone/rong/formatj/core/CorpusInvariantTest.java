@@ -19,11 +19,25 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AlignmentPolicy;
 import zone.rong.formatj.api.rules.AlignmentRules;
+import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.BracketStyle;
+import zone.rong.formatj.api.rules.HexDigitCase;
 import zone.rong.formatj.api.rules.ImportRules;
+import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.LiteralRules;
+import zone.rong.formatj.api.rules.LongSuffix;
+import zone.rong.formatj.api.rules.MemberOrder;
+import zone.rong.formatj.api.rules.MemberRules;
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SortOrder;
+import zone.rong.formatj.api.rules.SwitchCaseStyle;
+import zone.rong.formatj.api.rules.SwitchRules;
+import zone.rong.formatj.api.rules.YieldStyle;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.lexer.JavaLexer;
@@ -79,6 +93,28 @@ class CorpusInvariantTest {
             }
         }
         return false;
+    }
+
+    /** The default style rewrites tokens. This one holds the layout to the tokens it was given. */
+    static Style layoutOnly() {
+        return Style.builder()
+            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
+            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
+            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
+            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
+            .set(LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.PRESERVE)
+            .set(ImportRules.ORDER, SortOrder.PRESERVE)
+            .set(ArrayRules.C_STYLE_BRACKETS, BracketStyle.PRESERVE)
+            .set(MemberRules.ORDER, MemberOrder.PRESERVE)
+            .set(SemicolonRules.REMOVE_REDUNDANT, false)
+            .set(LiteralRules.LONG_SUFFIX, LongSuffix.PRESERVE)
+            .set(LiteralRules.HEX_DIGITS, HexDigitCase.PRESERVE)
+            .set(SwitchRules.CASE_STYLE, SwitchCaseStyle.PRESERVE)
+            .set(SwitchRules.ARROW_CASE_BRACES, BracePolicy.PRESERVE)
+            .set(SwitchRules.YIELD_STYLE, YieldStyle.PRESERVE)
+            .set(ModifierRules.ORDER, ModifierOrder.PRESERVE)
+            .set(ModifierRules.REMOVE_REDUNDANT, false)
+            .build();
     }
 
     @Test
@@ -193,16 +229,7 @@ class CorpusInvariantTest {
                 .sorted()
                 .toList();
             assertTrue(javaFiles.size() > 20, "corpus should not be empty");
-            // The default style rewrites tokens, and the tests above cover those rewrites. This one holds
-            // the layout to the tokens it was given.
-            Style layoutOnly = Style.builder()
-                .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
-                .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
-                .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
-                .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
-                .set(ImportRules.ORDER, SortOrder.PRESERVE)
-                .build();
-            Formatter formatter = FormatJ.newFormatter().style(layoutOnly).build();
+            Formatter formatter = FormatJ.newFormatter().style(layoutOnly()).build();
             return javaFiles.stream()
                 .map(path -> DynamicTest.dynamicTest(repository.relativize(path).toString(), () -> {
                     String source = Files.readString(path, StandardCharsets.UTF_8);

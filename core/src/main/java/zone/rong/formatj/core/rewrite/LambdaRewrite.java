@@ -32,6 +32,22 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  */
 public final class LambdaRewrite implements Rewrite {
 
+    /**
+     * The expression a one-statement block can be written as, or null when it cannot be.
+     *
+     * <p>That is the value of {@code return e;}, or the statement expression of {@code e;}.
+     */
+    private static GreenNode collapsible(GreenNode statement) {
+        List<GreenNode> children = statement.children();
+        if (statement.kind() == SyntaxKind.RETURN_STATEMENT && children.size() == 3) {
+            return children.get(1);
+        }
+        if (statement.kind() == SyntaxKind.EXPRESSION_STATEMENT && children.size() == 2) {
+            return children.getFirst();
+        }
+        return null;
+    }
+
     @Override
     public String name() {
         return "lambdas";
@@ -211,22 +227,6 @@ public final class LambdaRewrite implements Rewrite {
         ));
         context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, semicolonPosition, ";", "}"));
         return expression;
-    }
-
-    /**
-     * The expression a one-statement block can be written as, or null when it cannot be.
-     *
-     * <p>That is the value of {@code return e;}, or the statement expression of {@code e;}.
-     */
-    private static GreenNode collapsible(GreenNode statement) {
-        List<GreenNode> children = statement.children();
-        if (statement.kind() == SyntaxKind.RETURN_STATEMENT && children.size() == 3) {
-            return children.get(1);
-        }
-        if (statement.kind() == SyntaxKind.EXPRESSION_STATEMENT && children.size() == 2) {
-            return children.getFirst();
-        }
-        return null;
     }
 
 }

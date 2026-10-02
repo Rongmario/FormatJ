@@ -8,7 +8,7 @@ public final class LambdaRules {
 
     public static final Option<LambdaParameterStyle> PARAMETER_STYLE = Option.ofEnum(
         "lambdas.parameter-style",
-        LambdaParameterStyle.PRESERVE,
+        LambdaParameterStyle.OMIT_WHEN_POSSIBLE,
         "Parentheses around a single untyped parameter"
     );
 

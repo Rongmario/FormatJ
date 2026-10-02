@@ -13,16 +13,6 @@ class RuntimeFloorTest {
 
     static final int JAVA_21 = 65;
 
-    @Test
-    void publicApiCompilesToJava21() throws IOException {
-        assertEquals(JAVA_21, majorVersion(Formatter.class), "zone.rong.formatj.api must be Java 21 bytecode");
-    }
-
-    @Test
-    void implementationCompilesToJava21() throws IOException {
-        assertEquals(JAVA_21, majorVersion(FormatJ.class), "core implementation must be Java 21 bytecode");
-    }
-
     static int majorVersion(Class<?> type) throws IOException {
         String resource = type.getName().replace('.', '/') + ".class";
         try (InputStream in = type.getClassLoader().getResourceAsStream(resource)) {
@@ -37,8 +27,18 @@ class RuntimeFloorTest {
                 header[3] != (byte) 0xBE) {
                 throw new IOException("not a class file: " + resource);
             }
-            return ((header[6] & 0xff) << 8) | (header[7] & 0xff);
+            return ((header[6] & 0xFF) << 8) | (header[7] & 0xFF);
         }
+    }
+
+    @Test
+    void publicApiCompilesToJava21() throws IOException {
+        assertEquals(JAVA_21, majorVersion(Formatter.class), "zone.rong.formatj.api must be Java 21 bytecode");
+    }
+
+    @Test
+    void implementationCompilesToJava21() throws IOException {
+        assertEquals(JAVA_21, majorVersion(FormatJ.class), "core implementation must be Java 21 bytecode");
     }
 
 }

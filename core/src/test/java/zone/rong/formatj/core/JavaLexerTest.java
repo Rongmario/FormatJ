@@ -15,10 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JavaLexerTest {
 
-    private static String escape(String body) {
-        return "\\" + body;
-    }
-
     private static final String MODERN_SAMPLE = """
             package zone.rong.formatj.sample;
 
@@ -53,6 +49,10 @@ class JavaLexerTest {
     // A text block cannot be written inside a text block, so this sample is a plain string.
     private static final String TEXT_BLOCK_SAMPLE = "String message = \"\"\"\n" + "        unknown\n" +
         "        shape\\s\"\"\";\n";
+
+    private static String escape(String body) {
+        return "\\" + body;
+    }
 
     @Test
     void roundTripsModernSyntax() {

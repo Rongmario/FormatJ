@@ -287,8 +287,8 @@ class SwitchCaseStyleTest {
     }
 
     @Test
-    void preserveIsTheDefaultAndChangesNothing() {
-        assertEquals(SwitchCaseStyle.PRESERVE, Style.defaults().get(SwitchRules.CASE_STYLE));
+    void arrowIsTheDefault() {
+        assertEquals(SwitchCaseStyle.ARROW, Style.defaults().get(SwitchRules.CASE_STYLE));
     }
 
 }

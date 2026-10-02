@@ -28,6 +28,14 @@ public final class FileSelection {
         this.excludes = matchers(excludeGlobs);
     }
 
+    private static List<PathMatcher> matchers(List<String> globs) {
+        List<PathMatcher> matchers = new ArrayList<>(globs.size());
+        for (String glob : globs) {
+            matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
+        }
+        return List.copyOf(matchers);
+    }
+
     public boolean isEmpty() {
         return includes.isEmpty() && excludes.isEmpty();
     }
@@ -54,14 +62,6 @@ public final class FileSelection {
     private Path relativize(Path path) {
         Path absolute = path.toAbsolutePath().normalize();
         return absolute.startsWith(base) ? base.relativize(absolute) : absolute;
-    }
-
-    private static List<PathMatcher> matchers(List<String> globs) {
-        List<PathMatcher> matchers = new ArrayList<>(globs.size());
-        for (String glob : globs) {
-            matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
-        }
-        return List.copyOf(matchers);
     }
 
 }

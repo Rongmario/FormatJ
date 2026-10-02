@@ -8,13 +8,13 @@ public final class LiteralRules {
 
     public static final Option<LongSuffix> LONG_SUFFIX = Option.ofEnum(
         "literals.long-suffix",
-        LongSuffix.PRESERVE,
+        LongSuffix.UPPER,
         "Case of the suffix on long literals"
     );
 
     public static final Option<HexDigitCase> HEX_DIGITS = Option.ofEnum(
         "literals.hex-digits",
-        HexDigitCase.PRESERVE,
+        HexDigitCase.UPPER,
         "Case of the digits a to f in hexadecimal literals"
     );
 

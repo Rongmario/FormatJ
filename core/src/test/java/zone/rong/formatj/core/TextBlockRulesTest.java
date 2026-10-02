@@ -52,6 +52,17 @@ class TextBlockRulesTest {
         return formatted.substring(start, end + 3);
     }
 
+    // ------------------------------------------------------------- the law
+
+    private static GreenNode tree() {
+        return JavaParser.parse(source(BLOCK), LanguageLevel.LATEST, false).root().green();
+    }
+
+    /** Where the text block sits in the token stream, which is the coordinate an edit is written in. */
+    private static int blockPosition(GreenNode tree) {
+        return ProgramTokens.lexemes(tree).indexOf(BLOCK);
+    }
+
     // ------------------------------------------------------------- the value
 
     @Test
@@ -136,17 +147,6 @@ class TextBlockRulesTest {
     void bothRulesAreOffByDefaultBecauseTheyChangeAString() {
         assertFalse(Style.defaults().get(TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE));
         assertFalse(Style.defaults().get(TextBlockRules.ESCAPE_TRAILING_SPACES));
-    }
-
-    // ------------------------------------------------------------- the law
-
-    private static GreenNode tree() {
-        return JavaParser.parse(source(BLOCK), LanguageLevel.LATEST, false).root().green();
-    }
-
-    /** Where the text block sits in the token stream, which is the coordinate an edit is written in. */
-    private static int blockPosition(GreenNode tree) {
-        return ProgramTokens.lexemes(tree).indexOf(BLOCK);
     }
 
     @Test

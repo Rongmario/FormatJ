@@ -20,22 +20,6 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 abstract class ParserBase {
 
-    /** Thrown when a construct does not parse. Caught at a recovery point, never by a caller. */
-    static final class ParseFailure extends RuntimeException {
-
-        private final Token token;
-
-        ParseFailure(String message, Token token) {
-            super(message, null, false, false);
-            this.token = token;
-        }
-
-        Token token() {
-            return token;
-        }
-
-    }
-
     protected final LanguageLevel languageLevel;
     protected final boolean previewFeatures;
 
@@ -48,6 +32,14 @@ abstract class ParserBase {
         this.tokens = tokens;
         this.languageLevel = languageLevel;
         this.previewFeatures = previewFeatures;
+    }
+
+    private static String describe(Token token) {
+        return token.kind() == TokenKind.END_OF_FILE ? "end of file" : token.text();
+    }
+
+    protected static GreenNode branch(SyntaxKind kind, List<GreenNode> children) {
+        return GreenNode.branch(kind, children);
     }
 
     List<Diagnostic> diagnostics() {
@@ -192,10 +184,6 @@ abstract class ParserBase {
 
     protected void report(Diagnostic diagnostic) {
         diagnostics.add(diagnostic);
-    }
-
-    private static String describe(Token token) {
-        return token.kind() == TokenKind.END_OF_FILE ? "end of file" : token.text();
     }
 
     // --------------------------------------------------------------- trivia
@@ -344,8 +332,20 @@ abstract class ParserBase {
         }
     }
 
-    protected static GreenNode branch(SyntaxKind kind, List<GreenNode> children) {
-        return GreenNode.branch(kind, children);
+    /** Thrown when a construct does not parse. Caught at a recovery point, never by a caller. */
+    static final class ParseFailure extends RuntimeException {
+
+        private final Token token;
+
+        ParseFailure(String message, Token token) {
+            super(message, null, false, false);
+            this.token = token;
+        }
+
+        Token token() {
+            return token;
+        }
+
     }
 
 }

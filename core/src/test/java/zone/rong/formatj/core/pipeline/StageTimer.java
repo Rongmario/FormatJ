@@ -33,52 +33,6 @@ public final class StageTimer {
 
     private StageTimer() { }
 
-    /** Nanoseconds spent in each named stage, summed over every file. */
-    public record Times(
-        long lexNanos,
-        long parseNanos,
-        long rewriteNanos,
-        long layoutNanos,
-        long reparseNanos,
-        long verifyNanos,
-        long secondLayoutNanos,
-        int files
-    ) {
-
-        public String report() {
-            return "lex: " + lexNanos + " ns\n" + "parse: " + parseNanos + " ns\n" + "rewrite: " + rewriteNanos +
-                " ns\n" + "layout: " + layoutNanos + " ns\n" + "reparse: " + reparseNanos + " ns\n" + "verify: " +
-                verifyNanos + " ns\n" + "second-layout: " + secondLayoutNanos + " ns\n" + "files: " + files + "\n";
-        }
-
-        Times plus(Times other) {
-            return new Times(
-                lexNanos + other.lexNanos,
-                parseNanos + other.parseNanos,
-                rewriteNanos + other.rewriteNanos,
-                layoutNanos + other.layoutNanos,
-                reparseNanos + other.reparseNanos,
-                verifyNanos + other.verifyNanos,
-                secondLayoutNanos + other.secondLayoutNanos,
-                files + other.files
-            );
-        }
-
-        Times dividedBy(int divisor) {
-            return new Times(
-                lexNanos / divisor,
-                parseNanos / divisor,
-                rewriteNanos / divisor,
-                layoutNanos / divisor,
-                reparseNanos / divisor,
-                verifyNanos / divisor,
-                secondLayoutNanos / divisor,
-                files / divisor
-            );
-        }
-
-    }
-
     public static Times measure(Iterable<String> sources) {
         DefaultFormatter formatter = new DefaultFormatter(Style.defaults(), LanguageLevel.LATEST, false, true);
         Times total = empty();
@@ -207,6 +161,52 @@ public final class StageTimer {
 
     private static Times empty() {
         return new Times(0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    /** Nanoseconds spent in each named stage, summed over every file. */
+    public record Times(
+        long lexNanos,
+        long parseNanos,
+        long rewriteNanos,
+        long layoutNanos,
+        long reparseNanos,
+        long verifyNanos,
+        long secondLayoutNanos,
+        int files
+    ) {
+
+        public String report() {
+            return "lex: " + lexNanos + " ns\n" + "parse: " + parseNanos + " ns\n" + "rewrite: " + rewriteNanos +
+                " ns\n" + "layout: " + layoutNanos + " ns\n" + "reparse: " + reparseNanos + " ns\n" + "verify: " +
+                verifyNanos + " ns\n" + "second-layout: " + secondLayoutNanos + " ns\n" + "files: " + files + "\n";
+        }
+
+        Times plus(Times other) {
+            return new Times(
+                lexNanos + other.lexNanos,
+                parseNanos + other.parseNanos,
+                rewriteNanos + other.rewriteNanos,
+                layoutNanos + other.layoutNanos,
+                reparseNanos + other.reparseNanos,
+                verifyNanos + other.verifyNanos,
+                secondLayoutNanos + other.secondLayoutNanos,
+                files + other.files
+            );
+        }
+
+        Times dividedBy(int divisor) {
+            return new Times(
+                lexNanos / divisor,
+                parseNanos / divisor,
+                rewriteNanos / divisor,
+                layoutNanos / divisor,
+                reparseNanos / divisor,
+                verifyNanos / divisor,
+                secondLayoutNanos / divisor,
+                files / divisor
+            );
+        }
+
     }
 
 }

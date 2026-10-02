@@ -35,12 +35,199 @@ import zone.rong.formatj.core.text.TextBlocks;
  */
 abstract class EmitSupport {
 
+    private static final Set<String> CLOSERS = Set.of(",", ")", "]", ";");
+
     protected final Style style;
     private final CommentFormatter comments;
 
     EmitSupport(Style style) {
         this.style = style;
         this.comments = new CommentFormatter(style);
+    }
+
+    // --------------------------------------------------------- tree queries
+
+    protected static boolean isLeaf(GreenNode node) {
+        return node instanceof GreenNode.Leaf;
+    }
+
+    /** Whether the node is a single token with the given text. */
+    protected static boolean is(GreenNode node, String lexeme) {
+        return node instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(lexeme);
+    }
+
+    protected static boolean isAny(GreenNode node, String... lexemes) {
+        for (String lexeme : lexemes) {
+            if (is(node, lexeme)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected static boolean isKind(GreenNode node, SyntaxKind kind) {
+        return node.kind() == kind;
+    }
+
+    /** The token text of a leaf, or an empty string for a branch. */
+    protected static String lexeme(GreenNode node) {
+        return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
+    }
+
+    /** The first token of a node, which carries its leading trivia. */
+    protected static SyntaxToken firstToken(GreenNode node) {
+        GreenNode current = node;
+        while (current instanceof GreenNode.Branch branch) {
+            if (branch.children().isEmpty()) {
+                return null;
+            }
+            current = branch.children().getFirst();
+        }
+        return ((GreenNode.Leaf) current).token();
+    }
+
+    /** Children with the given kind, in order. */
+    protected static List<GreenNode> childrenOfKind(GreenNode node, SyntaxKind kind) {
+        List<GreenNode> matches = new ArrayList<>();
+        for (GreenNode child : node.children()) {
+            if (child.kind() == kind) {
+                matches.add(child);
+            }
+        }
+        return matches;
+    }
+
+    /** The number of statements a block holds, ignoring its braces. */
+    protected static int statementCount(GreenNode block) {
+        int count = 0;
+        for (GreenNode child : block.children()) {
+            if (!isLeaf(child)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** One line break, plus {@code blankLines} empty lines. */
+    protected static Doc lineBreaks(int blankLines) {
+        List<Doc> parts = new ArrayList<>(blankLines + 1);
+        for (int i = 0; i <= blankLines; i++) {
+            parts.add(Doc.hardLine());
+        }
+        return Doc.concat(parts);
+    }
+
+    /** Copies the path to the first token and removes that token's leading trivia. */
+    private static GreenNode withoutLeadingTrivia(GreenNode node) {
+        if (node instanceof GreenNode.Leaf leaf) {
+            SyntaxToken token = leaf.token();
+            return GreenNode.leaf(new SyntaxToken(List.of(), token.token(), token.trailing()));
+        }
+        List<GreenNode> children = node.children();
+        if (children.isEmpty()) {
+            return node;
+        }
+        List<GreenNode> copy = new ArrayList<>(children);
+        copy.set(0, withoutLeadingTrivia(copy.getFirst()));
+        return GreenNode.branch(node.kind(), copy);
+    }
+
+    protected static boolean hasLeadingComments(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && !token.leadingComments().isEmpty();
+    }
+
+    /** The index of the next comment in a trivia list, or -1 when there is none. */
+    private static int nextComment(List<Token> leading, int index) {
+        for (int i = index + 1; i < leading.size(); i++) {
+            if (leading.get(i).kind().isComment()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Line breaks between the trivia at {@code index} and the next comment or the token itself. */
+    private static int newlinesAfter(List<Token> leading, int index) {
+        int newlines = 0;
+        for (int i = index + 1; i < leading.size(); i++) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment()) {
+                break;
+            }
+            newlines += trivia.lineTerminatorCount();
+        }
+        return newlines;
+    }
+
+    /**
+     * The author's indent in front of the comment at {@code commentIndex}: the whitespace after the
+     * last line break that precedes it.
+     */
+    private static String rawIndent(List<Token> leading, int commentIndex) {
+        StringBuilder text = new StringBuilder();
+        for (int i = commentIndex - 1; i >= 0; i--) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment()) {
+                break;
+            }
+            text.insert(0, trivia.decodedText());
+        }
+        String whitespace = text.toString();
+        int lastBreak = -1;
+        for (int i = 0; i < whitespace.length(); i++) {
+            char current = whitespace.charAt(i);
+            if (current == '\n' || current == '\r') {
+                lastBreak = i;
+            }
+        }
+        return lastBreak < 0 ? whitespace : whitespace.substring(lastBreak + 1);
+    }
+
+    /**
+     * Whether the only annotation among these siblings is a marker.
+     *
+     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
+     * sit; a second annotation anywhere means the set is no longer a lone marker.
+     */
+    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
+        GreenNode only = null;
+        int count = 0;
+        for (GreenNode sibling : siblings) {
+            if (sibling.kind() == SyntaxKind.ANNOTATION) {
+                count++;
+                only = sibling;
+            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
+                for (GreenNode modifier : sibling.children()) {
+                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
+                        count++;
+                        only = modifier;
+                    }
+                }
+            }
+        }
+        if (count != 1) {
+            return false;
+        }
+        for (GreenNode part : only.children()) {
+            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected static boolean startsNewLine(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && token.startsNewLine();
+    }
+
+    protected static Doc space() {
+        return Doc.text(" ");
+    }
+
+    protected static Doc spaceIf(boolean condition) {
+        return condition ? space() : Doc.EMPTY;
     }
 
     protected abstract Doc emit(GreenNode node);
@@ -143,69 +330,6 @@ abstract class EmitSupport {
         return spaceIf(rule(SpacingRules.BEFORE_SEMICOLON));
     }
 
-    // --------------------------------------------------------- tree queries
-
-    protected static boolean isLeaf(GreenNode node) {
-        return node instanceof GreenNode.Leaf;
-    }
-
-    /** Whether the node is a single token with the given text. */
-    protected static boolean is(GreenNode node, String lexeme) {
-        return node instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(lexeme);
-    }
-
-    protected static boolean isAny(GreenNode node, String... lexemes) {
-        for (String lexeme : lexemes) {
-            if (is(node, lexeme)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected static boolean isKind(GreenNode node, SyntaxKind kind) {
-        return node.kind() == kind;
-    }
-
-    /** The token text of a leaf, or an empty string for a branch. */
-    protected static String lexeme(GreenNode node) {
-        return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
-    }
-
-    /** The first token of a node, which carries its leading trivia. */
-    protected static SyntaxToken firstToken(GreenNode node) {
-        GreenNode current = node;
-        while (current instanceof GreenNode.Branch branch) {
-            if (branch.children().isEmpty()) {
-                return null;
-            }
-            current = branch.children().getFirst();
-        }
-        return ((GreenNode.Leaf) current).token();
-    }
-
-    /** Children with the given kind, in order. */
-    protected static List<GreenNode> childrenOfKind(GreenNode node, SyntaxKind kind) {
-        List<GreenNode> matches = new ArrayList<>();
-        for (GreenNode child : node.children()) {
-            if (child.kind() == kind) {
-                matches.add(child);
-            }
-        }
-        return matches;
-    }
-
-    /** The number of statements a block holds, ignoring its braces. */
-    protected static int statementCount(GreenNode block) {
-        int count = 0;
-        for (GreenNode child : block.children()) {
-            if (!isLeaf(child)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
     // --------------------------------------------------------- blank lines
 
     /** Blank lines to leave before {@code node}, honouring the author within the configured cap. */
@@ -217,15 +341,6 @@ abstract class EmitSupport {
         int author = token == null ? 0 : token.blankLinesBefore();
         int cap = Math.min(rule(PreservationRules.MAX_PRESERVED_BLANK_LINES), rule(BlankLineRules.MAX_CONSECUTIVE));
         return Math.max(minimum, Math.min(author, cap));
-    }
-
-    /** One line break, plus {@code blankLines} empty lines. */
-    protected static Doc lineBreaks(int blankLines) {
-        List<Doc> parts = new ArrayList<>(blankLines + 1);
-        for (int i = 0; i <= blankLines; i++) {
-            parts.add(Doc.hardLine());
-        }
-        return Doc.concat(parts);
     }
 
     /** A separator before {@code node} of at least {@code minimum} blank lines. */
@@ -326,31 +441,6 @@ abstract class EmitSupport {
         return new HoistedLeading(leadingTrivia(token), withoutLeadingTrivia(node));
     }
 
-    /** A node paired with the leading trivia lifted out of its first token. */
-    protected record HoistedLeading(Doc leading, GreenNode node) { }
-
-    /** Copies the path to the first token and removes that token's leading trivia. */
-    private static GreenNode withoutLeadingTrivia(GreenNode node) {
-        if (node instanceof GreenNode.Leaf leaf) {
-            SyntaxToken token = leaf.token();
-            return GreenNode.leaf(new SyntaxToken(List.of(), token.token(), token.trailing()));
-        }
-        List<GreenNode> children = node.children();
-        if (children.isEmpty()) {
-            return node;
-        }
-        List<GreenNode> copy = new ArrayList<>(children);
-        copy.set(0, withoutLeadingTrivia(copy.getFirst()));
-        return GreenNode.branch(node.kind(), copy);
-    }
-
-    protected static boolean hasLeadingComments(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && !token.leadingComments().isEmpty();
-    }
-
-    private static final Set<String> CLOSERS = Set.of(",", ")", "]", ";");
-
     /** Comments that come before a token, each followed by whatever separated it from what follows. */
     private Doc leadingTrivia(SyntaxToken token) {
         List<Token> leading = token.leading();
@@ -399,29 +489,6 @@ abstract class EmitSupport {
         return Doc.concat(parts);
     }
 
-    /** The index of the next comment in a trivia list, or -1 when there is none. */
-    private static int nextComment(List<Token> leading, int index) {
-        for (int i = index + 1; i < leading.size(); i++) {
-            if (leading.get(i).kind().isComment()) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /** Line breaks between the trivia at {@code index} and the next comment or the token itself. */
-    private static int newlinesAfter(List<Token> leading, int index) {
-        int newlines = 0;
-        for (int i = index + 1; i < leading.size(); i++) {
-            Token trivia = leading.get(i);
-            if (trivia.kind().isComment()) {
-                break;
-            }
-            newlines += trivia.lineTerminatorCount();
-        }
-        return newlines;
-    }
-
     /** A comment, re-indented but never re-worded. */
     protected Doc commentDoc(Token comment) {
         return comments.verbatim(comment);
@@ -450,30 +517,6 @@ abstract class EmitSupport {
             return Doc.lineIndent(visualIndent(rawIndent(leading, index)), body);
         }
         return body;
-    }
-
-    /**
-     * The author's indent in front of the comment at {@code commentIndex}: the whitespace after the
-     * last line break that precedes it.
-     */
-    private static String rawIndent(List<Token> leading, int commentIndex) {
-        StringBuilder text = new StringBuilder();
-        for (int i = commentIndex - 1; i >= 0; i--) {
-            Token trivia = leading.get(i);
-            if (trivia.kind().isComment()) {
-                break;
-            }
-            text.insert(0, trivia.decodedText());
-        }
-        String whitespace = text.toString();
-        int lastBreak = -1;
-        for (int i = 0; i < whitespace.length(); i++) {
-            char current = whitespace.charAt(i);
-            if (current == '\n' || current == '\r') {
-                lastBreak = i;
-            }
-        }
-        return lastBreak < 0 ? whitespace : whitespace.substring(lastBreak + 1);
     }
 
     private int visualIndent(String indent) {
@@ -650,52 +693,6 @@ abstract class EmitSupport {
         };
     }
 
-    /**
-     * Whether the only annotation among these siblings is a marker.
-     *
-     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
-     * sit; a second annotation anywhere means the set is no longer a lone marker.
-     */
-    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
-        GreenNode only = null;
-        int count = 0;
-        for (GreenNode sibling : siblings) {
-            if (sibling.kind() == SyntaxKind.ANNOTATION) {
-                count++;
-                only = sibling;
-            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
-                for (GreenNode modifier : sibling.children()) {
-                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
-                        count++;
-                        only = modifier;
-                    }
-                }
-            }
-        }
-        if (count != 1) {
-            return false;
-        }
-        for (GreenNode part : only.children()) {
-            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    protected static boolean startsNewLine(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && token.startsNewLine();
-    }
-
-    protected static Doc space() {
-        return Doc.text(" ");
-    }
-
-    protected static Doc spaceIf(boolean condition) {
-        return condition ? space() : Doc.EMPTY;
-    }
-
     protected Doc joinAll(List<GreenNode> nodes, Doc separator) {
         List<Doc> parts = new ArrayList<>(nodes.size());
         for (GreenNode node : nodes) {
@@ -703,5 +700,8 @@ abstract class EmitSupport {
         }
         return Doc.join(separator, parts);
     }
+
+    /** A node paired with the leading trivia lifted out of its first token. */
+    protected record HoistedLeading(Doc leading, GreenNode node) { }
 
 }

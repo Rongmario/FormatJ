@@ -32,6 +32,8 @@ abstract class ExpressionParser extends ParserBase {
         "void"
     );
 
+    protected static final Set<String> LITERAL_KEYWORDS = Set.of("true", "false", "null");
+
     private static final Set<String> ASSIGNMENT_OPERATORS = Set.of(
         "=",
         "+=",
@@ -47,10 +49,24 @@ abstract class ExpressionParser extends ParserBase {
         ">>>="
     );
 
-    protected static final Set<String> LITERAL_KEYWORDS = Set.of("true", "false", "null");
-
     ExpressionParser(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
         super(tokens, languageLevel, previewFeatures);
+    }
+
+    private static int precedenceOf(String operator) {
+        return switch (operator) {
+            case "||" -> 1;
+            case "&&" -> 2;
+            case "|" -> 3;
+            case "^" -> 4;
+            case "&" -> 5;
+            case "==", "!=" -> 6;
+            case "<", ">", "<=", ">=", "instanceof" -> 7;
+            case "<<", ">>", ">>>" -> 8;
+            case "+", "-" -> 9;
+            case "*", "/", "%" -> 10;
+            default -> 0;
+        };
     }
 
     // ----------------------------------------------------------------- types
@@ -328,22 +344,6 @@ abstract class ExpressionParser extends ParserBase {
         children.add(expect(":"));
         children.add(atLambda() ? parseLambda() : parseTernary());
         return branch(SyntaxKind.TERNARY_EXPRESSION, children);
-    }
-
-    private static int precedenceOf(String operator) {
-        return switch (operator) {
-            case "||" -> 1;
-            case "&&" -> 2;
-            case "|" -> 3;
-            case "^" -> 4;
-            case "&" -> 5;
-            case "==", "!=" -> 6;
-            case "<", ">", "<=", ">=", "instanceof" -> 7;
-            case "<<", ">>", ">>>" -> 8;
-            case "+", "-" -> 9;
-            case "*", "/", "%" -> 10;
-            default -> 0;
-        };
     }
 
     private GreenNode parseBinary(int minimumPrecedence) {

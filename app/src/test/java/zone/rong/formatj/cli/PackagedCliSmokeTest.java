@@ -31,6 +31,34 @@ class PackagedCliSmokeTest {
         return file;
     }
 
+    private static Run run(List<String> arguments) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(launcher().toString());
+        command.addAll(arguments);
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.redirectErrorStream(false);
+        Path outFile = Files.createTempFile("formatj-cli-", ".out");
+        Path errFile = Files.createTempFile("formatj-cli-", ".err");
+        try {
+            builder.redirectOutput(outFile.toFile());
+            builder.redirectError(errFile.toFile());
+            Process process = builder.start();
+            if (!process.waitFor(60, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                process.waitFor();
+                throw new IOException("launcher timed out: " + command + "\n" + Files.readString(errFile));
+            }
+            return new Run(
+                process.exitValue(),
+                Files.readString(outFile, StandardCharsets.UTF_8),
+                Files.readString(errFile, StandardCharsets.UTF_8)
+            );
+        } finally {
+            Files.deleteIfExists(outFile);
+            Files.deleteIfExists(errFile);
+        }
+    }
+
     @Test
     void dumpConfigRunsTwiceWithTheSameCatalogue() throws Exception {
         Run first = run(List.of("--dump-config"));
@@ -62,34 +90,6 @@ class PackagedCliSmokeTest {
 
         Run check = run(List.of("--check", source.toString()));
         assertEquals(0, check.exitCode, check.err);
-    }
-
-    private static Run run(List<String> arguments) throws Exception {
-        List<String> command = new ArrayList<>();
-        command.add(launcher().toString());
-        command.addAll(arguments);
-        ProcessBuilder builder = new ProcessBuilder(command);
-        builder.redirectErrorStream(false);
-        Path outFile = Files.createTempFile("formatj-cli-", ".out");
-        Path errFile = Files.createTempFile("formatj-cli-", ".err");
-        try {
-            builder.redirectOutput(outFile.toFile());
-            builder.redirectError(errFile.toFile());
-            Process process = builder.start();
-            if (!process.waitFor(60, TimeUnit.SECONDS)) {
-                process.destroyForcibly();
-                process.waitFor();
-                throw new IOException("launcher timed out: " + command + "\n" + Files.readString(errFile));
-            }
-            return new Run(
-                process.exitValue(),
-                Files.readString(outFile, StandardCharsets.UTF_8),
-                Files.readString(errFile, StandardCharsets.UTF_8)
-            );
-        } finally {
-            Files.deleteIfExists(outFile);
-            Files.deleteIfExists(errFile);
-        }
     }
 
     private record Run(int exitCode, String out, String err) { }

@@ -8,19 +8,19 @@ public final class SwitchRules {
 
     public static final Option<SwitchCaseStyle> CASE_STYLE = Option.ofEnum(
         "switch.case-style",
-        SwitchCaseStyle.PRESERVE,
+        SwitchCaseStyle.ARROW,
         "Arrow or colon case labels"
     );
 
     public static final Option<BracePolicy> ARROW_CASE_BRACES = Option.ofEnum(
         "switch.arrow-case-braces",
-        BracePolicy.PRESERVE,
+        BracePolicy.WHEN_MULTI_STATEMENT,
         "Braces around the body of an arrow case"
     );
 
     public static final Option<YieldStyle> YIELD_STYLE = Option.ofEnum(
         "switch.yield-style",
-        YieldStyle.PRESERVE,
+        YieldStyle.EXPRESSION_WHEN_POSSIBLE,
         "How the value of an arrow case body is written"
     );
 

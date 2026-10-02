@@ -76,6 +76,58 @@ public final class ModifierRewrite implements Rewrite {
     );
     private static final List<String> CONSTRUCTOR_ORDER = List.of("public", "protected", "private");
 
+    private static List<Part> parts(GreenNode modifiers) {
+        List<GreenNode> children = modifiers.children();
+        List<Part> parts = new ArrayList<>();
+        for (int i = 0; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (child.kind() == SyntaxKind.ANNOTATION) {
+                parts.add(new Part(List.of(child), null));
+                continue;
+            }
+            if (!(child instanceof GreenNode.Leaf leaf)) {
+                return null;
+            }
+            if (leaf.decodedLexeme().equals("non") &&
+                i + 2 < children.size() &&
+                decoded(children.get(i + 1)).equals("-") &&
+                decoded(children.get(i + 2)).equals("sealed")) {
+                parts.add(new Part(List.of(child, children.get(i + 1), children.get(i + 2)), "non-sealed"));
+                i += 2;
+                continue;
+            }
+            parts.add(new Part(List.of(child), leaf.decodedLexeme()));
+        }
+        return List.copyOf(parts);
+    }
+
+    private static String decoded(GreenNode node) {
+        return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
+    }
+
+    private static boolean hasComments(GreenNode node) {
+        for (GreenNode.Leaf leaf : ProgramTokens.leaves(node)) {
+            if (leaf.token().hasComments()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<String> order(SyntaxKind kind) {
+        return switch (kind) {
+            case CLASS_DECLARATION -> CLASS_ORDER;
+            case INTERFACE_DECLARATION -> INTERFACE_ORDER;
+            case ENUM_DECLARATION -> ENUM_ORDER;
+            case RECORD_DECLARATION -> RECORD_ORDER;
+            case ANNOTATION_TYPE_DECLARATION -> ANNOTATION_TYPE_ORDER;
+            case FIELD_DECLARATION -> FIELD_ORDER;
+            case METHOD_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> METHOD_ORDER;
+            case CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION -> CONSTRUCTOR_ORDER;
+            default -> null;
+        };
+    }
+
     @Override
     public String name() {
         return "modifiers";
@@ -148,58 +200,6 @@ public final class ModifierRewrite implements Rewrite {
         List<GreenNode> declaration = new ArrayList<>(node.children());
         declaration.set(0, rewrittenModifiers);
         return GreenNode.branch(node.kind(), declaration);
-    }
-
-    private static List<Part> parts(GreenNode modifiers) {
-        List<GreenNode> children = modifiers.children();
-        List<Part> parts = new ArrayList<>();
-        for (int i = 0; i < children.size(); i++) {
-            GreenNode child = children.get(i);
-            if (child.kind() == SyntaxKind.ANNOTATION) {
-                parts.add(new Part(List.of(child), null));
-                continue;
-            }
-            if (!(child instanceof GreenNode.Leaf leaf)) {
-                return null;
-            }
-            if (leaf.decodedLexeme().equals("non") &&
-                i + 2 < children.size() &&
-                decoded(children.get(i + 1)).equals("-") &&
-                decoded(children.get(i + 2)).equals("sealed")) {
-                parts.add(new Part(List.of(child, children.get(i + 1), children.get(i + 2)), "non-sealed"));
-                i += 2;
-                continue;
-            }
-            parts.add(new Part(List.of(child), leaf.decodedLexeme()));
-        }
-        return List.copyOf(parts);
-    }
-
-    private static String decoded(GreenNode node) {
-        return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
-    }
-
-    private static boolean hasComments(GreenNode node) {
-        for (GreenNode.Leaf leaf : ProgramTokens.leaves(node)) {
-            if (leaf.token().hasComments()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static List<String> order(SyntaxKind kind) {
-        return switch (kind) {
-            case CLASS_DECLARATION -> CLASS_ORDER;
-            case INTERFACE_DECLARATION -> INTERFACE_ORDER;
-            case ENUM_DECLARATION -> ENUM_ORDER;
-            case RECORD_DECLARATION -> RECORD_ORDER;
-            case ANNOTATION_TYPE_DECLARATION -> ANNOTATION_TYPE_ORDER;
-            case FIELD_DECLARATION -> FIELD_ORDER;
-            case METHOD_DECLARATION, ANNOTATION_ELEMENT_DECLARATION -> METHOD_ORDER;
-            case CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION -> CONSTRUCTOR_ORDER;
-            default -> null;
-        };
     }
 
     private record Part(List<GreenNode> nodes, String modifier) {

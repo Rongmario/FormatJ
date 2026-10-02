@@ -31,6 +31,15 @@ class FormatterOffTest {
             }
             """;
 
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
+
     @Test
     void aMarkedRegionKeepsEveryColumnItHad() {
         String formatted = format(MEMBERS, style -> { });
@@ -118,15 +127,6 @@ class FormatterOffTest {
         String formatted = format(source, style -> { });
 
         assertEquals(source, formatted);
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

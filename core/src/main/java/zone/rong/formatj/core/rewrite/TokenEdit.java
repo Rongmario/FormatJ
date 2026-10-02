@@ -36,40 +36,6 @@ public record TokenEdit(
     List<TokenEdit.Span> order
 ) {
 
-    /**
-     * A stretch of the original program tokens, from {@code start} up to but not including {@code end}.
-     *
-     * <p>A reordering edit applies after every splice, so a splice recorded inside a stretch travels
-     * with it.
-     */
-    public record Span(int start, int end) {
-
-        public Span {
-            if (start < 0 || end < start) {
-                throw new IllegalArgumentException("invalid span: " + start + ".." + end);
-            }
-        }
-
-    }
-
-    /**
-     * Which of two edits at one position comes first.
-     *
-     * <p>Rewriting runs innermost-first, so the order edits were recorded in is the order the inner
-     * construct wanted. A closing delimiter agrees with that: the inner {@code }} closes before the
-     * outer one. An opening delimiter does not: the outer {@code {} opens before the inner one, so
-     * its edit has to sort ahead of an inner edit recorded earlier at the same position.
-     */
-    public enum Bias {
-
-        /** Order by the sequence edits were recorded in. */
-        INNERMOST_FIRST,
-
-        /** Order against the sequence edits were recorded in. */
-        OUTERMOST_FIRST
-
-    }
-
     public TokenEdit {
         removed = List.copyOf(removed);
         inserted = List.copyOf(inserted);
@@ -113,6 +79,40 @@ public record TokenEdit(
     public String toString() {
         return authority.key() + " at token " + position + ": " +
             (order.isEmpty() ? removed + " -> " + inserted : "reordered " + order);
+    }
+
+    /**
+     * Which of two edits at one position comes first.
+     *
+     * <p>Rewriting runs innermost-first, so the order edits were recorded in is the order the inner
+     * construct wanted. A closing delimiter agrees with that: the inner {@code }} closes before the
+     * outer one. An opening delimiter does not: the outer {@code {} opens before the inner one, so
+     * its edit has to sort ahead of an inner edit recorded earlier at the same position.
+     */
+    public enum Bias {
+
+        /** Order by the sequence edits were recorded in. */
+        INNERMOST_FIRST,
+
+        /** Order against the sequence edits were recorded in. */
+        OUTERMOST_FIRST
+
+    }
+
+    /**
+     * A stretch of the original program tokens, from {@code start} up to but not including {@code end}.
+     *
+     * <p>A reordering edit applies after every splice, so a splice recorded inside a stretch travels
+     * with it.
+     */
+    public record Span(int start, int end) {
+
+        public Span {
+            if (start < 0 || end < start) {
+                throw new IllegalArgumentException("invalid span: " + start + ".." + end);
+            }
+        }
+
     }
 
 }

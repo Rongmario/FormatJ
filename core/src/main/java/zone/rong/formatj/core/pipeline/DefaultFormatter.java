@@ -103,6 +103,20 @@ public final class DefaultFormatter implements Formatter {
         this.rewrites = List.copyOf(rewrites);
     }
 
+    private static String stripTrailingBlankLines(String text) {
+        int end = text.length();
+        while (end > 0 && Character.isWhitespace(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(0, end);
+    }
+
+    /** The file's own first line ending. A file with no line ending yet falls back to LF. */
+    private static String sourceSeparator(String source) {
+        int newline = source.indexOf('\n');
+        return newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
+    }
+
     @Override
     public Style style() {
         return style;
@@ -270,29 +284,6 @@ public final class DefaultFormatter implements Formatter {
     }
 
     /**
-     * The outcome of one run.
-     *
-     * @param rewrote whether the run actually changed the program, and so whether dropping the
-     *     rewrites is a fallback worth trying
-     * @param warnings what the rewrites reported, which only a successful run passes on
-     */
-    private record Attempt(String text, String problem, boolean rewrote, List<Diagnostic> warnings) {
-
-        static Attempt success(String text, boolean rewrote, List<Diagnostic> warnings) {
-            return new Attempt(text, null, rewrote, warnings);
-        }
-
-        static Attempt failure(String problem, boolean rewrote) {
-            return new Attempt(null, problem, rewrote, List.of());
-        }
-
-        boolean failed() {
-            return problem != null;
-        }
-
-    }
-
-    /**
      * Lays out a parsed file and normalises how it ends.
      *
      * <p>Column alignment happens after the text has been printed, not while it is being printed:
@@ -309,14 +300,6 @@ public final class DefaultFormatter implements Formatter {
         ).align(printed);
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
-    }
-
-    private static String stripTrailingBlankLines(String text) {
-        int end = text.length();
-        while (end > 0 && Character.isWhitespace(text.charAt(end - 1))) {
-            end--;
-        }
-        return text.substring(0, end);
     }
 
     private DocPrinter printer(String separator) {
@@ -339,10 +322,27 @@ public final class DefaultFormatter implements Formatter {
         };
     }
 
-    /** The file's own first line ending. A file with no line ending yet falls back to LF. */
-    private static String sourceSeparator(String source) {
-        int newline = source.indexOf('\n');
-        return newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
+    /**
+     * The outcome of one run.
+     *
+     * @param rewrote whether the run actually changed the program, and so whether dropping the
+     *     rewrites is a fallback worth trying
+     * @param warnings what the rewrites reported, which only a successful run passes on
+     */
+    private record Attempt(String text, String problem, boolean rewrote, List<Diagnostic> warnings) {
+
+        static Attempt success(String text, boolean rewrote, List<Diagnostic> warnings) {
+            return new Attempt(text, null, rewrote, warnings);
+        }
+
+        static Attempt failure(String problem, boolean rewrote) {
+            return new Attempt(null, problem, rewrote, List.of());
+        }
+
+        boolean failed() {
+            return problem != null;
+        }
+
     }
 
 }

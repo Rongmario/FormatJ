@@ -24,6 +24,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AlignmentRulesTest {
 
+    /** The text with each run of spaces collapsed, which is all alignment is allowed to change. */
+    private static String squeeze(String text) {
+        return text.replaceAll("(?<=\\S) +", " ");
+    }
+
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
+
     @Test
     void consecutiveFieldNamesShareAColumn() {
         String source = "class A {\n\n    private int x;\n    private String name;\n    private A other;\n\n}\n";
@@ -234,20 +248,6 @@ class AlignmentRulesTest {
         );
 
         assertTrue(aligned.contains("private int x = 1;\n    private String name = \"a\";"), aligned);
-    }
-
-    /** The text with each run of spaces collapsed, which is all alignment is allowed to change. */
-    private static String squeeze(String text) {
-        return text.replaceAll("(?<=\\S) +", " ");
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

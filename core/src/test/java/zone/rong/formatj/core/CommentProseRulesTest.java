@@ -72,6 +72,54 @@ class CommentProseRulesTest {
         assertEquals(once, reformat(rules, once));
     }
 
+    private static String generateJavadoc(String source, Path output) throws IOException {
+        DocumentationTool tool = ToolProvider.getSystemDocumentationTool();
+        assumeTrue(tool != null);
+        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+        StringWriter log = new StringWriter();
+        JavaFileObject unit = new SimpleJavaFileObject(URI.create("string:///T.java"), JavaFileObject.Kind.SOURCE) {
+
+            @Override
+            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                return source;
+            }
+
+        };
+        try (StandardJavaFileManager files = tool.getStandardFileManager(diagnostics, null, null)) {
+            boolean documented = tool.getTask(
+                log,
+                files,
+                diagnostics,
+                null,
+                List.of("-quiet", "-private", "-notimestamp", "-d", output.toString()),
+                List.of(unit)
+            )
+                .call();
+            assertTrue(documented, () -> log + "\n" + diagnostics.getDiagnostics());
+        }
+        return Files.readString(output.resolve("T.html"));
+    }
+
+    private static String methodDetails(String html) {
+        int id = html.indexOf("id=\"f(int)\"");
+        assertTrue(id >= 0, html);
+        int start = html.lastIndexOf("<section", id);
+        int end = html.indexOf("</section>", id);
+        assertTrue(start >= 0 && end > start, html);
+        return html.substring(start, end + "</section>".length());
+    }
+
+    private static String codeBlock(String html) {
+        int start = html.indexOf("<pre>");
+        int end = html.indexOf("</pre>", start);
+        assertTrue(start >= 0 && end > start, html);
+        return html.substring(start, end + "</pre>".length());
+    }
+
+    private static String normaliseHtmlWhitespace(String html) {
+        return html.replaceAll("\\s+", " ").trim();
+    }
+
     // --------------------------------------------------------- comments.reflow
 
     @Test
@@ -293,54 +341,6 @@ class CommentProseRulesTest {
         assertTrue(after.contains("<table"), after);
         assertTrue(after.contains("Parameters:"), after);
         assertTrue(after.contains("Returns:"), after);
-    }
-
-    private static String generateJavadoc(String source, Path output) throws IOException {
-        DocumentationTool tool = ToolProvider.getSystemDocumentationTool();
-        assumeTrue(tool != null);
-        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        StringWriter log = new StringWriter();
-        JavaFileObject unit = new SimpleJavaFileObject(URI.create("string:///T.java"), JavaFileObject.Kind.SOURCE) {
-
-            @Override
-            public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                return source;
-            }
-
-        };
-        try (StandardJavaFileManager files = tool.getStandardFileManager(diagnostics, null, null)) {
-            boolean documented = tool.getTask(
-                log,
-                files,
-                diagnostics,
-                null,
-                List.of("-quiet", "-private", "-notimestamp", "-d", output.toString()),
-                List.of(unit)
-            )
-                .call();
-            assertTrue(documented, () -> log + "\n" + diagnostics.getDiagnostics());
-        }
-        return Files.readString(output.resolve("T.html"));
-    }
-
-    private static String methodDetails(String html) {
-        int id = html.indexOf("id=\"f(int)\"");
-        assertTrue(id >= 0, html);
-        int start = html.lastIndexOf("<section", id);
-        int end = html.indexOf("</section>", id);
-        assertTrue(start >= 0 && end > start, html);
-        return html.substring(start, end + "</section>".length());
-    }
-
-    private static String codeBlock(String html) {
-        int start = html.indexOf("<pre>");
-        int end = html.indexOf("</pre>", start);
-        assertTrue(start >= 0 && end > start, html);
-        return html.substring(start, end + "</pre>".length());
-    }
-
-    private static String normaliseHtmlWhitespace(String html) {
-        return html.replaceAll("\\s+", " ").trim();
     }
 
     // ------------------------------------------------------------- javadoc.*

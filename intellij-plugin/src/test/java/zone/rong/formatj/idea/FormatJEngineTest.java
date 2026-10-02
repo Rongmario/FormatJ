@@ -23,6 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FormatJEngineTest {
 
+    private static FormatJEngine.Outcome formatWhole(String source) {
+        return new FormatJEngine(FormatJEngine.Settings.discover()).format(request(source, List.of()));
+    }
+
+    private static FormatJEngine.Request request(String source, List<SourceRange> ranges) {
+        return new FormatJEngine.Request(source, "T.java", null, ranges, LanguageLevel.LATEST, false, true);
+    }
+
     @Test
     void discoveryWalksUpToTheNearestStyleFile(@TempDir Path root) throws IOException {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
@@ -157,14 +165,6 @@ class FormatJEngineTest {
             List.of(new SourceRange(0, source.length()))
         ));
         assertEquals(emptyRanges.text(), covering.text());
-    }
-
-    private static FormatJEngine.Outcome formatWhole(String source) {
-        return new FormatJEngine(FormatJEngine.Settings.discover()).format(request(source, List.of()));
-    }
-
-    private static FormatJEngine.Request request(String source, List<SourceRange> ranges) {
-        return new FormatJEngine.Request(source, "T.java", null, ranges, LanguageLevel.LATEST, false, true);
     }
 
 }

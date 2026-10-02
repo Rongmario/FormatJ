@@ -6,9 +6,7 @@ import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracePolicy;
-import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.BracketStyle;
-import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
@@ -37,16 +35,51 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RewriteRulesTest {
 
+    // ----------------------------------------------------- sealed.permits-order
+
+    private static final String SEALED = "sealed interface I permits C, A, B {\n}\n";
+
+    // --------------------------------------------------------- modifiers.order
+
+    private static final String MODIFIERS = """
+            sealed public abstract class T permits T.Child {
+
+                @Second static @First public final int field = 1;
+
+                synchronized final public void run() {
+                }
+
+                @First private T() {
+                }
+
+                static public interface Nested {
+                }
+
+                static public enum Choice {
+                    ONE
+                }
+
+                static public record Pair(int value) {
+                }
+
+                abstract public @interface Marker {
+                }
+
+                static non-sealed public class Child extends T {
+                }
+
+            }
+
+            @interface First {
+            }
+
+            @interface Second {
+            }
+            """;
+
     /** A style whose only token-changing rule is the one under test. */
     private static <T> Style only(Option<T> option, T value) {
-        return Style.builder()
-            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
-            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
-            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
-            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
-            .set(ImportRules.ORDER, SortOrder.PRESERVE)
-            .set(option, value)
-            .build();
+        return Style.builder().apply(CorpusInvariantTest.layoutOnly()).set(option, value).build();
     }
 
     private static <T> String format(String source, Option<T> option, T value) {
@@ -64,6 +97,35 @@ class RewriteRulesTest {
 
     private static String method(String body) {
         return "class T {\n\n    void run() {\n" + body + "\n    }\n\n}\n";
+    }
+
+    // ------------------------------------------------ switch.arrow-case-braces
+
+    private static String statementSwitch(String cases) {
+        return method("        switch (n) {\n" + cases + "\n        }");
+    }
+
+    // ------------------------------------------------------ switch.yield-style
+
+    private static String expressionSwitch(String cases) {
+        return method("        int v = switch (n) {\n" + cases + "\n        };");
+    }
+
+    // ------------------------------------------------ modifiers.remove-redundant
+
+    private static String removeRedundant(String source) {
+        return format(source, ModifierRules.REMOVE_REDUNDANT, true);
+    }
+
+    // ------------------------------------------------- arrays.c-style-brackets
+
+    private static String javaBrackets(String source) {
+        return format(source, ArrayRules.C_STYLE_BRACKETS, BracketStyle.JAVA);
+    }
+
+    private static <T> void assertSettles(String source, Option<T> option, T value) {
+        String once = format(source, option, value);
+        assertEquals(once, format(once, option, value), option.key());
     }
 
     // -------------------------------------------------- lambdas.parameter-style
@@ -212,10 +274,6 @@ class RewriteRulesTest {
         assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
     }
 
-    // ----------------------------------------------------- sealed.permits-order
-
-    private static final String SEALED = "sealed interface I permits C, A, B {\n}\n";
-
     @Test
     void permittedTypesSortAscending() {
         assertTrue(
@@ -254,49 +312,9 @@ class RewriteRulesTest {
         assertTrue(format(source, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits a.A, b.B"));
     }
 
-    // --------------------------------------------------------- modifiers.order
-
-    private static final String MODIFIERS = """
-            sealed public abstract class T permits T.Child {
-
-                @Second static @First public final int field = 1;
-
-                synchronized final public void run() {
-                }
-
-                @First private T() {
-                }
-
-                static public interface Nested {
-                }
-
-                static public enum Choice {
-                    ONE
-                }
-
-                static public record Pair(int value) {
-                }
-
-                abstract public @interface Marker {
-                }
-
-                static non-sealed public class Child extends T {
-                }
-
-            }
-
-            @interface First {
-            }
-
-            @interface Second {
-            }
-            """;
-
     @Test
-    void modifierOrderIsPreservedByDefault() {
-        assertEquals(ModifierOrder.PRESERVE, ModifierRules.ORDER.defaultValue());
-        GreenNode root = JavaParser.parse(MODIFIERS, LanguageLevel.LATEST, true).root().green();
-        assertTrue(RewriteStage.apply(root, Style.builder().build()).unchanged());
+    void modifierOrderIsCanonicalByDefault() {
+        assertEquals(ModifierOrder.CANONICAL, ModifierRules.ORDER.defaultValue());
     }
 
     @Test
@@ -362,7 +380,7 @@ class RewriteRulesTest {
                 }
                 """;
         Style style = Style.builder()
-            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL))
+            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL).removeRedundant(false))
             .sealedTypes(sealed -> sealed.permitsOrder(SortOrder.ASCENDING))
             .braces(braces -> braces.ifElse(BracePolicy.ALWAYS))
             .build();
@@ -370,12 +388,6 @@ class RewriteRulesTest {
         assertTrue(formatted.contains("public sealed interface I permits A, B, C"), formatted);
         assertTrue(formatted.contains("public static void run"), formatted);
         assertTrue(formatted.contains("if (ready) {"), formatted);
-    }
-
-    // ------------------------------------------------ switch.arrow-case-braces
-
-    private static String statementSwitch(String cases) {
-        return method("        switch (n) {\n" + cases + "\n        }");
     }
 
     @Test
@@ -410,12 +422,6 @@ class RewriteRulesTest {
         String source = method("        int v = switch (n) {\n            case 1 -> { yield 2; }\n        };");
         assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).unchanged());
         assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.ALWAYS).unchanged());
-    }
-
-    // ------------------------------------------------------ switch.yield-style
-
-    private static String expressionSwitch(String cases) {
-        return method("        int v = switch (n) {\n" + cases + "\n        };");
     }
 
     @Test
@@ -457,12 +463,6 @@ class RewriteRulesTest {
         String expression = format(block, SwitchRules.YIELD_STYLE, YieldStyle.EXPRESSION_WHEN_POSSIBLE);
         assertTrue(expression.contains("case 1 -> 2;"));
         assertTrue(format(expression, SwitchRules.YIELD_STYLE, YieldStyle.ALWAYS_BLOCK).contains("yield 2;"));
-    }
-
-    // ------------------------------------------------ modifiers.remove-redundant
-
-    private static String removeRedundant(String source) {
-        return format(source, ModifierRules.REMOVE_REDUNDANT, true);
     }
 
     @Test
@@ -615,12 +615,6 @@ class RewriteRulesTest {
         assertEquals(source, removeRedundant(source));
     }
 
-    // ------------------------------------------------- arrays.c-style-brackets
-
-    private static String javaBrackets(String source) {
-        return format(source, ArrayRules.C_STYLE_BRACKETS, BracketStyle.JAVA);
-    }
-
     @Test
     void fieldsLocalsAndParametersTakeTheirBracketsOnTheType() {
         String source = """
@@ -701,11 +695,6 @@ class RewriteRulesTest {
             SwitchRules.YIELD_STYLE,
             YieldStyle.EXPRESSION_WHEN_POSSIBLE
         );
-    }
-
-    private static <T> void assertSettles(String source, Option<T> option, T value) {
-        String once = format(source, option, value);
-        assertEquals(once, format(once, option, value), option.key());
     }
 
 }

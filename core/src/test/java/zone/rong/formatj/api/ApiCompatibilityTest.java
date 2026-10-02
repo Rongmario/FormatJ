@@ -37,29 +37,6 @@ class ApiCompatibilityTest {
 
     private static final Path BASELINE = Path.of("src/test/resources/api-baseline.txt");
 
-    @Test
-    void publicApiMatchesTheCommittedBaseline() throws IOException {
-        assertTrue(Files.isRegularFile(BASELINE), () -> "missing API baseline: " + BASELINE.toAbsolutePath());
-        String expected = Files.readString(BASELINE, StandardCharsets.UTF_8);
-        assertEquals(
-            expected,
-            dump(),
-            "public API drifted from " + BASELINE + "; update the baseline if this is intentional"
-        );
-    }
-
-    @Test
-    void dumpIncludesProtectedGenericAndBridgeSignatures() {
-        List<String> lines = new ArrayList<>();
-        dumpType(GenericValue.class, lines);
-        dumpType(StringValue.class, lines);
-        String dump = String.join("\n", lines);
-
-        assertTrue(dump.contains("SUPER " + GenericValue.class.getName() + "<java.lang.String>"), dump);
-        assertTrue(dump.contains("protected T " + GenericValue.class.getName() + ".value()"), dump);
-        assertTrue(dump.contains("[bridge]"), dump);
-    }
-
     /** Regenerates the committed baseline. Run from the {@code core} project directory. */
     public static void main(String[] arguments) throws IOException {
         Path output = arguments.length == 0 ? BASELINE : Path.of(arguments[0]);
@@ -252,6 +229,29 @@ class ApiCompatibilityTest {
         } catch (IllegalAccessException e) {
             throw new IllegalStateException("cannot read API constant " + field, e);
         }
+    }
+
+    @Test
+    void publicApiMatchesTheCommittedBaseline() throws IOException {
+        assertTrue(Files.isRegularFile(BASELINE), () -> "missing API baseline: " + BASELINE.toAbsolutePath());
+        String expected = Files.readString(BASELINE, StandardCharsets.UTF_8);
+        assertEquals(
+            expected,
+            dump(),
+            "public API drifted from " + BASELINE + "; update the baseline if this is intentional"
+        );
+    }
+
+    @Test
+    void dumpIncludesProtectedGenericAndBridgeSignatures() {
+        List<String> lines = new ArrayList<>();
+        dumpType(GenericValue.class, lines);
+        dumpType(StringValue.class, lines);
+        String dump = String.join("\n", lines);
+
+        assertTrue(dump.contains("SUPER " + GenericValue.class.getName() + "<java.lang.String>"), dump);
+        assertTrue(dump.contains("protected T " + GenericValue.class.getName() + ".value()"), dump);
+        assertTrue(dump.contains("[bridge]"), dump);
     }
 
     public static class GenericValue<T> {

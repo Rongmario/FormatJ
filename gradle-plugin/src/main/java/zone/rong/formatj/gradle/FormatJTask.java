@@ -51,6 +51,23 @@ import zone.rong.formatj.core.io.SourceFiles;
 @CacheableTask
 public abstract class FormatJTask extends DefaultTask {
 
+    private static FormatResult format(Formatter formatter, File file) {
+        try {
+            String source = SourceFiles.readString(file.toPath(), FileRules.charset(formatter.style()));
+            return formatter.format(FormatRequest.of(source).withName(file.getPath()));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + file + ": " + e.getMessage(), e);
+        }
+    }
+
+    private static void write(Path file, String text, Charset charset) {
+        try {
+            SourceFiles.writeAtomic(file, text, charset);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot write " + file, e);
+        }
+    }
+
     /** The Java sources to process. */
     @InputFiles
     @Incremental
@@ -174,23 +191,6 @@ public abstract class FormatJTask extends DefaultTask {
         Map<String, String> rules = getRules().get();
         rules.forEach(builder::setRaw);
         return builder.build();
-    }
-
-    private static FormatResult format(Formatter formatter, File file) {
-        try {
-            String source = SourceFiles.readString(file.toPath(), FileRules.charset(formatter.style()));
-            return formatter.format(FormatRequest.of(source).withName(file.getPath()));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + file + ": " + e.getMessage(), e);
-        }
-    }
-
-    private static void write(Path file, String text, Charset charset) {
-        try {
-            SourceFiles.writeAtomic(file, text, charset);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot write " + file, e);
-        }
     }
 
 }

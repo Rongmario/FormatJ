@@ -21,6 +21,10 @@ class FormatterRewritesTest {
             }
             """;
 
+    private static Style alwaysBraces() {
+        return Style.builder().set(BraceRules.IF_ELSE, BracePolicy.ALWAYS).build();
+    }
+
     @Test
     void rewritesOnAddsBracesWhenTheStyleAsks() {
         String formatted = FormatJ.newFormatter().style(alwaysBraces()).build().format(SOURCE);
@@ -32,10 +36,6 @@ class FormatterRewritesTest {
         String formatted = FormatJ.newFormatter().style(alwaysBraces()).rewrites(false).build().format(SOURCE);
         assertFalse(formatted.contains("if (n > 0) {"), formatted);
         assertTrue(formatted.contains("log(n);"), formatted);
-    }
-
-    private static Style alwaysBraces() {
-        return Style.builder().set(BraceRules.IF_ELSE, BracePolicy.ALWAYS).build();
     }
 
 }

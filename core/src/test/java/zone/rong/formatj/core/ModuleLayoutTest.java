@@ -20,6 +20,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModuleLayoutTest {
 
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        return format(source, builder.build());
+    }
+
+    private static String format(String source, Style style) {
+        Formatter formatter = FormatJ.newFormatter().style(style).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("module-info.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
+
     @Test
     void emptyModulesInheritClassRulesUntilOverridden() {
         String source = "module sample { }\n";
@@ -252,19 +265,6 @@ class ModuleLayoutTest {
         Style reloaded = StyleFiles.parse(dumped);
         assertEquals(style.resolvedValues(), reloaded.resolvedValues());
         assertEquals(format(source, style), format(source, reloaded));
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        return format(source, builder.build());
-    }
-
-    private static String format(String source, Style style) {
-        Formatter formatter = FormatJ.newFormatter().style(style).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("module-info.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

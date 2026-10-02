@@ -67,9 +67,9 @@ class SemicolonRulesTest {
     }
 
     @Test
-    void semicolonsArePreservedByDefault() {
+    void semicolonsAreRemovedByDefault() {
         String formatted = format("class T {\n\n    ;\n\n}\n;\n", Style.builder().build());
-        assertEquals(2, formatted.chars().filter(c -> c == ';').count(), formatted);
+        assertEquals(0, formatted.chars().filter(c -> c == ';').count(), formatted);
     }
 
 }

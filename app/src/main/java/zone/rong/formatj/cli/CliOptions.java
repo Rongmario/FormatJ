@@ -35,38 +35,6 @@ public record CliOptions(
     List<int[]> lines
 ) {
 
-    /** What the CLI was asked to do. */
-    public enum Mode {
-
-        /** Rewrite files in place. */
-        WRITE,
-
-        /** Report files that would change, and exit non-zero if any would. */
-        CHECK,
-
-        /** Print a unified diff of what would change. */
-        DIFF,
-
-        /** Print the whole rule catalogue as TOML and exit. */
-        DUMP_CONFIG,
-
-        /** Print usage and exit. */
-        HELP,
-
-        /** Print the version and exit. */
-        VERSION
-
-    }
-
-    /** A malformed command line. */
-    public static final class CliException extends RuntimeException {
-
-        public CliException(String message) {
-            super(message);
-        }
-
-    }
-
     public static CliOptions parse(String[] arguments) {
         Mode mode = Mode.CHECK;
         boolean modeGiven = false;
@@ -287,6 +255,38 @@ public record CliOptions(
                 Style resolution: --set overrides --preset and --style, which override the nearest
                 formatj.toml found by walking up from each file, which overrides the built-in defaults.
                 """;
+    }
+
+    /** What the CLI was asked to do. */
+    public enum Mode {
+
+        /** Rewrite files in place. */
+        WRITE,
+
+        /** Report files that would change, and exit non-zero if any would. */
+        CHECK,
+
+        /** Print a unified diff of what would change. */
+        DIFF,
+
+        /** Print the whole rule catalogue as TOML and exit. */
+        DUMP_CONFIG,
+
+        /** Print usage and exit. */
+        HELP,
+
+        /** Print the version and exit. */
+        VERSION
+
+    }
+
+    /** A malformed command line. */
+    public static final class CliException extends RuntimeException {
+
+        public CliException(String message) {
+            super(message);
+        }
+
     }
 
 }

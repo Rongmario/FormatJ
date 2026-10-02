@@ -17,6 +17,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SeparatedOperatorLayoutTest {
 
+    private static String formatFixedPoint(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult once = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(once.hasErrors(), () -> once.diagnostics().toString());
+        FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName("A.java"));
+        assertFalse(twice.hasErrors(), () -> twice.diagnostics().toString());
+        assertEquals(once.text(), twice.text());
+        return once.text();
+    }
+
     @Test
     void defaultsKeepTheExistingFlatForms() {
         String source = """
@@ -302,18 +314,6 @@ class SeparatedOperatorLayoutTest {
         assertTrue(formatted.contains("/* catch */"), formatted);
         assertTrue(formatted.contains("/* bound */"), formatted);
         assertTrue(formatted.contains("/* cast */"), formatted);
-    }
-
-    private static String formatFixedPoint(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult once = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(once.hasErrors(), () -> once.diagnostics().toString());
-        FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName("A.java"));
-        assertFalse(twice.hasErrors(), () -> twice.diagnostics().toString());
-        assertEquals(once.text(), twice.text());
-        return once.text();
     }
 
 }

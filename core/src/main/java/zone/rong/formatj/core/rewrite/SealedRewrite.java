@@ -26,6 +26,54 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  */
 public final class SealedRewrite implements Rewrite {
 
+    /**
+     * The run from the first type to the last, with the types taken from {@code order}.
+     *
+     * <p>The commas are part of the edit rather than tokens it steps over, because an edit is one
+     * contiguous splice. They come back unchanged, which is what makes the run a permutation of
+     * itself: pass the original types for the run as it was, the sorted ones for the run as it will
+     * be, and the two lists hold the same tokens in a different order.
+     */
+    private static List<String> run(List<GreenNode> children, List<Integer> slots, List<GreenNode> order) {
+        List<String> lexemes = new ArrayList<>();
+        int next = 0;
+        for (int i = slots.getFirst(); i <= slots.getLast(); i++) {
+            boolean isType = next < slots.size() && slots.get(next) == i;
+            lexemes.addAll(ProgramTokens.lexemes(isType ? order.get(next++) : children.get(i)));
+        }
+        return lexemes;
+    }
+
+    /** Where the types sit among the clause's children; everything else is the keyword or a comma. */
+    private static List<Integer> typeSlots(List<GreenNode> children) {
+        List<Integer> slots = new ArrayList<>();
+        for (int i = 1; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (!(child instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(",")) {
+                slots.add(i);
+            }
+        }
+        return slots;
+    }
+
+    private static Comparator<GreenNode> order(SortOrder sort) {
+        Comparator<GreenNode> ascending = Comparator.comparing(SealedRewrite::text);
+        return sort == SortOrder.DESCENDING ? ascending.reversed() : ascending;
+    }
+
+    /** A type's tokens run together, so that {@code a.B} and {@code a . B} sort the same way. */
+    private static String text(GreenNode type) {
+        return String.join("", ProgramTokens.lexemes(type));
+    }
+
+    private static List<String> lexemes(List<GreenNode> nodes) {
+        List<String> lexemes = new ArrayList<>();
+        for (GreenNode node : nodes) {
+            lexemes.addAll(ProgramTokens.lexemes(node));
+        }
+        return lexemes;
+    }
+
     @Override
     public String name() {
         return "sealed";
@@ -78,54 +126,6 @@ public final class SealedRewrite implements Rewrite {
             rewritten.set(slots.get(i), sorted.get(i));
         }
         return GreenNode.branch(node.kind(), rewritten);
-    }
-
-    /**
-     * The run from the first type to the last, with the types taken from {@code order}.
-     *
-     * <p>The commas are part of the edit rather than tokens it steps over, because an edit is one
-     * contiguous splice. They come back unchanged, which is what makes the run a permutation of
-     * itself: pass the original types for the run as it was, the sorted ones for the run as it will
-     * be, and the two lists hold the same tokens in a different order.
-     */
-    private static List<String> run(List<GreenNode> children, List<Integer> slots, List<GreenNode> order) {
-        List<String> lexemes = new ArrayList<>();
-        int next = 0;
-        for (int i = slots.getFirst(); i <= slots.getLast(); i++) {
-            boolean isType = next < slots.size() && slots.get(next) == i;
-            lexemes.addAll(ProgramTokens.lexemes(isType ? order.get(next++) : children.get(i)));
-        }
-        return lexemes;
-    }
-
-    /** Where the types sit among the clause's children; everything else is the keyword or a comma. */
-    private static List<Integer> typeSlots(List<GreenNode> children) {
-        List<Integer> slots = new ArrayList<>();
-        for (int i = 1; i < children.size(); i++) {
-            GreenNode child = children.get(i);
-            if (!(child instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(",")) {
-                slots.add(i);
-            }
-        }
-        return slots;
-    }
-
-    private static Comparator<GreenNode> order(SortOrder sort) {
-        Comparator<GreenNode> ascending = Comparator.comparing(SealedRewrite::text);
-        return sort == SortOrder.DESCENDING ? ascending.reversed() : ascending;
-    }
-
-    /** A type's tokens run together, so that {@code a.B} and {@code a . B} sort the same way. */
-    private static String text(GreenNode type) {
-        return String.join("", ProgramTokens.lexemes(type));
-    }
-
-    private static List<String> lexemes(List<GreenNode> nodes) {
-        List<String> lexemes = new ArrayList<>();
-        for (GreenNode node : nodes) {
-            lexemes.addAll(ProgramTokens.lexemes(node));
-        }
-        return lexemes;
     }
 
 }

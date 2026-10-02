@@ -10,48 +10,6 @@ import zone.rong.formatj.core.lexer.Token;
 /** A traditional or Markdown documentation comment split into its description and block tags. */
 public final class Javadoc {
 
-    /** The source form of the documentation comment. */
-    public enum Form {
-
-        TRADITIONAL,
-        MARKDOWN
-
-    }
-
-    /** How a Markdown block may be laid out. */
-    public enum BlockKind {
-
-        BLANK,
-        PARAGRAPH,
-        PRESERVED
-
-    }
-
-    /** One Markdown block whose line boundaries stay separate from neighbouring blocks. */
-    public record Block(BlockKind kind, List<String> lines) {
-
-        public Block {
-            lines = List.copyOf(lines);
-        }
-
-    }
-
-    /** One block tag and the lines and Markdown blocks belonging to it. */
-    public record Tag(
-        String name,
-        String head,
-        List<String> lines,
-        List<Block> description,
-        boolean descriptionStartsOnTagLine
-    ) {
-
-        public Tag {
-            lines = List.copyOf(lines);
-            description = List.copyOf(description);
-        }
-
-    }
-
     /** The conventional order for block tags. Unknown tags stay after the known tags. */
     private static final List<String> CANONICAL = List.of(
         "@author",
@@ -101,45 +59,6 @@ public final class Javadoc {
         this.blankBeforeTags = blankBeforeTags;
         this.safeToFormat = safeToFormat;
         this.markdownIndent = markdownIndent;
-    }
-
-    public Form form() {
-        return form;
-    }
-
-    /** Whether the author left a blank line between the description and the first block tag. */
-    public boolean blankBeforeTags() {
-        return blankBeforeTags;
-    }
-
-    /** The description lines with leading and trailing blank lines removed. */
-    public List<String> description() {
-        return description;
-    }
-
-    /** The Markdown description blocks, or an empty list for a traditional comment. */
-    public List<Block> descriptionBlocks() {
-        return descriptionBlocks;
-    }
-
-    /** The block tags in source order. */
-    public List<Tag> tags() {
-        return tags;
-    }
-
-    /** Whether the author wrote the whole comment on one line. */
-    public boolean singleLine() {
-        return singleLine;
-    }
-
-    /** Whether all Markdown delimiters needed for safe structural edits were recognized. */
-    public boolean safeToFormat() {
-        return safeToFormat;
-    }
-
-    /** The common indentation removed by the JDK from Markdown content. */
-    public int markdownIndent() {
-        return markdownIndent;
     }
 
     /** Where this tag sits in the conventional order. */
@@ -393,12 +312,6 @@ public final class Javadoc {
         return true;
     }
 
-    // ---------------------------------------------------- Markdown literals
-
-    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) { }
-
-    private record Fence(char marker, int length) { }
-
     private static MarkdownScan scanMarkdown(List<String> lines, int indent) {
         List<Boolean> literal = new ArrayList<>(lines.size());
         Fence openFence = null;
@@ -581,5 +494,92 @@ public final class Javadoc {
         }
         return text.substring(0, end);
     }
+
+    public Form form() {
+        return form;
+    }
+
+    /** Whether the author left a blank line between the description and the first block tag. */
+    public boolean blankBeforeTags() {
+        return blankBeforeTags;
+    }
+
+    /** The description lines with leading and trailing blank lines removed. */
+    public List<String> description() {
+        return description;
+    }
+
+    /** The Markdown description blocks, or an empty list for a traditional comment. */
+    public List<Block> descriptionBlocks() {
+        return descriptionBlocks;
+    }
+
+    /** The block tags in source order. */
+    public List<Tag> tags() {
+        return tags;
+    }
+
+    /** Whether the author wrote the whole comment on one line. */
+    public boolean singleLine() {
+        return singleLine;
+    }
+
+    /** Whether all Markdown delimiters needed for safe structural edits were recognized. */
+    public boolean safeToFormat() {
+        return safeToFormat;
+    }
+
+    /** The common indentation removed by the JDK from Markdown content. */
+    public int markdownIndent() {
+        return markdownIndent;
+    }
+
+    /** The source form of the documentation comment. */
+    public enum Form {
+
+        TRADITIONAL,
+        MARKDOWN
+
+    }
+
+    /** How a Markdown block may be laid out. */
+    public enum BlockKind {
+
+        BLANK,
+        PARAGRAPH,
+        PRESERVED
+
+    }
+
+    /** One Markdown block whose line boundaries stay separate from neighbouring blocks. */
+    public record Block(BlockKind kind, List<String> lines) {
+
+        public Block {
+            lines = List.copyOf(lines);
+        }
+
+    }
+
+    /** One block tag and the lines and Markdown blocks belonging to it. */
+    public record Tag(
+        String name,
+        String head,
+        List<String> lines,
+        List<Block> description,
+        boolean descriptionStartsOnTagLine
+    ) {
+
+        public Tag {
+            lines = List.copyOf(lines);
+            description = List.copyOf(description);
+        }
+
+    }
+
+    // ---------------------------------------------------- Markdown literals
+
+    private record MarkdownScan(List<Boolean> literalAtLineStart, boolean safe) { }
+
+    private record Fence(char marker, int length) { }
 
 }

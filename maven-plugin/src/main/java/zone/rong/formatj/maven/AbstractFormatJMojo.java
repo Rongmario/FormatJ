@@ -80,6 +80,14 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     /** Skips the goal entirely. */
     @Parameter(property = "formatj.skip", defaultValue = "false") protected boolean skip;
 
+    private static Charset charset(String name) throws MojoExecutionException {
+        try {
+            return Charset.forName(name);
+        } catch (IllegalArgumentException e) {
+            throw new MojoExecutionException("Unknown <encoding> '" + name + "'", e);
+        }
+    }
+
     /** Whether a file that would change is rewritten, or merely reported. */
     protected abstract boolean checkOnly();
 
@@ -147,14 +155,6 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             );
         }
         getLog().info("FormatJ checked " + files.size() + " file(s), formatted " + formatted);
-    }
-
-    private static Charset charset(String name) throws MojoExecutionException {
-        try {
-            return Charset.forName(name);
-        } catch (IllegalArgumentException e) {
-            throw new MojoExecutionException("Unknown <encoding> '" + name + "'", e);
-        }
     }
 
     /**

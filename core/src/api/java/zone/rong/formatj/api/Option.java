@@ -17,19 +17,6 @@ import java.util.Objects;
  */
 public final class Option<T> {
 
-    /** The value shapes an option can take. Determines how it is parsed and rendered. */
-    public enum Kind {
-
-        BOOLEAN,
-        INTEGER,
-        STRING,
-        ENUM,
-        STRING_GROUPS,
-        INHERITABLE_INTEGER,
-        INHERITABLE_ENUM
-
-    }
-
     private final String key;
     private final Kind kind;
     private final Class<T> type;
@@ -120,6 +107,66 @@ public final class Option<T> {
     ) {
         Class<List<List<String>>> type = (Class) List.class;
         return new Option<>(key, Kind.STRING_GROUPS, type, copyGroups(defaultValue), description);
+    }
+
+    private static boolean isInherit(String raw) {
+        return raw.equalsIgnoreCase("inherit");
+    }
+
+    /** Deep copy of a groups value, promoting a bare string element to a group of one. */
+    private static List<List<String>> copyGroups(List<?> groups) {
+        List<List<String>> copy = new ArrayList<>(groups.size());
+        for (Object group : groups) {
+            List<?> prefixes = group instanceof List<?> nested ? nested : List.of(group);
+            List<String> strings = new ArrayList<>(prefixes.size());
+            for (Object prefix : prefixes) {
+                strings.add(String.valueOf(prefix));
+            }
+            copy.add(List.copyOf(strings));
+        }
+        return List.copyOf(copy);
+    }
+
+    private static void addElement(List<String> elements, StringBuilder element) {
+        String piece = element.toString().trim();
+        if (piece.isEmpty()) {
+            return;
+        }
+        elements.add(piece);
+    }
+
+    /** Wraps a value in double quotes, escaping backslashes and quotes so {@link #unquote} inverts it. */
+    private static String quote(String value) {
+        StringBuilder out = new StringBuilder(value.length() + 2).append('"');
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '"' || c == '\\') {
+                out.append('\\');
+            }
+            out.append(c);
+        }
+        return out.append('"').toString();
+    }
+
+    /** Strips one layer of surrounding double quotes and their escapes; bare text is returned as is. */
+    private static String unquote(String raw) {
+        if (raw.length() < 2 || !raw.startsWith("\"") || !raw.endsWith("\"")) {
+            return raw;
+        }
+        String body = raw.substring(1, raw.length() - 1);
+        StringBuilder out = new StringBuilder(body.length());
+        for (int i = 0; i < body.length(); i++) {
+            char c = body.charAt(i);
+            if (c == '\\' && i + 1 < body.length()) {
+                c = body.charAt(++i);
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    private static String renderEnum(Enum<?> constant) {
+        return constant.name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
     /** The dotted key used in {@code formatj.toml}, e.g. {@code wrapping.max-line-length}. */
@@ -300,10 +347,6 @@ public final class Option<T> {
         return isInherit(raw) ? Inheritable.inherit() : Inheritable.of(parseEnum(raw, valueType));
     }
 
-    private static boolean isInherit(String raw) {
-        return raw.equalsIgnoreCase("inherit");
-    }
-
     /** Splits the outer array, where an element is either a bare string or a nested array. */
     private List<List<String>> parseGroups(String raw) {
         List<List<String>> groups = new ArrayList<>();
@@ -367,65 +410,22 @@ public final class Option<T> {
         return elements;
     }
 
-    /** Deep copy of a groups value, promoting a bare string element to a group of one. */
-    private static List<List<String>> copyGroups(List<?> groups) {
-        List<List<String>> copy = new ArrayList<>(groups.size());
-        for (Object group : groups) {
-            List<?> prefixes = group instanceof List<?> nested ? nested : List.of(group);
-            List<String> strings = new ArrayList<>(prefixes.size());
-            for (Object prefix : prefixes) {
-                strings.add(String.valueOf(prefix));
-            }
-            copy.add(List.copyOf(strings));
-        }
-        return List.copyOf(copy);
-    }
-
-    private static void addElement(List<String> elements, StringBuilder element) {
-        String piece = element.toString().trim();
-        if (piece.isEmpty()) {
-            return;
-        }
-        elements.add(piece);
-    }
-
-    /** Wraps a value in double quotes, escaping backslashes and quotes so {@link #unquote} inverts it. */
-    private static String quote(String value) {
-        StringBuilder out = new StringBuilder(value.length() + 2).append('"');
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
-            if (c == '"' || c == '\\') {
-                out.append('\\');
-            }
-            out.append(c);
-        }
-        return out.append('"').toString();
-    }
-
-    /** Strips one layer of surrounding double quotes and their escapes; bare text is returned as is. */
-    private static String unquote(String raw) {
-        if (raw.length() < 2 || !raw.startsWith("\"") || !raw.endsWith("\"")) {
-            return raw;
-        }
-        String body = raw.substring(1, raw.length() - 1);
-        StringBuilder out = new StringBuilder(body.length());
-        for (int i = 0; i < body.length(); i++) {
-            char c = body.charAt(i);
-            if (c == '\\' && i + 1 < body.length()) {
-                c = body.charAt(++i);
-            }
-            out.append(c);
-        }
-        return out.toString();
-    }
-
-    private static String renderEnum(Enum<?> constant) {
-        return constant.name().toLowerCase(Locale.ROOT).replace('_', '-');
-    }
-
     @Override
     public String toString() {
         return key;
+    }
+
+    /** The value shapes an option can take. Determines how it is parsed and rendered. */
+    public enum Kind {
+
+        BOOLEAN,
+        INTEGER,
+        STRING,
+        ENUM,
+        STRING_GROUPS,
+        INHERITABLE_INTEGER,
+        INHERITABLE_ENUM
+
     }
 
 }

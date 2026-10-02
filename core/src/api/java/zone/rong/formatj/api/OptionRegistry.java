@@ -42,9 +42,6 @@ public final class OptionRegistry {
 
     private static final Map<String, Option<?>> BY_KEY = new LinkedHashMap<>();
 
-    /** A rule group: the dotted prefix its keys use, and the class that declares them. */
-    private record Group(String prefix, Class<?> type) { }
-
     private static final List<Group> GROUPS = List.of(
         new Group("file", FileRules.class),
         new Group("indent", IndentRules.class),
@@ -165,5 +162,8 @@ public final class OptionRegistry {
         result.putAll(remaining);
         return result;
     }
+
+    /** A rule group: the dotted prefix its keys use, and the class that declares them. */
+    private record Group(String prefix, Class<?> type) { }
 
 }

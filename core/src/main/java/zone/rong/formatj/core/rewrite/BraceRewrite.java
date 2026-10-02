@@ -34,6 +34,65 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 public final class BraceRewrite implements Rewrite {
 
+    /** Whether {@code body}, unbraced, would let this if's {@code else} bind to an if inside it. */
+    private static boolean danglingElse(GreenNode statement, GreenNode body) {
+        return statement.kind() == SyntaxKind.IF_STATEMENT &&
+            statement.children().getLast().kind() == SyntaxKind.ELSE_CLAUSE &&
+            endsInOpenIf(body);
+    }
+
+    /**
+     * Whether a statement ends in an {@code if} without an {@code else}, which a following
+     * {@code else} would attach to.
+     *
+     * <p>A single-statement block counts as open too: the same pass may be about to take its braces off.
+     */
+    private static boolean endsInOpenIf(GreenNode statement) {
+        return switch (statement.kind()) {
+            case IF_STATEMENT -> {
+                GreenNode last = statement.children().getLast();
+                yield last.kind() != SyntaxKind.ELSE_CLAUSE || endsInOpenIf(last.children().getLast());
+            }
+            case FOR_STATEMENT, ENHANCED_FOR_STATEMENT, WHILE_STATEMENT, LABELED_STATEMENT ->
+                endsInOpenIf(statement.children().getLast());
+            case BLOCK -> statementsIn(statement) == 1 && endsInOpenIf(statement.children().get(1));
+            default -> false;
+        };
+    }
+
+    private static int statementsIn(GreenNode block) {
+        return Math.max(0, block.children().size() - 2);
+    }
+
+    private static GreenNode brace(String lexeme) {
+        return GreenNode.leaf(SyntaxToken.of(Token.synthetic(TokenKind.SEPARATOR, lexeme)));
+    }
+
+    /** Which rule governs the body of this statement, or null when it has no body to brace. */
+    private static Option<BracePolicy> authorityFor(SyntaxKind kind) {
+        return switch (kind) {
+            case IF_STATEMENT, ELSE_CLAUSE -> BraceRules.IF_ELSE;
+            case FOR_STATEMENT, ENHANCED_FOR_STATEMENT -> BraceRules.FOR_LOOP;
+            case WHILE_STATEMENT, DO_STATEMENT -> BraceRules.WHILE_LOOP;
+            default -> null;
+        };
+    }
+
+    /**
+     * Where the body sits among a statement's children.
+     *
+     * <p>A {@code for} is the odd one out: its header holds a variable number of children, so the
+     * body is found from the end rather than counted from the start.
+     */
+    private static int bodyIndex(GreenNode node) {
+        return switch (node.kind()) {
+            case IF_STATEMENT, WHILE_STATEMENT, ENHANCED_FOR_STATEMENT -> 4;
+            case ELSE_CLAUSE, DO_STATEMENT -> 1;
+            case FOR_STATEMENT -> node.children().size() - 1;
+            default -> -1;
+        };
+    }
+
     @Override
     public String name() {
         return "braces";
@@ -168,65 +227,6 @@ public final class BraceRewrite implements Rewrite {
         context.record(TokenEdit.delete(authority, "braces removed from a single-statement body", openPosition, "{"));
         context.record(TokenEdit.delete(authority, "braces removed from a single-statement body", closePosition, "}"));
         return only;
-    }
-
-    /** Whether {@code body}, unbraced, would let this if's {@code else} bind to an if inside it. */
-    private static boolean danglingElse(GreenNode statement, GreenNode body) {
-        return statement.kind() == SyntaxKind.IF_STATEMENT &&
-            statement.children().getLast().kind() == SyntaxKind.ELSE_CLAUSE &&
-            endsInOpenIf(body);
-    }
-
-    /**
-     * Whether a statement ends in an {@code if} without an {@code else}, which a following
-     * {@code else} would attach to.
-     *
-     * <p>A single-statement block counts as open too: the same pass may be about to take its braces off.
-     */
-    private static boolean endsInOpenIf(GreenNode statement) {
-        return switch (statement.kind()) {
-            case IF_STATEMENT -> {
-                GreenNode last = statement.children().getLast();
-                yield last.kind() != SyntaxKind.ELSE_CLAUSE || endsInOpenIf(last.children().getLast());
-            }
-            case FOR_STATEMENT, ENHANCED_FOR_STATEMENT, WHILE_STATEMENT, LABELED_STATEMENT ->
-                endsInOpenIf(statement.children().getLast());
-            case BLOCK -> statementsIn(statement) == 1 && endsInOpenIf(statement.children().get(1));
-            default -> false;
-        };
-    }
-
-    private static int statementsIn(GreenNode block) {
-        return Math.max(0, block.children().size() - 2);
-    }
-
-    private static GreenNode brace(String lexeme) {
-        return GreenNode.leaf(SyntaxToken.of(Token.synthetic(TokenKind.SEPARATOR, lexeme)));
-    }
-
-    /** Which rule governs the body of this statement, or null when it has no body to brace. */
-    private static Option<BracePolicy> authorityFor(SyntaxKind kind) {
-        return switch (kind) {
-            case IF_STATEMENT, ELSE_CLAUSE -> BraceRules.IF_ELSE;
-            case FOR_STATEMENT, ENHANCED_FOR_STATEMENT -> BraceRules.FOR_LOOP;
-            case WHILE_STATEMENT, DO_STATEMENT -> BraceRules.WHILE_LOOP;
-            default -> null;
-        };
-    }
-
-    /**
-     * Where the body sits among a statement's children.
-     *
-     * <p>A {@code for} is the odd one out: its header holds a variable number of children, so the
-     * body is found from the end rather than counted from the start.
-     */
-    private static int bodyIndex(GreenNode node) {
-        return switch (node.kind()) {
-            case IF_STATEMENT, WHILE_STATEMENT, ENHANCED_FOR_STATEMENT -> 4;
-            case ELSE_CLAUSE, DO_STATEMENT -> 1;
-            case FOR_STATEMENT -> node.children().size() - 1;
-            default -> -1;
-        };
     }
 
 }

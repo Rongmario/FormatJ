@@ -30,6 +30,53 @@ public class FormatJPlugin implements Plugin<Project> {
     public static final String CHECK_TASK_NAME = "formatJavaCheck";
     public static final String TASK_GROUP = "formatting";
 
+    private static void configure(
+        FormatJTask task,
+        FormatJExtension extension,
+        Provider<FileCollection> sources,
+        Provider<RegularFile> resolvedStyleFile
+    ) {
+        task.getSource().from(sources);
+        task.getStyleFile().set(resolvedStyleFile);
+        task.getStyle().set(extension.getStyle());
+        task.getPreset().set(extension.getPreset());
+        task.getRules().set(extension.getRules());
+        task.getLanguageLevel().set(extension.getLanguageLevel());
+        task.getPreviewFeatures().set(extension.getPreviewFeatures());
+    }
+
+    private static FileCollection javaSources(
+        Project project,
+        FormatJExtension extension,
+        Provider<RegularFile> resolvedStyleFile
+    ) {
+        JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
+        if (java == null) {
+            return project.files();
+        }
+        SourceSetContainer sourceSets = java.getSourceSets();
+        // A ListProperty nobody set still answers with an empty list rather than with nothing, so an
+        // empty selection is what "the user said nothing" looks like: it means every source set.
+        List<String> selected = extension.getSourceSets().getOrElse(List.of());
+        // The style file's own [files] table, relative to its directory; applies on top of the
+        // extension's own include/exclude, which Gradle already matches relative to each source set.
+        FileSelection tomlSelection = resolvedStyleFile
+            .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
+            .getOrElse(FileSelection.NONE);
+        FileCollection files = project.files();
+        for (SourceSet sourceSet : sourceSets) {
+            if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
+                files = files.plus(
+                    sourceSet.getAllJava()
+                        .matching(patterns -> patterns.include(extension.getIncludes().get())
+                            .exclude(extension.getExcludes().get()))
+                        .filter(file -> file.getName().endsWith(".java") && tomlSelection.matches(file.toPath()))
+                );
+            }
+        }
+        return files;
+    }
+
     @Override
     public void apply(Project project) {
         FormatJExtension extension = project.getExtensions().create(EXTENSION_NAME, FormatJExtension.class);
@@ -80,53 +127,6 @@ public class FormatJPlugin implements Plugin<Project> {
 
         // Applying then checking in one invocation must run in that order, not in parallel.
         check.configure(task -> task.mustRunAfter(apply));
-    }
-
-    private static void configure(
-        FormatJTask task,
-        FormatJExtension extension,
-        Provider<FileCollection> sources,
-        Provider<RegularFile> resolvedStyleFile
-    ) {
-        task.getSource().from(sources);
-        task.getStyleFile().set(resolvedStyleFile);
-        task.getStyle().set(extension.getStyle());
-        task.getPreset().set(extension.getPreset());
-        task.getRules().set(extension.getRules());
-        task.getLanguageLevel().set(extension.getLanguageLevel());
-        task.getPreviewFeatures().set(extension.getPreviewFeatures());
-    }
-
-    private static FileCollection javaSources(
-        Project project,
-        FormatJExtension extension,
-        Provider<RegularFile> resolvedStyleFile
-    ) {
-        JavaPluginExtension java = project.getExtensions().findByType(JavaPluginExtension.class);
-        if (java == null) {
-            return project.files();
-        }
-        SourceSetContainer sourceSets = java.getSourceSets();
-        // A ListProperty nobody set still answers with an empty list rather than with nothing, so an
-        // empty selection is what "the user said nothing" looks like: it means every source set.
-        List<String> selected = extension.getSourceSets().getOrElse(List.of());
-        // The style file's own [files] table, relative to its directory; applies on top of the
-        // extension's own include/exclude, which Gradle already matches relative to each source set.
-        FileSelection tomlSelection = resolvedStyleFile
-            .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
-            .getOrElse(FileSelection.NONE);
-        FileCollection files = project.files();
-        for (SourceSet sourceSet : sourceSets) {
-            if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
-                files = files.plus(
-                    sourceSet.getAllJava()
-                        .matching(patterns -> patterns.include(extension.getIncludes().get())
-                            .exclude(extension.getExcludes().get()))
-                        .filter(file -> file.getName().endsWith(".java") && tomlSelection.matches(file.toPath()))
-                );
-            }
-        }
-        return files;
     }
 
 }

@@ -25,6 +25,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AuthorLineRulesTest {
 
+    private static String format(String source, Consumer<StyleBuilder> configure) {
+        StyleBuilder builder = Style.builder();
+        configure.accept(builder);
+        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
+        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
+        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+        return result.text();
+    }
+
     @Test
     void aBlockTheAuthorWroteOnOneLineStaysOnOneLine() {
         String source = "class A {\n\n    void f() {\n        if (x) { g(); }\n    }\n\n}\n";
@@ -211,15 +220,6 @@ class AuthorLineRulesTest {
 
         String oneRow = "class A {\n    int[] a = {\n        1, 2, 3\n    };\n}\n";
         assertTrue(format(oneRow, keepRows).contains("int[] a = { 1, 2, 3 };"));
-    }
-
-    private static String format(String source, Consumer<StyleBuilder> configure) {
-        StyleBuilder builder = Style.builder();
-        configure.accept(builder);
-        Formatter formatter = FormatJ.newFormatter().style(builder.build()).build();
-        FormatResult result = formatter.format(FormatRequest.of(source).withName("A.java"));
-        assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
-        return result.text();
     }
 
 }

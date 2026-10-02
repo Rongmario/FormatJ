@@ -48,28 +48,8 @@ class Jls25FixtureTest {
 
     private static final Path FIXTURES = Path.of("src/test/resources/jls25");
 
-    @TestFactory
-    Stream<DynamicTest> everyFixtureCompilesParsesAndFormats() throws IOException {
-        assertTrue(Files.isDirectory(FIXTURES), () -> "missing fixture directory: " + FIXTURES.toAbsolutePath());
-        assumeTrue(
-            Runtime.version().feature() >= 25,
-            () -> "this JDK does not support --release 25: " + Runtime.version()
-        );
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        assumeTrue(compiler != null, "no system Java compiler available");
-
-        try (Stream<Path> entries = Files.list(FIXTURES)) {
-            List<Path> fixtures = entries.sorted().toList();
-            assertTrue(!fixtures.isEmpty(), "no fixtures found under " + FIXTURES);
-            return fixtures.stream().map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
-                if (Files.isDirectory(path)) {
-                    testDirectoryFixture(compiler, path);
-                } else {
-                    testSingleFileFixture(compiler, path);
-                }
-            }));
-        }
-    }
+    // The default style rewrites tokens, so token equivalence is held against the layout alone.
+    private static final Formatter LAYOUT_ONLY = FormatJ.newFormatter().style(CorpusInvariantTest.layoutOnly()).build();
 
     /** A lone {@code .java} file, compiled and formatted on its own. */
     private static void testSingleFileFixture(JavaCompiler compiler, Path path) throws IOException {
@@ -83,9 +63,10 @@ class Jls25FixtureTest {
         Formatter formatter = FormatJ.defaultFormatter();
         FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
         assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
+        String layout = LAYOUT_ONLY.format(FormatRequest.of(source).withName(path.toString())).text();
         assertTrue(
-            TokenEquivalence.equivalent(source, once.text()),
-            () -> "formatting changed the program: " + TokenEquivalence.firstDifference(source, once.text())
+            TokenEquivalence.equivalent(source, layout),
+            () -> "formatting changed the program: " + TokenEquivalence.firstDifference(source, layout)
         );
         assertCompiles(compiler, List.of(new StringSource(path.getFileName().toString(), once.text())));
 
@@ -121,10 +102,11 @@ class Jls25FixtureTest {
 
             FormatResult once = formatter.format(FormatRequest.of(source).withName(file.toString()));
             assertTrue(!once.hasErrors(), () -> "formatting failed in " + file + ": " + once.diagnostics());
+            String layout = LAYOUT_ONLY.format(FormatRequest.of(source).withName(file.toString())).text();
             assertTrue(
-                TokenEquivalence.equivalent(source, once.text()),
+                TokenEquivalence.equivalent(source, layout),
                 () -> "formatting changed the program in " + file + ": " +
-                    TokenEquivalence.firstDifference(source, once.text())
+                    TokenEquivalence.firstDifference(source, layout)
             );
             formattedOnce.add(once.text());
         }
@@ -167,6 +149,29 @@ class Jls25FixtureTest {
                 .filter(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR)
                 .toList();
             assertTrue(success && errors.isEmpty(), () -> "javac errors: " + errors);
+        }
+    }
+
+    @TestFactory
+    Stream<DynamicTest> everyFixtureCompilesParsesAndFormats() throws IOException {
+        assertTrue(Files.isDirectory(FIXTURES), () -> "missing fixture directory: " + FIXTURES.toAbsolutePath());
+        assumeTrue(
+            Runtime.version().feature() >= 25,
+            () -> "this JDK does not support --release 25: " + Runtime.version()
+        );
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        assumeTrue(compiler != null, "no system Java compiler available");
+
+        try (Stream<Path> entries = Files.list(FIXTURES)) {
+            List<Path> fixtures = entries.sorted().toList();
+            assertTrue(!fixtures.isEmpty(), "no fixtures found under " + FIXTURES);
+            return fixtures.stream().map(path -> DynamicTest.dynamicTest(path.getFileName().toString(), () -> {
+                if (Files.isDirectory(path)) {
+                    testDirectoryFixture(compiler, path);
+                } else {
+                    testSingleFileFixture(compiler, path);
+                }
+            }));
         }
     }
 

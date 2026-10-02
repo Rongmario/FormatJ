@@ -27,62 +27,6 @@ class OptionCatalogueTest {
 
     private static final Pattern KEY = Pattern.compile("[a-z0-9]+(-[a-z0-9]+)*(\\.[a-z0-9]+(-[a-z0-9]+)*)+");
 
-    @Test
-    void catalogueIsNotEmpty() {
-        assertTrue(OptionRegistry.all().size() > 100, "the rule catalogue should be large by design");
-    }
-
-    @Test
-    void everyKeyIsWellFormedAndUnique() {
-        Set<String> seen = new HashSet<>();
-        for (Option<?> option : OptionRegistry.all()) {
-            assertTrue(KEY.matcher(option.key()).matches(), () -> "malformed key: " + option.key());
-            assertTrue(seen.add(option.key()), () -> "duplicate key: " + option.key());
-        }
-    }
-
-    @Test
-    void everyOptionIsDocumented() {
-        for (Option<?> option : OptionRegistry.all()) {
-            assertFalse(option.description().isBlank(), () -> option.key() + " has no description");
-        }
-    }
-
-    @Test
-    void everyOptionHasAReadmeTableRow() {
-        Set<String> documented = readmeTableKeys();
-        List<String> missing = new ArrayList<>();
-        for (Option<?> option : OptionRegistry.all()) {
-            if (!documented.contains(option.key())) {
-                missing.add(option.key());
-            }
-        }
-        assertTrue(missing.isEmpty(), () -> "no README table row documents: " + missing);
-    }
-
-    @Test
-    void everyReadmeRowDefaultAndLegalValuesMatchTheCatalogue() {
-        String readme = readmeText();
-        List<String> problems = readmeProblems(readme);
-        assertTrue(problems.isEmpty(), () -> String.join("\n", problems));
-    }
-
-    @Test
-    void enumValuesFromAnotherGlossaryDoNotSatisfyARow() {
-        String readme = readmeText();
-        String corrupted = readme.replace(
-            "| `wrapping.method-parameters`                     | `WrapPolicy`",
-            "| `wrapping.method-parameters`                     | `BracePolicy`"
-        );
-        assertFalse(corrupted.equals(readme), "fixture row was not replaced");
-
-        List<String> problems = readmeProblems(corrupted);
-        assertTrue(
-            problems.stream().anyMatch(problem -> problem.startsWith("wrapping.method-parameters")),
-            () -> String.join("\n", problems)
-        );
-    }
-
     private static List<String> readmeProblems(String readme) {
         List<ReadmeRow> rows = readmeRows(readme);
         List<String> problems = new ArrayList<>();
@@ -138,10 +82,7 @@ class OptionCatalogueTest {
         if (!values.isEmpty() && !values.equals(List.of(typeName))) {
             return values;
         }
-        Matcher glossary = Pattern.compile(
-            "`" + Pattern.quote(typeName) + "` values are (.*?)(?:\\.(?:\\s|$)|\\R\\s*\\R)",
-            Pattern.DOTALL
-        )
+        Matcher glossary = Pattern.compile("(?m)^\\| `" + Pattern.quote(typeName) + "`\\s*\\| (.*?)\\|$")
             .matcher(readme);
         return glossary.find() ? codeTokens(glossary.group(1)) : List.of();
     }
@@ -170,8 +111,6 @@ class OptionCatalogueTest {
             throw new UncheckedIOException(e);
         }
     }
-
-    private record ReadmeRow(String key, String values, String defaultValue) { }
 
     private static List<ReadmeRow> readmeRows(String readme) {
         List<ReadmeRow> rows = new ArrayList<>();
@@ -253,19 +192,85 @@ class OptionCatalogueTest {
         throw new IllegalStateException("README.md not found in any ancestor of " + Path.of("").toAbsolutePath());
     }
 
-    @Test
-    void everyOptionRendersAndParsesBackToItself() {
-        for (Option<?> option : OptionRegistry.all()) {
-            assertRoundTrips(option);
-        }
-    }
-
     private static <T> void assertRoundTrips(Option<T> option) {
         assertEquals(
             option.defaultValue(),
             option.parse(option.render(option.defaultValue())),
             () -> option.key() + " did not round-trip"
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Option<T> firstOfKind(Option.Kind kind) {
+        for (Option<?> option : OptionRegistry.all()) {
+            if (option.kind() == kind) {
+                return (Option<T>) option;
+            }
+        }
+        throw new AssertionError("no option of kind " + kind);
+    }
+
+    @Test
+    void catalogueIsNotEmpty() {
+        assertTrue(OptionRegistry.all().size() > 100, "the rule catalogue should be large by design");
+    }
+
+    @Test
+    void everyKeyIsWellFormedAndUnique() {
+        Set<String> seen = new HashSet<>();
+        for (Option<?> option : OptionRegistry.all()) {
+            assertTrue(KEY.matcher(option.key()).matches(), () -> "malformed key: " + option.key());
+            assertTrue(seen.add(option.key()), () -> "duplicate key: " + option.key());
+        }
+    }
+
+    @Test
+    void everyOptionIsDocumented() {
+        for (Option<?> option : OptionRegistry.all()) {
+            assertFalse(option.description().isBlank(), () -> option.key() + " has no description");
+        }
+    }
+
+    @Test
+    void everyOptionHasAReadmeTableRow() {
+        Set<String> documented = readmeTableKeys();
+        List<String> missing = new ArrayList<>();
+        for (Option<?> option : OptionRegistry.all()) {
+            if (!documented.contains(option.key())) {
+                missing.add(option.key());
+            }
+        }
+        assertTrue(missing.isEmpty(), () -> "no README table row documents: " + missing);
+    }
+
+    @Test
+    void everyReadmeRowDefaultAndLegalValuesMatchTheCatalogue() {
+        String readme = readmeText();
+        List<String> problems = readmeProblems(readme);
+        assertTrue(problems.isEmpty(), () -> String.join("\n", problems));
+    }
+
+    @Test
+    void enumValuesFromAnotherGlossaryDoNotSatisfyARow() {
+        String readme = readmeText();
+        String corrupted = readme.replace(
+            "| `wrapping.method-parameters`                  | `WrapPolicy`",
+            "| `wrapping.method-parameters`                  | `BracePolicy`"
+        );
+        assertFalse(corrupted.equals(readme), "fixture row was not replaced");
+
+        List<String> problems = readmeProblems(corrupted);
+        assertTrue(
+            problems.stream().anyMatch(problem -> problem.startsWith("wrapping.method-parameters")),
+            () -> String.join("\n", problems)
+        );
+    }
+
+    @Test
+    void everyOptionRendersAndParsesBackToItself() {
+        for (Option<?> option : OptionRegistry.all()) {
+            assertRoundTrips(option);
+        }
     }
 
     @Test
@@ -287,16 +292,6 @@ class OptionCatalogueTest {
     void unterminatedQuotesInAListAreRejected() {
         Option<List<List<String>>> option = firstOfKind(Option.Kind.STRING_GROUPS);
         assertThrows(IllegalArgumentException.class, () -> option.parse("[\"a, b]"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Option<T> firstOfKind(Option.Kind kind) {
-        for (Option<?> option : OptionRegistry.all()) {
-            if (option.kind() == kind) {
-                return (Option<T>) option;
-            }
-        }
-        throw new AssertionError("no option of kind " + kind);
     }
 
     @Test
@@ -339,5 +334,7 @@ class OptionCatalogueTest {
         assertEquals(3, reloaded.get(IndentRules.SIZE));
         assertEquals(100, reloaded.get(WrappingRules.MAX_LINE_LENGTH));
     }
+
+    private record ReadmeRow(String key, String values, String defaultValue) { }
 
 }

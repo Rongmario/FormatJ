@@ -28,6 +28,15 @@ class GoldenFileTest {
 
     private static final Path CASES = Path.of("src/test/resources/cases");
 
+    private static Style styleFor(Path directory) {
+        Path styleFile = directory.resolve("style.toml");
+        return Files.isRegularFile(styleFile) ? StyleFiles.load(styleFile) : Style.defaults();
+    }
+
+    private static String read(Path file) throws IOException {
+        return Files.readString(file, StandardCharsets.UTF_8);
+    }
+
     @TestFactory
     Stream<DynamicTest> everyCaseFormatsToItsExpectedOutput() throws IOException {
         assertTrue(Files.isDirectory(CASES), () -> "missing case directory: " + CASES.toAbsolutePath());
@@ -45,15 +54,6 @@ class GoldenFileTest {
                 assertEquals(formatted, again, "formatting must be a fixed point");
             }));
         }
-    }
-
-    private static Style styleFor(Path directory) {
-        Path styleFile = directory.resolve("style.toml");
-        return Files.isRegularFile(styleFile) ? StyleFiles.load(styleFile) : Style.defaults();
-    }
-
-    private static String read(Path file) throws IOException {
-        return Files.readString(file, StandardCharsets.UTF_8);
     }
 
 }

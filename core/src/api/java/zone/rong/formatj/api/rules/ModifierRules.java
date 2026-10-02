@@ -25,13 +25,13 @@ public final class ModifierRules {
 
     public static final Option<ModifierOrder> ORDER = Option.ofEnum(
         "modifiers.order",
-        ModifierOrder.PRESERVE,
+        ModifierOrder.CANONICAL,
         "Ordering of declaration modifiers"
     );
 
     public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
         "modifiers.remove-redundant",
-        false,
+        true,
         "Remove modifiers the language already implies"
     );
 

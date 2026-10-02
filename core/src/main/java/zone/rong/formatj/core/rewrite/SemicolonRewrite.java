@@ -18,6 +18,27 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  */
 public final class SemicolonRewrite implements Rewrite {
 
+    /**
+     * Whether stray semicolons in this body may go. An enum body whose only members are stray
+     * semicolons keeps them, because then the {@code ;} ending the constants is the only one that
+     * counts as a token, and which of them survives would change the token stream.
+     */
+    private static boolean membersFollowConstants(List<GreenNode> children) {
+        boolean constants = false;
+        for (GreenNode child : children) {
+            if (child.kind() == SyntaxKind.ENUM_CONSTANTS) {
+                constants = true;
+            } else if (constants && child.kind().isMember()) {
+                return true;
+            }
+        }
+        return !constants;
+    }
+
+    private static boolean hasComments(GreenNode node) {
+        return ProgramTokens.leaves(node).getFirst().token().hasComments();
+    }
+
     @Override
     public String name() {
         return "semicolons";
@@ -56,27 +77,6 @@ public final class SemicolonRewrite implements Rewrite {
             kept.add(child);
         }
         return kept.size() == children.size() ? node : GreenNode.branch(node.kind(), kept);
-    }
-
-    /**
-     * Whether stray semicolons in this body may go. An enum body whose only members are stray
-     * semicolons keeps them, because then the {@code ;} ending the constants is the only one that
-     * counts as a token, and which of them survives would change the token stream.
-     */
-    private static boolean membersFollowConstants(List<GreenNode> children) {
-        boolean constants = false;
-        for (GreenNode child : children) {
-            if (child.kind() == SyntaxKind.ENUM_CONSTANTS) {
-                constants = true;
-            } else if (constants && child.kind().isMember()) {
-                return true;
-            }
-        }
-        return !constants;
-    }
-
-    private static boolean hasComments(GreenNode node) {
-        return ProgramTokens.leaves(node).getFirst().token().hasComments();
     }
 
 }

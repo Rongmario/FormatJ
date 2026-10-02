@@ -8,7 +8,7 @@ public final class ArrayRules {
 
     public static final Option<BracketStyle> C_STYLE_BRACKETS = Option.ofEnum(
         "arrays.c-style-brackets",
-        BracketStyle.PRESERVE,
+        BracketStyle.JAVA,
         "Placement of array brackets on declared variables"
     );
 

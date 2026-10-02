@@ -41,6 +41,80 @@ public final class DocEmitter extends StatementEmitter {
         super(style);
     }
 
+    private static boolean hasComments(GreenNode node) {
+        return node instanceof GreenNode.Leaf leaf && leaf.token().hasComments();
+    }
+
+    /**
+     * Whether a node is, or ends with, an annotation.
+     *
+     * <p>The last annotation of a modifier list is followed by the declaration itself, so the decision
+     * about the line break belongs to whoever emits the declaration, not to the modifier list.
+     */
+    private static boolean endsWithAnnotation(GreenNode node) {
+        if (node.kind() == SyntaxKind.ANNOTATION) {
+            return true;
+        }
+        return node.kind() == SyntaxKind.MODIFIERS &&
+            !node.children().isEmpty() &&
+            node.children().getLast().kind() == SyntaxKind.ANNOTATION;
+    }
+
+    private static boolean membersFollow(List<GreenNode> body, int enumConstantsIndex) {
+        for (int i = enumConstantsIndex + 1; i < body.size(); i++) {
+            if (body.get(i).kind().isMember()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isModuleDirective(GreenNode node) {
+        return switch (node.kind()) {
+            case REQUIRES_DIRECTIVE, EXPORTS_DIRECTIVE, OPENS_DIRECTIVE, USES_DIRECTIVE, PROVIDES_DIRECTIVE -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean hasEnumConstant(List<GreenNode> children) {
+        for (GreenNode child : children) {
+            if (child.kind() == SyntaxKind.ENUM_CONSTANT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasParameterizedConstant(List<GreenNode> children) {
+        for (GreenNode child : children) {
+            if (child.kind() != SyntaxKind.ENUM_CONSTANT) {
+                continue;
+            }
+            for (GreenNode part : child.children()) {
+                if (part.kind() == SyntaxKind.ARGUMENTS) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<Doc> withSeparators(List<Doc> elements, Doc separator) {
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < elements.size(); i++) {
+            if (i > 0) {
+                parts.add(separator);
+            }
+            parts.add(elements.get(i));
+        }
+        return parts;
+    }
+
+    /** {@code non-sealed} arrives as three tokens and must be printed back without spaces. */
+    private static boolean isNonSealedFragment(GreenNode previous, GreenNode next) {
+        return is(previous, "non") && is(next, "-") || is(previous, "-") && is(next, "sealed");
+    }
+
     public Style style() {
         return style;
     }
@@ -219,10 +293,6 @@ public final class DocEmitter extends StatementEmitter {
         return before != null && after != null && ImportOrder.separates(before, after, style());
     }
 
-    private static boolean hasComments(GreenNode node) {
-        return node instanceof GreenNode.Leaf leaf && leaf.token().hasComments();
-    }
-
     private int minimumAtFileLevel(GreenNode previous, GreenNode next) {
         if (previous.kind() == SyntaxKind.PACKAGE_DECLARATION) {
             return rule(BlankLineRules.AFTER_PACKAGE);
@@ -307,21 +377,6 @@ public final class DocEmitter extends StatementEmitter {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Whether a node is, or ends with, an annotation.
-     *
-     * <p>The last annotation of a modifier list is followed by the declaration itself, so the decision
-     * about the line break belongs to whoever emits the declaration, not to the modifier list.
-     */
-    private static boolean endsWithAnnotation(GreenNode node) {
-        if (node.kind() == SyntaxKind.ANNOTATION) {
-            return true;
-        }
-        return node.kind() == SyntaxKind.MODIFIERS &&
-            !node.children().isEmpty() &&
-            node.children().getLast().kind() == SyntaxKind.ANNOTATION;
     }
 
     private Doc emitClassBody(GreenNode node, boolean interfaceBody) {
@@ -455,15 +510,6 @@ public final class DocEmitter extends StatementEmitter {
         return emit(statement);
     }
 
-    private static boolean membersFollow(List<GreenNode> body, int enumConstantsIndex) {
-        for (int i = enumConstantsIndex + 1; i < body.size(); i++) {
-            if (body.get(i).kind().isMember()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     protected int minimumBetween(GreenNode previous, GreenNode next) {
         int previousGroup = MemberGroup.section(previous, inInterfaceBody);
@@ -504,13 +550,6 @@ public final class DocEmitter extends StatementEmitter {
         };
     }
 
-    private static boolean isModuleDirective(GreenNode node) {
-        return switch (node.kind()) {
-            case REQUIRES_DIRECTIVE, EXPORTS_DIRECTIVE, OPENS_DIRECTIVE, USES_DIRECTIVE, PROVIDES_DIRECTIVE -> true;
-            default -> false;
-        };
-    }
-
     /**
      * @param membersFollow whether the enum body continues after the constant list; {@code null}
      *     when the caller has no neighbour context
@@ -541,29 +580,6 @@ public final class DocEmitter extends StatementEmitter {
             return Doc.concat(list, Doc.text(";"));
         }
         return list;
-    }
-
-    private static boolean hasEnumConstant(List<GreenNode> children) {
-        for (GreenNode child : children) {
-            if (child.kind() == SyntaxKind.ENUM_CONSTANT) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasParameterizedConstant(List<GreenNode> children) {
-        for (GreenNode child : children) {
-            if (child.kind() != SyntaxKind.ENUM_CONSTANT) {
-                continue;
-            }
-            for (GreenNode part : child.children()) {
-                if (part.kind() == SyntaxKind.ARGUMENTS) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private Doc emitEnumConstantList(List<GreenNode> children) {
@@ -608,17 +624,6 @@ public final class DocEmitter extends StatementEmitter {
             case WRAP_IF_LONG -> Doc.fill(withSeparators(elements, separator));
             default -> Doc.group(Doc.join(separator, elements));
         };
-    }
-
-    private static List<Doc> withSeparators(List<Doc> elements, Doc separator) {
-        List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < elements.size(); i++) {
-            if (i > 0) {
-                parts.add(separator);
-            }
-            parts.add(elements.get(i));
-        }
-        return parts;
     }
 
     private Doc emitEnumConstant(GreenNode node) {
@@ -754,11 +759,6 @@ public final class DocEmitter extends StatementEmitter {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
-    }
-
-    /** {@code non-sealed} arrives as three tokens and must be printed back without spaces. */
-    private static boolean isNonSealedFragment(GreenNode previous, GreenNode next) {
-        return is(previous, "non") && is(next, "-") || is(previous, "-") && is(next, "sealed");
     }
 
     private Doc emitAnnotation(GreenNode node) {

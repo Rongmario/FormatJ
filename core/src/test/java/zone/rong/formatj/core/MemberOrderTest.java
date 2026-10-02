@@ -45,6 +45,39 @@ class MemberOrderTest {
         return result.text();
     }
 
+    private static GreenNode parse(String source) {
+        return JavaParser.parse(source, LanguageLevel.LATEST, false).root().green();
+    }
+
+    private static boolean compiles(String source) throws IOException {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        Path out = Files.createTempDirectory("member-order");
+        try {
+            return compiler.getTask(
+                null,
+                null,
+                null,
+                List.of("-d", out.toString(), "-proc:none"),
+                null,
+                List.of(new SimpleJavaFileObject(
+                    URI.create("string:///Machine.java"),
+                    SimpleJavaFileObject.Kind.SOURCE
+                ) {
+
+                    @Override
+                    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
+                        return source;
+                    }
+
+                })
+            ).call();
+        } finally {
+            try (var files = Files.walk(out)) {
+                files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
+            }
+        }
+    }
+
     @Test
     void everyKindOfMemberLandsInItsGroup() {
         String source = """
@@ -272,10 +305,6 @@ class MemberOrderTest {
         assertTrue(RewriteVerification.verifyOutput(original, original, List.of(unsorted)).contains("stable order"));
     }
 
-    private static GreenNode parse(String source) {
-        return JavaParser.parse(source, LanguageLevel.LATEST, false).root().green();
-    }
-
     @Test
     void sortedSourceStillCompiles() throws IOException {
         String source = """
@@ -294,35 +323,6 @@ class MemberOrderTest {
 
         assertTrue(compiles(source), "the unsorted source must compile");
         assertTrue(!formatted.equals(source) && compiles(formatted), formatted);
-    }
-
-    private static boolean compiles(String source) throws IOException {
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        Path out = Files.createTempDirectory("member-order");
-        try {
-            return compiler.getTask(
-                null,
-                null,
-                null,
-                List.of("-d", out.toString(), "-proc:none"),
-                null,
-                List.of(new SimpleJavaFileObject(
-                    URI.create("string:///Machine.java"),
-                    SimpleJavaFileObject.Kind.SOURCE
-                ) {
-
-                    @Override
-                    public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-                        return source;
-                    }
-
-                })
-            ).call();
-        } finally {
-            try (var files = Files.walk(out)) {
-                files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
-            }
-        }
     }
 
 }

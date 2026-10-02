@@ -48,16 +48,6 @@ class MavenPluginDescriptorTest {
     );
     private static final Pattern ATTRIBUTE = Pattern.compile("(\\w+)\\s*=\\s*(\"[^\"]*\"|[\\w.]+)");
 
-    private record MojoSource(
-        String goal,
-        String phase,
-        String resolution,
-        String threadSafe,
-        String implementation
-    ) { }
-
-    private record ParameterSource(String name, String property, String defaultValue) { }
-
     private static Document descriptor() throws Exception {
         Path path = Path.of(System.getProperty("formatj.descriptor"));
         assertTrue(Files.isRegularFile(path), () -> "descriptor not found: " + path);
@@ -235,5 +225,15 @@ class MavenPluginDescriptorTest {
         assertEquals("process-sources", text(mojoElement(document, "format"), "phase"));
         assertEquals("verify", text(mojoElement(document, "check"), "phase"));
     }
+
+    private record MojoSource(
+        String goal,
+        String phase,
+        String resolution,
+        String threadSafe,
+        String implementation
+    ) { }
+
+    private record ParameterSource(String name, String property, String defaultValue) { }
 
 }

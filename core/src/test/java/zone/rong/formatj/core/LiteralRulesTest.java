@@ -21,6 +21,13 @@ class LiteralRulesTest {
         return "class T {\n\n    long x = " + initializer + ";\n\n}\n";
     }
 
+    private static String hex(String source, HexDigitCase digits) {
+        return format(
+            source,
+            Style.builder().literals(literals -> literals.hexDigits(digits).longSuffix(LongSuffix.PRESERVE)).build()
+        );
+    }
+
     @Test
     void longSuffixIsUppercasedInEveryRadix() {
         assertEquals(field("10L"), format(field("10l")));
@@ -33,10 +40,6 @@ class LiteralRulesTest {
     void longSuffixLeavesOtherLiteralsAlone() {
         String source = "class T {\n\n    double d = 1.5e3f + 0x1p3d;\n    String s = \"10l\";\n    Object l = x10l;\n\n}\n";
         assertEquals(source, format(source));
-    }
-
-    private static String hex(String source, HexDigitCase digits) {
-        return format(source, Style.builder().literals(literals -> literals.hexDigits(digits)).build());
     }
 
     @Test
@@ -70,8 +73,8 @@ class LiteralRulesTest {
     }
 
     @Test
-    void longSuffixIsPreservedByDefault() {
-        assertEquals(field("10l"), format(field("10l"), Style.builder().build()));
+    void longSuffixIsUppercasedByDefault() {
+        assertEquals(field("10L"), format(field("10l"), Style.builder().build()));
     }
 
     @Test

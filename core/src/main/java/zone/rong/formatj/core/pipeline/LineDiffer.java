@@ -400,27 +400,6 @@ public final class LineDiffer {
             return new AnchorIndex(original, uniquePositions(original), uniquePositions(formatted));
         }
 
-        List<Anchor> matches(Window window, DiffBudget budget) {
-            if (originalPositions.isEmpty() || !budget.claimAnchorScans(window.originalLength())) {
-                return List.of();
-            }
-            List<Anchor> candidates = new ArrayList<>();
-            for (int i = window.originalStart; i < window.originalEnd; i++) {
-                String line = originalLines.get(i);
-                if (!Integer.valueOf(i).equals(originalPositions.get(line))) {
-                    continue;
-                }
-                Integer formattedLine = formattedPositions.get(line);
-                if (formattedLine != null &&
-                    formattedLine >= window.formattedStart &&
-                    formattedLine < window.formattedEnd &&
-                    reliable(line)) {
-                    candidates.add(new Anchor(i, formattedLine));
-                }
-            }
-            return increasing(candidates);
-        }
-
         private static Map<String, Integer> uniquePositions(List<String> lines) {
             Map<String, Integer> positions = new HashMap<>();
             for (int i = 0; i < lines.size(); i++) {
@@ -485,6 +464,27 @@ public final class LineDiffer {
             return List.of(result);
         }
 
+        List<Anchor> matches(Window window, DiffBudget budget) {
+            if (originalPositions.isEmpty() || !budget.claimAnchorScans(window.originalLength())) {
+                return List.of();
+            }
+            List<Anchor> candidates = new ArrayList<>();
+            for (int i = window.originalStart; i < window.originalEnd; i++) {
+                String line = originalLines.get(i);
+                if (!Integer.valueOf(i).equals(originalPositions.get(line))) {
+                    continue;
+                }
+                Integer formattedLine = formattedPositions.get(line);
+                if (formattedLine != null &&
+                    formattedLine >= window.formattedStart &&
+                    formattedLine < window.formattedEnd &&
+                    reliable(line)) {
+                    candidates.add(new Anchor(i, formattedLine));
+                }
+            }
+            return increasing(candidates);
+        }
+
     }
 
     public record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) { }
@@ -497,22 +497,6 @@ public final class LineDiffer {
         boolean[] safeBreaks,
         int sourceLength
     ) {
-
-        int offsetOfLine(int index) {
-            if (index < 0) {
-                return 0;
-            }
-            if (index >= offsets.length) {
-                return sourceLength;
-            }
-            return offsets[index];
-        }
-
-        void append(StringBuilder out, int start, int end) {
-            for (int i = start; i < end; i++) {
-                out.append(lines.get(i)).append(endings.get(i));
-            }
-        }
 
         static Split of(String text) {
             if (text.isEmpty()) {
@@ -586,6 +570,22 @@ public final class LineDiffer {
                 content.add(builder.toString());
             }
             return new LexicalLines(List.copyOf(content), safe);
+        }
+
+        int offsetOfLine(int index) {
+            if (index < 0) {
+                return 0;
+            }
+            if (index >= offsets.length) {
+                return sourceLength;
+            }
+            return offsets[index];
+        }
+
+        void append(StringBuilder out, int start, int end) {
+            for (int i = start; i < end; i++) {
+                out.append(lines.get(i)).append(endings.get(i));
+            }
         }
 
     }

@@ -27,16 +27,6 @@ public enum LanguageLevel {
         this.release = release;
     }
 
-    /** The release number, e.g. {@code 25}. */
-    public int release() {
-        return release;
-    }
-
-    /** Whether this level is at least {@code other}. */
-    public boolean isAtLeast(LanguageLevel other) {
-        return release >= other.release;
-    }
-
     /** Looks up a level by release number, e.g. {@code 21} or {@code "21"}. */
     public static LanguageLevel ofRelease(int release) {
         for (LanguageLevel level : values()) {
@@ -45,6 +35,16 @@ public enum LanguageLevel {
             }
         }
         throw new IllegalArgumentException("Unsupported Java release: " + release);
+    }
+
+    /** The release number, e.g. {@code 25}. */
+    public int release() {
+        return release;
+    }
+
+    /** Whether this level is at least {@code other}. */
+    public boolean isAtLeast(LanguageLevel other) {
+        return release >= other.release;
     }
 
 }

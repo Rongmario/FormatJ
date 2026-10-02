@@ -58,6 +58,34 @@ public final class DocPrinter {
         return new DocPrinter(maxWidth, false, 4, "\n", true, false);
     }
 
+    private static void pushReversed(Deque<Command> commands, List<Doc> parts, int indent, Mode mode) {
+        for (int i = parts.size() - 1; i >= 0; i--) {
+            commands.push(new Command(indent, mode, parts.get(i)));
+        }
+    }
+
+    private static boolean endsLine(List<Doc> lineSuffixes) {
+        for (Doc suffix : lineSuffixes) {
+            if (DocBreaks.forcesBreak(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void trimTrailingSpaces(StringBuilder out) {
+        int end = out.length();
+        while (end > 0 && (out.charAt(end - 1) == ' ' || out.charAt(end - 1) == '\t')) {
+            end--;
+        }
+        out.setLength(end);
+    }
+
+    private static boolean endsWithHorizontalWhitespace(String text) {
+        char last = text.charAt(text.length() - 1);
+        return last == ' ' || last == '\t';
+    }
+
     /** Indentation text for a column count, honouring the tab settings. */
     private String indentation(int columns) {
         if (!useTabs) {
@@ -65,21 +93,6 @@ public final class DocPrinter {
         }
         return "\t".repeat(columns / tabWidth) + " ".repeat(columns % tabWidth);
     }
-
-    private enum Mode {
-
-        FLAT,
-        BREAK
-
-    }
-
-    private record Command(int indent, Mode mode, Doc doc) { }
-
-    /** Where one {@link Doc.Mark} ended up in the printed text. */
-    public record Mark(int offset, AlignmentSite site) { }
-
-    /** Printed text, and where the marks in it landed. */
-    public record Printed(String text, List<Mark> marks) { }
 
     /** The printed text, for callers with no alignment to apply. */
     public String print(Doc document) {
@@ -269,12 +282,6 @@ public final class DocPrinter {
         }
     }
 
-    private static void pushReversed(Deque<Command> commands, List<Doc> parts, int indent, Mode mode) {
-        for (int i = parts.size() - 1; i >= 0; i--) {
-            commands.push(new Command(indent, mode, parts.get(i)));
-        }
-    }
-
     /**
      * Whether {@code doc}, printed flat, fits in what is left of the line.
      *
@@ -375,15 +382,6 @@ public final class DocPrinter {
         return false;
     }
 
-    private static boolean endsLine(List<Doc> lineSuffixes) {
-        for (Doc suffix : lineSuffixes) {
-            if (DocBreaks.forcesBreak(suffix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /** Whether nothing but whitespace has been written since the last line separator. */
     private boolean lineIsAllWhitespace(StringBuilder out) {
         int start = out.lastIndexOf(lineSeparator);
@@ -396,17 +394,19 @@ public final class DocPrinter {
         return true;
     }
 
-    private static void trimTrailingSpaces(StringBuilder out) {
-        int end = out.length();
-        while (end > 0 && (out.charAt(end - 1) == ' ' || out.charAt(end - 1) == '\t')) {
-            end--;
-        }
-        out.setLength(end);
+    private enum Mode {
+
+        FLAT,
+        BREAK
+
     }
 
-    private static boolean endsWithHorizontalWhitespace(String text) {
-        char last = text.charAt(text.length() - 1);
-        return last == ' ' || last == '\t';
-    }
+    private record Command(int indent, Mode mode, Doc doc) { }
+
+    /** Where one {@link Doc.Mark} ended up in the printed text. */
+    public record Mark(int offset, AlignmentSite site) { }
+
+    /** Printed text, and where the marks in it landed. */
+    public record Printed(String text, List<Mark> marks) { }
 
 }

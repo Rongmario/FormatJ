@@ -29,28 +29,6 @@ public final class RedundantModifierRewrite implements Rewrite {
     private static final Set<String> FINAL = Set.of("final");
     private static final Set<String> PRIVATE = Set.of("private");
 
-    @Override
-    public String name() {
-        return ModifierRules.REMOVE_REDUNDANT.key();
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(ModifierRules.REMOVE_REDUNDANT);
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        return switch (node.kind()) {
-            case COMPILATION_UNIT ->
-                rewriteMembers(node, context, child -> child.kind() == SyntaxKind.RECORD_DECLARATION ? FINAL : NONE);
-            case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
-                ANNOTATION_TYPE_DECLARATION -> rewriteBody(node, context);
-            case RESOURCE -> rewriteResource(node, context);
-            default -> node;
-        };
-    }
-
     private static GreenNode rewriteBody(GreenNode owner, RewriteContext context) {
         GreenNode body = owner.children().getLast();
         if (body.kind() != SyntaxKind.CLASS_BODY) {
@@ -156,9 +134,6 @@ public final class RedundantModifierRewrite implements Rewrite {
         return GreenNode.branch(resource.kind(), removal.kept());
     }
 
-    /** What is left of a modifier list, the edits that say so, and trivia still owed to the next token. */
-    private record Removal(List<GreenNode> kept, List<TokenEdit> edits, List<Token> carried) { }
-
     /**
      * Drops the redundant leaves among {@code items}, or returns null when nothing can be dropped safely.
      *
@@ -251,5 +226,30 @@ public final class RedundantModifierRewrite implements Rewrite {
         children.set(0, withFirstLeaf(children.getFirst(), replacement));
         return GreenNode.branch(node.kind(), children);
     }
+
+    @Override
+    public String name() {
+        return ModifierRules.REMOVE_REDUNDANT.key();
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(ModifierRules.REMOVE_REDUNDANT);
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        return switch (node.kind()) {
+            case COMPILATION_UNIT ->
+                rewriteMembers(node, context, child -> child.kind() == SyntaxKind.RECORD_DECLARATION ? FINAL : NONE);
+            case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
+                ANNOTATION_TYPE_DECLARATION -> rewriteBody(node, context);
+            case RESOURCE -> rewriteResource(node, context);
+            default -> node;
+        };
+    }
+
+    /** What is left of a modifier list, the edits that say so, and trivia still owed to the next token. */
+    private record Removal(List<GreenNode> kept, List<TokenEdit> edits, List<Token> carried) { }
 
 }

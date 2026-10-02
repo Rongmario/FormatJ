@@ -11,6 +11,14 @@ import java.util.List;
  */
 public sealed interface GreenNode permits GreenNode.Leaf, GreenNode.Branch {
 
+    static Leaf leaf(SyntaxToken token) {
+        return new Leaf(token);
+    }
+
+    static Branch branch(SyntaxKind kind, List<GreenNode> children) {
+        return new Branch(kind, List.copyOf(children));
+    }
+
     SyntaxKind kind();
 
     /** Characters this node covers, trivia included. */
@@ -26,14 +34,6 @@ public sealed interface GreenNode permits GreenNode.Leaf, GreenNode.Branch {
         StringBuilder out = new StringBuilder(width());
         appendTo(out);
         return out.toString();
-    }
-
-    static Leaf leaf(SyntaxToken token) {
-        return new Leaf(token);
-    }
-
-    static Branch branch(SyntaxKind kind, List<GreenNode> children) {
-        return new Branch(kind, List.copyOf(children));
     }
 
     /** A node wrapping exactly one token and its trivia. */

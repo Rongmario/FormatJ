@@ -51,170 +51,6 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  */
 public final class SwitchCaseRewrite implements Rewrite {
 
-    @Override
-    public String name() {
-        return "switch.case-style";
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(SwitchRules.CASE_STYLE) != SwitchCaseStyle.PRESERVE;
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        boolean value = node.kind() == SyntaxKind.SWITCH_EXPRESSION;
-        if (!value && node.kind() != SyntaxKind.SWITCH_STATEMENT) {
-            return node;
-        }
-        List<GreenNode> children = node.children();
-        int blockIndex = children.size() - 1;
-        GreenNode block = children.get(blockIndex);
-        if (block.kind() != SyntaxKind.SWITCH_BLOCK || block.children().size() < 2) {
-            return node;
-        }
-
-        List<GreenNode> cases = block.children().subList(1, block.children().size() - 1);
-        if (cases.isEmpty()) {
-            return node;
-        }
-        List<GreenNode> converted = context.rule(SwitchRules.CASE_STYLE) == SwitchCaseStyle.ARROW
-            ? toArrow(cases, value, context)
-            : toColon(cases, value, context);
-        if (converted == null) {
-            return node;
-        }
-
-        List<GreenNode> rebuiltBlock = new ArrayList<>();
-        rebuiltBlock.add(block.children().getFirst());
-        rebuiltBlock.addAll(converted);
-        rebuiltBlock.add(block.children().getLast());
-
-        List<GreenNode> rebuilt = new ArrayList<>(children);
-        rebuilt.set(blockIndex, GreenNode.branch(SyntaxKind.SWITCH_BLOCK, rebuiltBlock));
-        return GreenNode.branch(node.kind(), rebuilt);
-    }
-
-    // ------------------------------------------------------------ colon to arrow
-
-    /** The cases as arrow cases, or null when any one of them fails a precondition. */
-    private List<GreenNode> toArrow(List<GreenNode> cases, boolean value, RewriteContext context) {
-        List<Group> groups = groups(cases, context);
-        if (groups == null) {
-            return null;
-        }
-
-        List<Plan> plans = new ArrayList<>(groups.size());
-        for (int i = 0; i < groups.size(); i++) {
-            Plan plan = plan(groups.get(i), value, i == groups.size() - 1, context);
-            if (plan == null) {
-                return null;
-            }
-            plans.add(plan);
-        }
-
-        List<GreenNode> converted = new ArrayList<>(plans.size());
-        for (Plan plan : plans) {
-            converted.add(plan.apply(context));
-        }
-        return converted;
-    }
-
-    /**
-     * The cases gathered into the groups they already are.
-     *
-     * <p>A colon case with no statements is not a case of its own; it is another label on the one
-     * below it, and that is what it has to become. Refusing to see that would leave
-     * {@code case A:} above {@code case B:} unconvertible, which is the commonest shape there is.
-     */
-    private List<Group> groups(List<GreenNode> cases, RewriteContext context) {
-        List<Group> groups = new ArrayList<>();
-        List<GreenNode> pending = new ArrayList<>();
-        for (GreenNode switchCase : cases) {
-            if (switchCase.kind() != SyntaxKind.SWITCH_CASE || switchCase.children().size() < 2) {
-                return null;
-            }
-            GreenNode separator = switchCase.children().get(1);
-            if (!(separator instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(":")) {
-                return null;
-            }
-            if (Synthetic.carriesComments(separator)) {
-                return null;
-            }
-            if (switchCase.children().size() == 2) {
-                if (isDefault(switchCase) || isGuarded(switchCase)) {
-                    return null;
-                }
-                pending.add(switchCase);
-                continue;
-            }
-            if (!pending.isEmpty() && (isDefault(switchCase) || isGuarded(switchCase))) {
-                // A guard belongs to one pattern, and default may share a label list only with null;
-                // neither can absorb the labels of the empty cases above it.
-                return null;
-            }
-            groups.add(new Group(List.copyOf(pending), switchCase));
-            pending.clear();
-        }
-        return pending.isEmpty() ? groups : null;
-    }
-
-    /** A run of empty cases and the case whose statements they all share. */
-    private record Group(List<GreenNode> merged, GreenNode owner) { }
-
-    /** What one group becomes, worked out before anything is recorded. */
-    private record Plan(Group group, List<GreenNode> statements, GreenNode dropped, boolean brace, boolean yielded) {
-
-        GreenNode apply(RewriteContext context) {
-            return SwitchCaseRewrite.build(this, context);
-        }
-
-    }
-
-    /**
-     * How one group converts, or null when it does not.
-     *
-     * <p>Worked out for every group before any of them is recorded, because a switch converts whole
-     * or not at all and a ledger holding half a conversion is worse than one holding none.
-     */
-    private Plan plan(Group group, boolean value, boolean last, RewriteContext context) {
-        List<GreenNode> statements = new ArrayList<>(
-            group.owner().children().subList(2, group.owner().children().size())
-        );
-        GreenNode dropped = null;
-
-        GreenNode terminator = statements.getLast();
-        if (isPlainBreak(terminator)) {
-            if (Synthetic.carriesComments(terminator)) {
-                return null;
-            }
-            dropped = terminator;
-            statements.removeLast();
-        } else if (!leavesTheSwitch(terminator) && !last) {
-            return null;
-        }
-
-        for (GreenNode statement : statements) {
-            if (statement.kind() == SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
-                statement.kind() == SyntaxKind.LOCAL_TYPE_DECLARATION) {
-                return null;
-            }
-            if (holdsSwitchBreak(statement)) {
-                return null;
-            }
-        }
-
-        boolean yielded = value && statements.size() == 1 && isSimpleYield(statements.getFirst());
-        if (yielded && Synthetic.carriesComments(statements.getFirst().children().getFirst())) {
-            return null;
-        }
-        boolean brace = !yielded && !(statements.size() == 1 && standsAlone(statements.getFirst()));
-        if (brace && !statements.isEmpty() && context.firstPosition(statements.getFirst()) < 0) {
-            return null;
-        }
-        return new Plan(group, List.copyOf(statements), dropped, brace, yielded);
-    }
-
     /** Records a group's edits and builds the arrow case they describe. */
     private static GreenNode build(Plan plan, RewriteContext context) {
         String reason = "a colon case written as an arrow case";
@@ -323,83 +159,6 @@ public final class SwitchCaseRewrite implements Rewrite {
         return GreenNode.branch(SyntaxKind.BLOCK, children);
     }
 
-    // ------------------------------------------------------------ arrow to colon
-
-    /** The cases as colon cases, or null when any one of them fails the precondition. */
-    private List<GreenNode> toColon(List<GreenNode> cases, boolean value, RewriteContext context) {
-        for (GreenNode switchCase : cases) {
-            if (switchCase.kind() != SyntaxKind.SWITCH_CASE || switchCase.children().size() != 3) {
-                return null;
-            }
-            GreenNode arrow = switchCase.children().get(1);
-            if (!(arrow instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals("->")) {
-                return null;
-            }
-            if (Synthetic.carriesComments(arrow) || context.firstPosition(arrow) < 0) {
-                return null;
-            }
-            GreenNode body = switchCase.children().get(2);
-            if (body.kind() != SyntaxKind.THROW_STATEMENT &&
-                !(body.kind() == SyntaxKind.EXPRESSION_STATEMENT && body.children().size() == 2)) {
-                return null;
-            }
-            if (context.firstPosition(body) < 0 || context.endPosition(body) < 0) {
-                return null;
-            }
-        }
-
-        String reason = "an arrow case written as a colon case";
-        List<GreenNode> converted = new ArrayList<>(cases.size());
-        for (GreenNode switchCase : cases) {
-            GreenNode arrow = switchCase.children().get(1);
-            GreenNode body = switchCase.children().get(2);
-            context.record(new TokenEdit(
-                SwitchRules.CASE_STYLE,
-                reason,
-                context.firstPosition(arrow),
-                List.of("->"),
-                List.of(":"),
-                TokenEdit.Bias.INNERMOST_FIRST
-            ));
-
-            List<GreenNode> children = new ArrayList<>();
-            children.add(switchCase.children().getFirst());
-            children.add(Synthetic.separator(":"));
-            if (body.kind() == SyntaxKind.THROW_STATEMENT) {
-                children.add(body);
-            } else if (value) {
-                // The body of an expression switch is a value, so the colon form has to yield it.
-                context.record(TokenEdit.insert(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    context.firstPosition(body),
-                    TokenEdit.Bias.OUTERMOST_FIRST,
-                    "yield"
-                ));
-                children.add(GreenNode.branch(
-                    SyntaxKind.YIELD_STATEMENT,
-                    List.of(Synthetic.contextualKeyword("yield"), body.children().getFirst(), body.children().getLast())
-                ));
-            } else {
-                context.record(TokenEdit.insert(
-                    SwitchRules.CASE_STYLE,
-                    reason,
-                    context.endPosition(body),
-                    TokenEdit.Bias.INNERMOST_FIRST,
-                    "break",
-                    ";"
-                ));
-                children.add(body);
-                children.add(GreenNode.branch(
-                    SyntaxKind.BREAK_STATEMENT,
-                    List.of(Synthetic.keyword("break"), Synthetic.separator(";"))
-                ));
-            }
-            converted.add(GreenNode.branch(SyntaxKind.SWITCH_CASE, children));
-        }
-        return converted;
-    }
-
     // ----------------------------------------------------------------- queries
 
     /** The label list of a case, without the {@code CASE_LABELS} node round it. */
@@ -480,6 +239,247 @@ public final class SwitchCaseRewrite implements Rewrite {
             kind == SyntaxKind.LAMBDA_EXPRESSION ||
             kind == SyntaxKind.ANONYMOUS_CLASS_BODY ||
             kind == SyntaxKind.CLASS_BODY;
+    }
+
+    @Override
+    public String name() {
+        return "switch.case-style";
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(SwitchRules.CASE_STYLE) != SwitchCaseStyle.PRESERVE;
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        boolean value = node.kind() == SyntaxKind.SWITCH_EXPRESSION;
+        if (!value && node.kind() != SyntaxKind.SWITCH_STATEMENT) {
+            return node;
+        }
+        List<GreenNode> children = node.children();
+        int blockIndex = children.size() - 1;
+        GreenNode block = children.get(blockIndex);
+        if (block.kind() != SyntaxKind.SWITCH_BLOCK || block.children().size() < 2) {
+            return node;
+        }
+
+        List<GreenNode> cases = block.children().subList(1, block.children().size() - 1);
+        if (cases.isEmpty()) {
+            return node;
+        }
+        List<GreenNode> converted = context.rule(SwitchRules.CASE_STYLE) == SwitchCaseStyle.ARROW
+            ? toArrow(cases, value, context)
+            : toColon(cases, value, context);
+        if (converted == null) {
+            return node;
+        }
+
+        List<GreenNode> rebuiltBlock = new ArrayList<>();
+        rebuiltBlock.add(block.children().getFirst());
+        rebuiltBlock.addAll(converted);
+        rebuiltBlock.add(block.children().getLast());
+
+        List<GreenNode> rebuilt = new ArrayList<>(children);
+        rebuilt.set(blockIndex, GreenNode.branch(SyntaxKind.SWITCH_BLOCK, rebuiltBlock));
+        return GreenNode.branch(node.kind(), rebuilt);
+    }
+
+    // ------------------------------------------------------------ colon to arrow
+
+    /** The cases as arrow cases, or null when any one of them fails a precondition. */
+    private List<GreenNode> toArrow(List<GreenNode> cases, boolean value, RewriteContext context) {
+        List<Group> groups = groups(cases, context);
+        if (groups == null) {
+            return null;
+        }
+
+        List<Plan> plans = new ArrayList<>(groups.size());
+        for (int i = 0; i < groups.size(); i++) {
+            Plan plan = plan(groups.get(i), value, i == groups.size() - 1, context);
+            if (plan == null) {
+                return null;
+            }
+            plans.add(plan);
+        }
+
+        List<GreenNode> converted = new ArrayList<>(plans.size());
+        for (Plan plan : plans) {
+            converted.add(plan.apply(context));
+        }
+        return converted;
+    }
+
+    /**
+     * The cases gathered into the groups they already are.
+     *
+     * <p>A colon case with no statements is not a case of its own; it is another label on the one
+     * below it, and that is what it has to become. Refusing to see that would leave
+     * {@code case A:} above {@code case B:} unconvertible, which is the commonest shape there is.
+     */
+    private List<Group> groups(List<GreenNode> cases, RewriteContext context) {
+        List<Group> groups = new ArrayList<>();
+        List<GreenNode> pending = new ArrayList<>();
+        for (GreenNode switchCase : cases) {
+            if (switchCase.kind() != SyntaxKind.SWITCH_CASE || switchCase.children().size() < 2) {
+                return null;
+            }
+            GreenNode separator = switchCase.children().get(1);
+            if (!(separator instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals(":")) {
+                return null;
+            }
+            if (Synthetic.carriesComments(separator)) {
+                return null;
+            }
+            if (switchCase.children().size() == 2) {
+                if (isDefault(switchCase) || isGuarded(switchCase)) {
+                    return null;
+                }
+                pending.add(switchCase);
+                continue;
+            }
+            if (!pending.isEmpty() && (isDefault(switchCase) || isGuarded(switchCase))) {
+                // A guard belongs to one pattern, and default may share a label list only with null;
+                // neither can absorb the labels of the empty cases above it.
+                return null;
+            }
+            groups.add(new Group(List.copyOf(pending), switchCase));
+            pending.clear();
+        }
+        return pending.isEmpty() ? groups : null;
+    }
+
+    /**
+     * How one group converts, or null when it does not.
+     *
+     * <p>Worked out for every group before any of them is recorded, because a switch converts whole
+     * or not at all and a ledger holding half a conversion is worse than one holding none.
+     */
+    private Plan plan(Group group, boolean value, boolean last, RewriteContext context) {
+        List<GreenNode> statements = new ArrayList<>(
+            group.owner().children().subList(2, group.owner().children().size())
+        );
+        GreenNode dropped = null;
+
+        GreenNode terminator = statements.getLast();
+        if (isPlainBreak(terminator)) {
+            if (Synthetic.carriesComments(terminator)) {
+                return null;
+            }
+            dropped = terminator;
+            statements.removeLast();
+        } else if (!leavesTheSwitch(terminator) && !last) {
+            return null;
+        }
+
+        for (GreenNode statement : statements) {
+            if (statement.kind() == SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
+                statement.kind() == SyntaxKind.LOCAL_TYPE_DECLARATION) {
+                return null;
+            }
+            if (holdsSwitchBreak(statement)) {
+                return null;
+            }
+        }
+
+        boolean yielded = value && statements.size() == 1 && isSimpleYield(statements.getFirst());
+        if (yielded && Synthetic.carriesComments(statements.getFirst().children().getFirst())) {
+            return null;
+        }
+        boolean brace = !yielded && !(statements.size() == 1 && standsAlone(statements.getFirst()));
+        if (brace && !statements.isEmpty() && context.firstPosition(statements.getFirst()) < 0) {
+            return null;
+        }
+        return new Plan(group, List.copyOf(statements), dropped, brace, yielded);
+    }
+
+    // ------------------------------------------------------------ arrow to colon
+
+    /** The cases as colon cases, or null when any one of them fails the precondition. */
+    private List<GreenNode> toColon(List<GreenNode> cases, boolean value, RewriteContext context) {
+        for (GreenNode switchCase : cases) {
+            if (switchCase.kind() != SyntaxKind.SWITCH_CASE || switchCase.children().size() != 3) {
+                return null;
+            }
+            GreenNode arrow = switchCase.children().get(1);
+            if (!(arrow instanceof GreenNode.Leaf leaf) || !leaf.decodedLexeme().equals("->")) {
+                return null;
+            }
+            if (Synthetic.carriesComments(arrow) || context.firstPosition(arrow) < 0) {
+                return null;
+            }
+            GreenNode body = switchCase.children().get(2);
+            if (body.kind() != SyntaxKind.THROW_STATEMENT &&
+                !(body.kind() == SyntaxKind.EXPRESSION_STATEMENT && body.children().size() == 2)) {
+                return null;
+            }
+            if (context.firstPosition(body) < 0 || context.endPosition(body) < 0) {
+                return null;
+            }
+        }
+
+        String reason = "an arrow case written as a colon case";
+        List<GreenNode> converted = new ArrayList<>(cases.size());
+        for (GreenNode switchCase : cases) {
+            GreenNode arrow = switchCase.children().get(1);
+            GreenNode body = switchCase.children().get(2);
+            context.record(new TokenEdit(
+                SwitchRules.CASE_STYLE,
+                reason,
+                context.firstPosition(arrow),
+                List.of("->"),
+                List.of(":"),
+                TokenEdit.Bias.INNERMOST_FIRST
+            ));
+
+            List<GreenNode> children = new ArrayList<>();
+            children.add(switchCase.children().getFirst());
+            children.add(Synthetic.separator(":"));
+            if (body.kind() == SyntaxKind.THROW_STATEMENT) {
+                children.add(body);
+            } else if (value) {
+                // The body of an expression switch is a value, so the colon form has to yield it.
+                context.record(TokenEdit.insert(
+                    SwitchRules.CASE_STYLE,
+                    reason,
+                    context.firstPosition(body),
+                    TokenEdit.Bias.OUTERMOST_FIRST,
+                    "yield"
+                ));
+                children.add(GreenNode.branch(
+                    SyntaxKind.YIELD_STATEMENT,
+                    List.of(Synthetic.contextualKeyword("yield"), body.children().getFirst(), body.children().getLast())
+                ));
+            } else {
+                context.record(TokenEdit.insert(
+                    SwitchRules.CASE_STYLE,
+                    reason,
+                    context.endPosition(body),
+                    TokenEdit.Bias.INNERMOST_FIRST,
+                    "break",
+                    ";"
+                ));
+                children.add(body);
+                children.add(GreenNode.branch(
+                    SyntaxKind.BREAK_STATEMENT,
+                    List.of(Synthetic.keyword("break"), Synthetic.separator(";"))
+                ));
+            }
+            converted.add(GreenNode.branch(SyntaxKind.SWITCH_CASE, children));
+        }
+        return converted;
+    }
+
+    /** A run of empty cases and the case whose statements they all share. */
+    private record Group(List<GreenNode> merged, GreenNode owner) { }
+
+    /** What one group becomes, worked out before anything is recorded. */
+    private record Plan(Group group, List<GreenNode> statements, GreenNode dropped, boolean brace, boolean yielded) {
+
+        GreenNode apply(RewriteContext context) {
+            return SwitchCaseRewrite.build(this, context);
+        }
+
     }
 
 }

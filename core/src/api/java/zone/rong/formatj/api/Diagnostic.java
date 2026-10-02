@@ -6,18 +6,6 @@ import java.util.Objects;
 /** A problem FormatJ hit while formatting one source file. */
 public record Diagnostic(Diagnostic.Severity severity, String message, int line, int column) {
 
-    /** How badly a diagnostic affects the result. */
-    public enum Severity {
-
-        /** Formatting was abandoned; the source is returned untouched. */
-        ERROR,
-        /** Formatting completed, but something about the input is suspect. */
-        WARNING,
-        /** Informational only. */
-        INFO
-
-    }
-
     public Diagnostic {
         Objects.requireNonNull(severity, "severity");
         Objects.requireNonNull(message, "message");
@@ -55,6 +43,18 @@ public record Diagnostic(Diagnostic.Severity severity, String message, int line,
         }
         text.append(": ").append(severity.name().toLowerCase(Locale.ROOT)).append(": ").append(message);
         return text.toString();
+    }
+
+    /** How badly a diagnostic affects the result. */
+    public enum Severity {
+
+        /** Formatting was abandoned; the source is returned untouched. */
+        ERROR,
+        /** Formatting completed, but something about the input is suspect. */
+        WARNING,
+        /** Informational only. */
+        INFO
+
     }
 
 }

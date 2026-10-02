@@ -35,6 +35,177 @@ abstract class ExpressionEmitter extends EmitSupport {
         super(style);
     }
 
+    private static boolean inlineCommentsOnly(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null &&
+            !token.leadingComments().isEmpty() &&
+            token.leading().stream().noneMatch(Token::hasLineTerminator);
+    }
+
+    private static List<Doc> interleave(List<Doc> elements, Doc separator) {
+        List<Doc> parts = new ArrayList<>(elements.size() * 2);
+        for (int i = 0; i < elements.size(); i++) {
+            if (i > 0) {
+                parts.add(separator);
+            }
+            parts.add(elements.get(i));
+        }
+        return parts;
+    }
+
+    /** Whether the author started a new line before this node. */
+    protected static boolean authorBrokeBefore(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && token.startsNewLine();
+    }
+
+    private static boolean hasTrailingLineComment(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null &&
+            token.trailingComments().stream().anyMatch(comment -> comment.kind() == TokenKind.LINE_COMMENT);
+    }
+
+    private static boolean isLogicalRun(GreenNode node) {
+        String operator = operatorText(node.children());
+        return operator.equals("&&") || operator.equals("||");
+    }
+
+    private static String operatorText(List<GreenNode> children) {
+        StringBuilder text = new StringBuilder();
+        for (GreenNode child : children.subList(1, children.size() - 1)) {
+            text.append(lexeme(child));
+        }
+        return text.toString();
+    }
+
+    private static boolean samePrecedence(String left, String right) {
+        return precedenceOf(left) == precedenceOf(right);
+    }
+
+    private static int precedenceOf(String operator) {
+        return switch (operator) {
+            case "||" -> 1;
+            case "&&" -> 2;
+            case "|" -> 3;
+            case "^" -> 4;
+            case "&" -> 5;
+            case "==", "!=" -> 6;
+            case "<", ">", "<=", ">=" -> 7;
+            case "<<", ">>", ">>>" -> 8;
+            case "+", "-" -> 9;
+            case "*", "/", "%" -> 10;
+            default -> 0;
+        };
+    }
+
+    private static boolean prefersItsOwnLine(GreenNode valueNode) {
+        return switch (valueNode.kind()) {
+            // A chain wraps at its dots, so it stays on the line of the = and hangs from there.
+            case METHOD_INVOCATION, MEMBER_ACCESS -> chainLength(valueNode) < 2;
+            case OBJECT_CREATION, ARRAY_CREATION, CAST_EXPRESSION, SWITCH_EXPRESSION, TERNARY_EXPRESSION -> true;
+            default -> false;
+        };
+    }
+
+    /** How many dotted links a chain has; 1 for a plain call. */
+    private static int chainLength(GreenNode node) {
+        int length = 0;
+        GreenNode current = node;
+        while (isChainLink(current)) {
+            length++;
+            GreenNode receiver = current.children().getFirst();
+            if (!isChainLink(receiver)) {
+                break;
+            }
+            current = receiver;
+        }
+        return length;
+    }
+
+    /** The last argument of a non-empty argument list. */
+    private static GreenNode lastArgument(List<GreenNode> children) {
+        for (int i = children.size() - 2; i > 0; i--) {
+            GreenNode child = children.get(i);
+            if (!is(child, ",")) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    /** Whether an argument is a plain call or creation with arguments of its own to wrap. */
+    private static boolean breaksInside(GreenNode argument) {
+        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && !hasCall(argument.children().getFirst()) ||
+            argument.kind() == SyntaxKind.OBJECT_CREATION;
+        GreenNode last = argument.children().getLast();
+        return call && last.kind() == SyntaxKind.ARGUMENTS && last.children().size() > 2;
+    }
+
+    /** Whether a receiver holds a call, which makes what hangs off it a chain rather than one call. */
+    private static boolean hasCall(GreenNode receiver) {
+        return receiver.kind() == SyntaxKind.METHOD_INVOCATION ||
+            isChainLink(receiver) && hasCall(receiver.children().getFirst());
+    }
+
+    private static boolean hugsItsArgument(GreenNode argument) {
+        return switch (argument.kind()) {
+            // An expression lambda has no lines of its own to bring; it wraps like any other argument.
+            case LAMBDA_EXPRESSION -> argument.children().getLast().kind() == SyntaxKind.BLOCK;
+            case ARRAY_INITIALIZER, SWITCH_EXPRESSION -> true;
+            case OBJECT_CREATION ->
+                argument.children().stream().anyMatch(child -> child.kind() == SyntaxKind.CLASS_BODY);
+            default -> false;
+        };
+    }
+
+    /** Whether the author spread this node over more than one line. */
+    protected static boolean authorBrokeInside(GreenNode node) {
+        return authorBrokeInside(node.children());
+    }
+
+    /** Whether the author spread these siblings over more than one line. */
+    protected static boolean authorBrokeInside(List<GreenNode> children) {
+        for (int i = 1; i < children.size(); i++) {
+            if (authorBrokeBefore(children.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---------------------------------------------------------------- chains
+
+    /** Whether this node is the top of a call chain the emitter should lay out as a unit. */
+    protected static boolean isChainLink(GreenNode node) {
+        return node.kind() == SyntaxKind.METHOD_INVOCATION || node.kind() == SyntaxKind.MEMBER_ACCESS;
+    }
+
+    private static boolean isPlainReceiver(GreenNode base) {
+        return switch (base.kind()) {
+            case NAME, QUALIFIED_NAME, THIS_EXPRESSION, SUPER_EXPRESSION, LITERAL, CLASS_TYPE -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean authorBrokeBeforeDot(GreenNode link) {
+        List<GreenNode> children = link.children();
+        return children.size() > 1 && authorBrokeBefore(children.get(1));
+    }
+
+    private static boolean startsWithAnnotation(GreenNode node) {
+        List<GreenNode> children = node.children();
+        return !children.isEmpty() && children.getFirst().kind() == SyntaxKind.ANNOTATION;
+    }
+
+    protected static int indexOf(List<GreenNode> children, String lexeme) {
+        for (int i = 0; i < children.size(); i++) {
+            if (is(children.get(i), lexeme)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     /** Implemented by the statement layer. */
     protected abstract Doc emitBlockLike(GreenNode node);
 
@@ -172,30 +343,6 @@ abstract class ExpressionEmitter extends EmitSupport {
                 authorBrokeBefore(middle.getFirst()) ? Doc.breakingGroup(content) : Doc.group(content, groupKind);
             default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
-    }
-
-    private static boolean inlineCommentsOnly(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null &&
-            !token.leadingComments().isEmpty() &&
-            token.leading().stream().noneMatch(Token::hasLineTerminator);
-    }
-
-    private static List<Doc> interleave(List<Doc> elements, Doc separator) {
-        List<Doc> parts = new ArrayList<>(elements.size() * 2);
-        for (int i = 0; i < elements.size(); i++) {
-            if (i > 0) {
-                parts.add(separator);
-            }
-            parts.add(elements.get(i));
-        }
-        return parts;
-    }
-
-    /** Whether the author started a new line before this node. */
-    protected static boolean authorBrokeBefore(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && token.startsNewLine();
     }
 
     // ---------------------------------------------------------------- types
@@ -402,17 +549,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         };
     }
 
-    private static boolean hasTrailingLineComment(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null &&
-            token.trailingComments().stream().anyMatch(comment -> comment.kind() == TokenKind.LINE_COMMENT);
-    }
-
-    private static boolean isLogicalRun(GreenNode node) {
-        String operator = operatorText(node.children());
-        return operator.equals("&&") || operator.equals("||");
-    }
-
     /** Splits a left-nested run of same-precedence operators into operands and operator documents. */
     private void flattenBinary(
         GreenNode node,
@@ -439,34 +575,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         );
         ownLine.add(hasLeadingComments(children.get(1)));
         operands.add(children.getLast());
-    }
-
-    private static String operatorText(List<GreenNode> children) {
-        StringBuilder text = new StringBuilder();
-        for (GreenNode child : children.subList(1, children.size() - 1)) {
-            text.append(lexeme(child));
-        }
-        return text.toString();
-    }
-
-    private static boolean samePrecedence(String left, String right) {
-        return precedenceOf(left) == precedenceOf(right);
-    }
-
-    private static int precedenceOf(String operator) {
-        return switch (operator) {
-            case "||" -> 1;
-            case "&&" -> 2;
-            case "|" -> 3;
-            case "^" -> 4;
-            case "&" -> 5;
-            case "==", "!=" -> 6;
-            case "<", ">", "<=", ">=" -> 7;
-            case "<<", ">>", ">>>" -> 8;
-            case "+", "-" -> 9;
-            case "*", "/", "%" -> 10;
-            default -> 0;
-        };
     }
 
     protected Doc emitAssignment(GreenNode node) {
@@ -520,30 +628,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         Doc broken = Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), value));
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(broken) : Doc.group(broken);
-    }
-
-    private static boolean prefersItsOwnLine(GreenNode valueNode) {
-        return switch (valueNode.kind()) {
-            // A chain wraps at its dots, so it stays on the line of the = and hangs from there.
-            case METHOD_INVOCATION, MEMBER_ACCESS -> chainLength(valueNode) < 2;
-            case OBJECT_CREATION, ARRAY_CREATION, CAST_EXPRESSION, SWITCH_EXPRESSION, TERNARY_EXPRESSION -> true;
-            default -> false;
-        };
-    }
-
-    /** How many dotted links a chain has; 1 for a plain call. */
-    private static int chainLength(GreenNode node) {
-        int length = 0;
-        GreenNode current = node;
-        while (isChainLink(current)) {
-            length++;
-            GreenNode receiver = current.children().getFirst();
-            if (!isChainLink(receiver)) {
-                break;
-            }
-            current = receiver;
-        }
-        return length;
     }
 
     protected Doc emitTernary(GreenNode node) {
@@ -725,42 +809,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         );
     }
 
-    /** The last argument of a non-empty argument list. */
-    private static GreenNode lastArgument(List<GreenNode> children) {
-        for (int i = children.size() - 2; i > 0; i--) {
-            GreenNode child = children.get(i);
-            if (!is(child, ",")) {
-                return child;
-            }
-        }
-        return null;
-    }
-
-    /** Whether an argument is a plain call or creation with arguments of its own to wrap. */
-    private static boolean breaksInside(GreenNode argument) {
-        boolean call = argument.kind() == SyntaxKind.METHOD_INVOCATION && !hasCall(argument.children().getFirst()) ||
-            argument.kind() == SyntaxKind.OBJECT_CREATION;
-        GreenNode last = argument.children().getLast();
-        return call && last.kind() == SyntaxKind.ARGUMENTS && last.children().size() > 2;
-    }
-
-    /** Whether a receiver holds a call, which makes what hangs off it a chain rather than one call. */
-    private static boolean hasCall(GreenNode receiver) {
-        return receiver.kind() == SyntaxKind.METHOD_INVOCATION ||
-            isChainLink(receiver) && hasCall(receiver.children().getFirst());
-    }
-
-    private static boolean hugsItsArgument(GreenNode argument) {
-        return switch (argument.kind()) {
-            // An expression lambda has no lines of its own to bring; it wraps like any other argument.
-            case LAMBDA_EXPRESSION -> argument.children().getLast().kind() == SyntaxKind.BLOCK;
-            case ARRAY_INITIALIZER, SWITCH_EXPRESSION -> true;
-            case OBJECT_CREATION ->
-                argument.children().stream().anyMatch(child -> child.kind() == SyntaxKind.CLASS_BODY);
-            default -> false;
-        };
-    }
-
     protected Doc emitArrayInitializer(GreenNode node) {
         List<GreenNode> children = node.children();
         // Breaks just inside the braces say nothing about rows; a break between two elements does.
@@ -775,28 +823,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             Doc.GroupKind.IF_NEEDED,
             keepRows
         );
-    }
-
-    /** Whether the author spread this node over more than one line. */
-    protected static boolean authorBrokeInside(GreenNode node) {
-        return authorBrokeInside(node.children());
-    }
-
-    /** Whether the author spread these siblings over more than one line. */
-    protected static boolean authorBrokeInside(List<GreenNode> children) {
-        for (int i = 1; i < children.size(); i++) {
-            if (authorBrokeBefore(children.get(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // ---------------------------------------------------------------- chains
-
-    /** Whether this node is the top of a call chain the emitter should lay out as a unit. */
-    protected static boolean isChainLink(GreenNode node) {
-        return node.kind() == SyntaxKind.METHOD_INVOCATION || node.kind() == SyntaxKind.MEMBER_ACCESS;
     }
 
     protected Doc emitChain(GreenNode node) {
@@ -885,13 +911,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         return Doc.group(content);
     }
 
-    private static boolean isPlainReceiver(GreenNode base) {
-        return switch (base.kind()) {
-            case NAME, QUALIFIED_NAME, THIS_EXPRESSION, SUPER_EXPRESSION, LITERAL, CLASS_TYPE -> true;
-            default -> false;
-        };
-    }
-
     /** Splits a chain into its base expression and the links hanging off it. */
     private GreenNode flatten(GreenNode node, List<GreenNode> links) {
         if (!isChainLink(node)) {
@@ -926,11 +945,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
-    }
-
-    private static boolean authorBrokeBeforeDot(GreenNode link) {
-        List<GreenNode> children = link.children();
-        return children.size() > 1 && authorBrokeBefore(children.get(1));
     }
 
     // --------------------------------------------------------------- lambdas
@@ -1010,11 +1024,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             return true;
         }
         return false;
-    }
-
-    private static boolean startsWithAnnotation(GreenNode node) {
-        List<GreenNode> children = node.children();
-        return !children.isEmpty() && children.getFirst().kind() == SyntaxKind.ANNOTATION;
     }
 
     /**
@@ -1097,15 +1106,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
-    }
-
-    protected static int indexOf(List<GreenNode> children, String lexeme) {
-        for (int i = 0; i < children.size(); i++) {
-            if (is(children.get(i), lexeme)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
 }

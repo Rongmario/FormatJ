@@ -50,6 +50,25 @@ final class CliRunner {
         this.in = in;
     }
 
+    /** Hidden directories and the usual build output directories are skipped unless named explicitly. */
+    private static boolean isSkippedDirectory(Path directory) {
+        Path name = directory.getFileName();
+        if (name == null) {
+            return false;
+        }
+        String text = name.toString();
+        return text.startsWith(".") || text.equals("build") || text.equals("target") || text.equals("out");
+    }
+
+    /** A path must pass both the CLI's own --include/--exclude and the style file's [files] table. */
+    private static boolean selected(Path path, StyleResolver styles, FileSelection cliSelection) {
+        return cliSelection.matches(path) && styles.fileSelectionFor(path).matches(path);
+    }
+
+    private static String version() {
+        return CliRunner.class.getPackage().getImplementationVersion();
+    }
+
     int run() {
         StyleResolver styles;
         try {
@@ -160,9 +179,6 @@ final class CliRunner {
         }
         return SUCCESS;
     }
-
-    /** One file's output, buffered rather than printed directly so {@code -j} can print it in order. */
-    private record FileOutput(String out, String err) { }
 
     private FileOutput processFile(Path file, StyleResolver styles, AtomicInteger changed, AtomicInteger failed) {
         StringBuilder out = new StringBuilder();
@@ -292,23 +308,7 @@ final class CliRunner {
         return List.copyOf(files);
     }
 
-    /** Hidden directories and the usual build output directories are skipped unless named explicitly. */
-    private static boolean isSkippedDirectory(Path directory) {
-        Path name = directory.getFileName();
-        if (name == null) {
-            return false;
-        }
-        String text = name.toString();
-        return text.startsWith(".") || text.equals("build") || text.equals("target") || text.equals("out");
-    }
-
-    /** A path must pass both the CLI's own --include/--exclude and the style file's [files] table. */
-    private static boolean selected(Path path, StyleResolver styles, FileSelection cliSelection) {
-        return cliSelection.matches(path) && styles.fileSelectionFor(path).matches(path);
-    }
-
-    private static String version() {
-        return CliRunner.class.getPackage().getImplementationVersion();
-    }
+    /** One file's output, buffered rather than printed directly so {@code -j} can print it in order. */
+    private record FileOutput(String out, String err) { }
 
 }

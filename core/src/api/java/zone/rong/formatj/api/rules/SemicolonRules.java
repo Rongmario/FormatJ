@@ -8,7 +8,7 @@ public final class SemicolonRules {
 
     public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
         "semicolons.remove-redundant",
-        false,
+        true,
         "Remove stray semicolons between members and after a top-level type"
     );
 

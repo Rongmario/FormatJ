@@ -10,11 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** The packaged CLI must stay on the documented Java 21 floor. */
 class RuntimeFloorTest {
 
-    @Test
-    void cliCompilesToJava21() throws IOException {
-        assertEquals(65, majorVersion(Main.class), "CLI must be Java 21 bytecode");
-    }
-
     private static int majorVersion(Class<?> type) throws IOException {
         String resource = type.getName().replace('.', '/') + ".class";
         try (InputStream in = type.getClassLoader().getResourceAsStream(resource)) {
@@ -29,8 +24,13 @@ class RuntimeFloorTest {
                 header[3] != (byte) 0xBE) {
                 throw new IOException("not a class file: " + resource);
             }
-            return ((header[6] & 0xff) << 8) | (header[7] & 0xff);
+            return ((header[6] & 0xFF) << 8) | (header[7] & 0xFF);
         }
+    }
+
+    @Test
+    void cliCompilesToJava21() throws IOException {
+        assertEquals(65, majorVersion(Main.class), "CLI must be Java 21 bytecode");
     }
 
 }

@@ -35,50 +35,6 @@ import zone.rong.formatj.core.lexer.Token;
  */
 public final class ImportRewrite implements Rewrite {
 
-    @Override
-    public String name() {
-        return "imports";
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return ImportOrder.sorts(context.style()) || context.rule(ImportRules.REMOVE_UNUSED);
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        if (node.kind() != SyntaxKind.COMPILATION_UNIT) {
-            return node;
-        }
-        List<ImportEntry> entries = ImportOrder.run(node);
-        if (entries.isEmpty()) {
-            return node;
-        }
-
-        boolean sorts = ImportOrder.sorts(context.style());
-        List<ImportEntry> kept = context.rule(ImportRules.REMOVE_UNUSED) ? used(entries, node) : entries;
-        List<ImportEntry> ordered = sorts ? ImportOrder.sorted(kept, context.style()) : kept;
-
-        List<String> before = lexemes(entries);
-        List<String> after = lexemes(ordered);
-        if (!before.equals(after)) {
-            int position = context.firstPosition(entries.getFirst().node());
-            if (position < 0) {
-                return node;
-            }
-            context.record(new TokenEdit(
-                ImportRules.ORDER,
-                "imports reordered or removed",
-                position,
-                before,
-                after,
-                TokenEdit.Bias.INNERMOST_FIRST
-            ));
-        }
-
-        return replaceRun(node, entries, ordered, sorts);
-    }
-
     /** The imports whose simple name the rest of the file still mentions. */
     private static List<ImportEntry> used(List<ImportEntry> entries, GreenNode compilationUnit) {
         Set<String> mentioned = ImportUsage.namesMentioned(compilationUnit);
@@ -157,6 +113,50 @@ public final class ImportRewrite implements Rewrite {
         List<GreenNode> rewritten = new ArrayList<>(children);
         rewritten.set(0, first);
         return GreenNode.branch(declaration.kind(), rewritten);
+    }
+
+    @Override
+    public String name() {
+        return "imports";
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return ImportOrder.sorts(context.style()) || context.rule(ImportRules.REMOVE_UNUSED);
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        if (node.kind() != SyntaxKind.COMPILATION_UNIT) {
+            return node;
+        }
+        List<ImportEntry> entries = ImportOrder.run(node);
+        if (entries.isEmpty()) {
+            return node;
+        }
+
+        boolean sorts = ImportOrder.sorts(context.style());
+        List<ImportEntry> kept = context.rule(ImportRules.REMOVE_UNUSED) ? used(entries, node) : entries;
+        List<ImportEntry> ordered = sorts ? ImportOrder.sorted(kept, context.style()) : kept;
+
+        List<String> before = lexemes(entries);
+        List<String> after = lexemes(ordered);
+        if (!before.equals(after)) {
+            int position = context.firstPosition(entries.getFirst().node());
+            if (position < 0) {
+                return node;
+            }
+            context.record(new TokenEdit(
+                ImportRules.ORDER,
+                "imports reordered or removed",
+                position,
+                before,
+                after,
+                TokenEdit.Bias.INNERMOST_FIRST
+            ));
+        }
+
+        return replaceRun(node, entries, ordered, sorts);
     }
 
 }

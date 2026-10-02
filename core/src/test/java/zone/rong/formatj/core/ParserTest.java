@@ -56,6 +56,27 @@ class ParserTest {
         }
     }
 
+    private static GreenNode find(GreenNode node, SyntaxKind kind) {
+        GreenNode match = findOrNull(node, kind);
+        if (match == null) {
+            throw new AssertionError("no " + kind + " in tree");
+        }
+        return match;
+    }
+
+    private static GreenNode findOrNull(GreenNode node, SyntaxKind kind) {
+        if (node.kind() == kind) {
+            return node;
+        }
+        for (GreenNode child : node.children()) {
+            GreenNode match = findOrNull(child, kind);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
     @ParameterizedTest
     @ValueSource(
         strings = {
@@ -357,27 +378,6 @@ class ParserTest {
         assertParses(
             "module example { requires transitive; requires static transitive.dep; requires transitive static dep; }\n"
         );
-    }
-
-    private static GreenNode find(GreenNode node, SyntaxKind kind) {
-        GreenNode match = findOrNull(node, kind);
-        if (match == null) {
-            throw new AssertionError("no " + kind + " in tree");
-        }
-        return match;
-    }
-
-    private static GreenNode findOrNull(GreenNode node, SyntaxKind kind) {
-        if (node.kind() == kind) {
-            return node;
-        }
-        for (GreenNode child : node.children()) {
-            GreenNode match = findOrNull(child, kind);
-            if (match != null) {
-                return match;
-            }
-        }
-        return null;
     }
 
 }

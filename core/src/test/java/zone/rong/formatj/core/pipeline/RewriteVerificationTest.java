@@ -52,6 +52,30 @@ class RewriteVerificationTest {
             }
             """;
 
+    // ------------------------------------------------ the import edit law
+
+    private static final String IMPORTS = """
+            package demo;
+
+            import java.util.List;
+            import java.util.Map;
+
+            class T {
+
+                List<String> run(Map<String, String> in) {
+                    return List.of();
+                }
+
+            }
+            """;
+
+    // ------------------------------------------------ the permits edit law
+
+    private static final String SEALED = """
+            sealed interface I permits C, A, B {
+            }
+            """;
+
     private static GreenNode parse(String source) {
         return JavaParser.parse(source, LanguageLevel.LATEST, false).root().green();
     }
@@ -70,6 +94,45 @@ class RewriteVerificationTest {
         List<Diagnostic> matching = diagnostics.stream().filter(d -> d.severity() == severity).toList();
         assertEquals(1, matching.size(), () -> "diagnostics: " + diagnostics);
         return matching.getFirst().message();
+    }
+
+    /** An edit replacing the whole import run with the given tokens. */
+    private static TokenEdit importEdit(GreenNode before, List<String> inserted) {
+        List<String> tokens = ProgramTokens.lexemes(before);
+        int start = tokens.indexOf("import");
+        int end = tokens.lastIndexOf(";");
+        for (int i = start; i < tokens.size(); i++) {
+            if (tokens.get(i).equals("class")) {
+                end = i;
+                break;
+            }
+        }
+        return new TokenEdit(
+            ImportRules.ORDER,
+            "reordered",
+            start,
+            List.copyOf(tokens.subList(start, end)),
+            inserted,
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
+    }
+
+    /** An edit replacing the run of permitted types with the given tokens. */
+    private static TokenEdit permitsEdit(List<String> inserted) {
+        return new TokenEdit(
+            SealedRules.PERMITS_ORDER,
+            "reordered",
+            4,
+            List.of("C", ",", "A", ",", "B"),
+            inserted,
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
+    }
+
+    // ----------------------------------------------- the modifier edit law
+
+    private static TokenEdit modifierEdit(List<String> removed, List<String> inserted) {
+        return new TokenEdit(ModifierRules.ORDER, "reordered", 0, removed, inserted, TokenEdit.Bias.INNERMOST_FIRST);
     }
 
     // ------------------------------------------------------------ the replay
@@ -150,23 +213,6 @@ class RewriteVerificationTest {
         assertTrue(problem.contains("but the source has 'class'"), problem);
     }
 
-    // ------------------------------------------------ the import edit law
-
-    private static final String IMPORTS = """
-            package demo;
-
-            import java.util.List;
-            import java.util.Map;
-
-            class T {
-
-                List<String> run(Map<String, String> in) {
-                    return List.of();
-                }
-
-            }
-            """;
-
     @Test
     void reorderingImportsIsPermitted() {
         GreenNode before = parse(IMPORTS);
@@ -223,46 +269,6 @@ class RewriteVerificationTest {
         assertTrue(problem.contains("use cannot be seen"), problem);
     }
 
-    /** An edit replacing the whole import run with the given tokens. */
-    private static TokenEdit importEdit(GreenNode before, List<String> inserted) {
-        List<String> tokens = ProgramTokens.lexemes(before);
-        int start = tokens.indexOf("import");
-        int end = tokens.lastIndexOf(";");
-        for (int i = start; i < tokens.size(); i++) {
-            if (tokens.get(i).equals("class")) {
-                end = i;
-                break;
-            }
-        }
-        return new TokenEdit(
-            ImportRules.ORDER,
-            "reordered",
-            start,
-            List.copyOf(tokens.subList(start, end)),
-            inserted,
-            TokenEdit.Bias.INNERMOST_FIRST
-        );
-    }
-
-    // ------------------------------------------------ the permits edit law
-
-    private static final String SEALED = """
-            sealed interface I permits C, A, B {
-            }
-            """;
-
-    /** An edit replacing the run of permitted types with the given tokens. */
-    private static TokenEdit permitsEdit(List<String> inserted) {
-        return new TokenEdit(
-            SealedRules.PERMITS_ORDER,
-            "reordered",
-            4,
-            List.of("C", ",", "A", ",", "B"),
-            inserted,
-            TokenEdit.Bias.INNERMOST_FIRST
-        );
-    }
-
     @Test
     void reorderingPermittedTypesIsPermitted() {
         assertNull(RewriteVerification.verifyOutput(
@@ -303,12 +309,6 @@ class RewriteVerificationTest {
         );
         assertNotNull(problem);
         assertTrue(problem.contains("may only rewrite a whole permits clause"), problem);
-    }
-
-    // ----------------------------------------------- the modifier edit law
-
-    private static TokenEdit modifierEdit(List<String> removed, List<String> inserted) {
-        return new TokenEdit(ModifierRules.ORDER, "reordered", 0, removed, inserted, TokenEdit.Bias.INNERMOST_FIRST);
     }
 
     @Test
@@ -556,6 +556,14 @@ class RewriteVerificationTest {
     /** Shared plumbing: these all claim to be the brace rule and are all lying about something. */
     private abstract static class FaultyRewrite implements Rewrite {
 
+        static GreenNode brace(String lexeme) {
+            return GreenNode.leaf(SyntaxToken.of(Token.synthetic(TokenKind.SEPARATOR, lexeme)));
+        }
+
+        static GreenNode wrap(GreenNode body) {
+            return GreenNode.branch(SyntaxKind.BLOCK, List.of(brace("{"), body, brace("}")));
+        }
+
         @Override
         public String name() {
             return getClass().getSimpleName();
@@ -564,14 +572,6 @@ class RewriteVerificationTest {
         @Override
         public boolean enabled(RewriteContext context) {
             return true;
-        }
-
-        static GreenNode brace(String lexeme) {
-            return GreenNode.leaf(SyntaxToken.of(Token.synthetic(TokenKind.SEPARATOR, lexeme)));
-        }
-
-        static GreenNode wrap(GreenNode body) {
-            return GreenNode.branch(SyntaxKind.BLOCK, List.of(brace("{"), body, brace("}")));
         }
 
     }
@@ -626,6 +626,20 @@ class RewriteVerificationTest {
     /** Wraps a statement in braces and drops the comment attached to it on the way. */
     private static final class ForgetfulRewrite extends FaultyRewrite {
 
+        private static GreenNode strip(GreenNode node) {
+            if (node instanceof GreenNode.Leaf leaf) {
+                return leaf.token().hasComments() ? GreenNode.leaf(SyntaxToken.of(leaf.token().token())) : leaf;
+            }
+            List<GreenNode> children = new ArrayList<>(node.children().size());
+            boolean changed = false;
+            for (GreenNode child : node.children()) {
+                GreenNode stripped = strip(child);
+                changed |= stripped != child;
+                children.add(stripped);
+            }
+            return changed ? GreenNode.branch(node.kind(), children) : node;
+        }
+
         @Override
         public GreenNode rewrite(GreenNode node, RewriteContext context) {
             if (node.kind() != SyntaxKind.EXPRESSION_STATEMENT) {
@@ -650,20 +664,6 @@ class RewriteVerificationTest {
                 "}"
             ));
             return wrap(stripped);
-        }
-
-        private static GreenNode strip(GreenNode node) {
-            if (node instanceof GreenNode.Leaf leaf) {
-                return leaf.token().hasComments() ? GreenNode.leaf(SyntaxToken.of(leaf.token().token())) : leaf;
-            }
-            List<GreenNode> children = new ArrayList<>(node.children().size());
-            boolean changed = false;
-            for (GreenNode child : node.children()) {
-                GreenNode stripped = strip(child);
-                changed |= stripped != child;
-                children.add(stripped);
-            }
-            return changed ? GreenNode.branch(node.kind(), children) : node;
         }
 
     }

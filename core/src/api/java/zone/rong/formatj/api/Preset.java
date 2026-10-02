@@ -8,14 +8,22 @@ import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BracketStyle;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
+import zone.rong.formatj.api.rules.HexDigitCase;
 import zone.rong.formatj.api.rules.JavadocTagOrder;
+import zone.rong.formatj.api.rules.LambdaParameterStyle;
+import zone.rong.formatj.api.rules.LongSuffix;
+import zone.rong.formatj.api.rules.MemberOrder;
+import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.OperatorWrap;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.StaticImportPlacement;
+import zone.rong.formatj.api.rules.SwitchCaseStyle;
 import zone.rong.formatj.api.rules.WrapPolicy;
+import zone.rong.formatj.api.rules.YieldStyle;
 
 /**
  * A named starting point for a style.
@@ -87,7 +95,16 @@ public enum Preset {
                 .spacing(spacing -> spacing.withinArrayInitializerBraces(false))
                 .annotations(annotations -> annotations.declarationPlacement(AnnotationPlacement.PRESERVE)
                     .fieldPlacement(AnnotationPlacement.PRESERVE))
-                .lambdas(lambdas -> lambdas.bodyBraces(BracePolicy.PRESERVE))
+                .lambdas(lambdas -> lambdas.bodyBraces(BracePolicy.PRESERVE)
+                    .parameterStyle(LambdaParameterStyle.PRESERVE))
+                .switches(switches -> switches.caseStyle(SwitchCaseStyle.PRESERVE)
+                    .arrowCaseBraces(BracePolicy.PRESERVE)
+                    .yieldStyle(YieldStyle.PRESERVE))
+                .modifiers(modifiers -> modifiers.order(ModifierOrder.PRESERVE).removeRedundant(false))
+                .literals(literals -> literals.longSuffix(LongSuffix.PRESERVE).hexDigits(HexDigitCase.PRESERVE))
+                .semicolons(semicolons -> semicolons.removeRedundant(false))
+                .arrays(arrays -> arrays.cStyleBrackets(BracketStyle.PRESERVE))
+                .members(members -> members.order(MemberOrder.PRESERVE))
                 .patterns(patterns -> patterns.nestedIndent(8))
                 .blankLines(blank -> blank.maxConsecutive(1)
                     .afterPackage(1)
@@ -124,16 +141,6 @@ public enum Preset {
 
     };
 
-    /** Writes this preset's rules into the builder. */
-    abstract void applyTo(StyleBuilder style);
-
-    /** This preset as a finished style. */
-    public Style style() {
-        StyleBuilder builder = Style.builder();
-        applyTo(builder);
-        return builder.build();
-    }
-
     /** Looks up a preset by its CLI or config name, e.g. {@code google}. */
     public static Preset of(String name) {
         String normalised = name.trim().replace('-', '_').toUpperCase(Locale.ROOT);
@@ -143,6 +150,16 @@ public enum Preset {
             }
         }
         throw new IllegalArgumentException("Unknown preset '" + name + "'");
+    }
+
+    /** Writes this preset's rules into the builder. */
+    abstract void applyTo(StyleBuilder style);
+
+    /** This preset as a finished style. */
+    public Style style() {
+        StyleBuilder builder = Style.builder();
+        applyTo(builder);
+        return builder.build();
     }
 
 }

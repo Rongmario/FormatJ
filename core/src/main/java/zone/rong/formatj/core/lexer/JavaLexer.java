@@ -154,6 +154,14 @@ public final class JavaLexer {
         return text.toString();
     }
 
+    private static boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private static boolean isWhitespace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+    }
+
     private List<Token> run() {
         List<Token> tokens = new ArrayList<>();
         while (offset < input.length()) {
@@ -338,14 +346,6 @@ public final class JavaLexer {
     private boolean peekIs(int ahead, char expected) {
         int at = offset + ahead;
         return at < input.length() && input.charAt(at) == expected;
-    }
-
-    private static boolean isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    private static boolean isWhitespace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
     }
 
     private Token emit(TokenKind kind, int end) {
