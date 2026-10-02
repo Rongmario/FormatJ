@@ -29,7 +29,19 @@ final class FormatJFiles {
     }
 
     static LanguageLevel languageLevel(PsiFile file) {
-        return FormatJLanguageLevels.of(PsiUtil.getLanguageLevel(file).toJavaVersion().feature);
+        return languageLevel(PsiUtil.getLanguageLevel(file).toJavaVersion().feature);
+    }
+
+    /** The FormatJ level for a release number, capped at {@link LanguageLevel#LATEST}. */
+    static LanguageLevel languageLevel(int release) {
+        if (release <= 17) {
+            return LanguageLevel.JAVA_17;
+        }
+        try {
+            return LanguageLevel.ofRelease(release);
+        } catch (IllegalArgumentException e) {
+            return LanguageLevel.LATEST;
+        }
     }
 
     static boolean previewFeatures(PsiFile file) {

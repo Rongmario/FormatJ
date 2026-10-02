@@ -90,7 +90,7 @@ tasks.register<Test>("externalCorpusTest") {
 tasks.register<JavaExec>("benchmarkStages") {
     group = "verification"
     description = "Times lex, parse, verify, and layout over this repository's Java sources."
-    classpath = sourceSets.main.get().runtimeClasspath
+    classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("zone.rong.formatj.core.pipeline.StageTimer")
     workingDir = rootProject.layout.projectDirectory.asFile
     args(".", "**/build/**", "**/src/test/resources/**")

@@ -76,7 +76,7 @@ public final class RewriteStage {
      * behaviour, not a caller's decision.
      */
     public static RewriteResult apply(GreenNode root, Style style, List<Rewrite> rewrites) {
-        EditLedger ledger = new EditLedger();
+        List<TokenEdit> ledger = new ArrayList<>();
         RewriteContext context = new RewriteContext(style, ledger, root);
 
         GreenNode rewritten = root;
@@ -85,7 +85,7 @@ public final class RewriteStage {
                 rewritten = visit(rewritten, rewrite, context);
             }
         }
-        return new RewriteResult(rewritten, ledger.edits(), context.warnings());
+        return new RewriteResult(rewritten, List.copyOf(ledger), context.warnings());
     }
 
     private static GreenNode visit(GreenNode node, Rewrite rewrite, RewriteContext context) {

@@ -3,11 +3,13 @@ package zone.rong.formatj.cli;
 import java.util.ArrayList;
 import java.util.List;
 
+import zone.rong.formatj.core.pipeline.LineDiffer;
+
 /**
  * A line-based unified diff, used by {@code --diff}.
  *
- * <p>Small on purpose: the CLI needs to show what would change, not to be a diff library, so this is
- * a longest-common-subsequence walk with three lines of context and no rename or word detection.
+ * <p>Small on purpose: the CLI needs to show what would change, not to be a diff library, so this
+ * prints the core's line hunks with three lines of context and no rename or word detection.
  */
 public final class UnifiedDiff {
 
@@ -22,30 +24,16 @@ public final class UnifiedDiff {
         }
         List<String> left = lines(before);
         List<String> right = lines(after);
-        int[][] lcs = longestCommonSubsequence(left, right);
 
         List<String> body = new ArrayList<>();
-        int i = 0;
-        int j = 0;
-        while (i < left.size() && j < right.size()) {
-            if (left.get(i).equals(right.get(j))) {
-                body.add(" " + left.get(i));
-                i++;
-                j++;
-            } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-                body.add("-" + left.get(i));
-                i++;
-            } else {
-                body.add("+" + right.get(j));
-                j++;
-            }
+        int line = 0;
+        for (LineDiffer.Hunk hunk : LineDiffer.hunks(left, right)) {
+            left.subList(line, hunk.originalStart()).forEach(text -> body.add(" " + text));
+            left.subList(hunk.originalStart(), hunk.originalEnd()).forEach(text -> body.add("-" + text));
+            right.subList(hunk.formattedStart(), hunk.formattedEnd()).forEach(text -> body.add("+" + text));
+            line = hunk.originalEnd();
         }
-        while (i < left.size()) {
-            body.add("-" + left.get(i++));
-        }
-        while (j < right.size()) {
-            body.add("+" + right.get(j++));
-        }
+        left.subList(line, left.size()).forEach(text -> body.add(" " + text));
 
         StringBuilder out = new StringBuilder();
         out.append("--- ").append(name).append('\n');
@@ -108,18 +96,6 @@ public final class UnifiedDiff {
             }
             index = end;
         }
-    }
-
-    private static int[][] longestCommonSubsequence(List<String> left, List<String> right) {
-        int[][] lengths = new int[left.size() + 1][right.size() + 1];
-        for (int i = left.size() - 1; i >= 0; i--) {
-            for (int j = right.size() - 1; j >= 0; j--) {
-                lengths[i][j] = left.get(i).equals(right.get(j))
-                    ? lengths[i + 1][j + 1] + 1
-                    : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
-            }
-        }
-        return lengths;
     }
 
     /** Splits into lines, dropping the empty piece a trailing newline produces. */

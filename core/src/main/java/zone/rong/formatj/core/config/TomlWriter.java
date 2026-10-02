@@ -18,27 +18,18 @@ public final class TomlWriter {
 
     /** The whole catalogue with this style's effective values, grouped and commented. */
     public static String write(Style style) {
-        return write(style, true);
-    }
-
-    /**
-     * @param includeDocumentation whether to emit the per-option comments
-     */
-    public static String write(Style style, boolean includeDocumentation) {
         StringBuilder out = new StringBuilder();
         out.append("# FormatJ style file. Every option is listed with its effective value.\n");
         out.append("# Delete anything you are happy to leave at its default.\n");
         for (String group : OptionRegistry.groups()) {
             out.append('\n').append('[').append(group).append("]\n");
             for (Option<?> option : OptionRegistry.group(group)) {
-                if (includeDocumentation) {
-                    out.append("# ").append(option.description()).append('.');
-                    List<String> allowed = option.allowedValues();
-                    if (!allowed.isEmpty()) {
-                        out.append(" One of: ").append(String.join(", ", allowed)).append('.');
-                    }
-                    out.append('\n');
+                out.append("# ").append(option.description()).append('.');
+                List<String> allowed = option.allowedValues();
+                if (!allowed.isEmpty()) {
+                    out.append(" One of: ").append(String.join(", ", allowed)).append('.');
                 }
+                out.append('\n');
                 out.append(shortKey(option)).append(" = ").append(render(style, option)).append('\n');
             }
         }

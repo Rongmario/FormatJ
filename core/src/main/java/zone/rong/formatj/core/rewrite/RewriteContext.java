@@ -23,11 +23,14 @@ import zone.rong.formatj.core.cst.ProgramTokens;
 public final class RewriteContext {
 
     private final Style style;
-    private final EditLedger ledger;
+
+    // Recording order is the verifier's tiebreak for two edits on one token. See TokenEdit.Bias.
+    private final List<TokenEdit> ledger;
+
     private final Map<GreenNode.Leaf, Integer> positions;
     private final List<Diagnostic> warnings = new ArrayList<>();
 
-    RewriteContext(Style style, EditLedger ledger, GreenNode original) {
+    RewriteContext(Style style, List<TokenEdit> ledger, GreenNode original) {
         this.style = style;
         this.ledger = ledger;
         this.positions = ProgramTokens.positions(original);
@@ -42,7 +45,7 @@ public final class RewriteContext {
     }
 
     public void record(TokenEdit edit) {
-        ledger.record(edit);
+        ledger.add(edit);
     }
 
     /** Reports something the rewrite left alone and the user should know about. */

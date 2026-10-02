@@ -18,7 +18,7 @@ import zone.rong.formatj.core.lexer.TokenKind;
  * only the hunks that fall inside a caller's requested ranges. The rest of the file keeps its
  * original characters even where formatting the whole file would have reflowed it too.
  */
-final class LineDiffer {
+public final class LineDiffer {
 
     private static final long MAX_DIFF_TABLE_CELLS = 2_000_000L;
     private static final int MAX_ANCHOR_LINES = 100_000;
@@ -55,7 +55,7 @@ final class LineDiffer {
         return out.toString();
     }
 
-    static List<Hunk> hunks(List<String> original, List<String> formatted) {
+    public static List<Hunk> hunks(List<String> original, List<String> formatted) {
         int n = original.size();
         int m = formatted.size();
         if (n == 0 && m == 0) {
@@ -487,7 +487,7 @@ final class LineDiffer {
 
     }
 
-    record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) { }
+    public record Hunk(int originalStart, int originalEnd, int formattedStart, int formattedEnd) { }
 
     record Split(
         List<String> lines,
