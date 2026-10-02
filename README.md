@@ -76,7 +76,7 @@ import zone.rong.formatj.api.Preset
 
 plugins {
     java
-    id("zone.rong.formatj") version "1.0.0"
+    id("zone.rong.formatj") version "1.0.1"
 }
 
 formatJ {
@@ -108,7 +108,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
@@ -151,7 +151,7 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ### Library
 
-`zone.rong.formatj:formatj:1.0.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+`zone.rong.formatj:formatj:1.0.1` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
 
 ```java
 Formatter formatter = FormatJ.newFormatter()
@@ -747,8 +747,8 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 ## Output stability
 
 - Within 1.x, the output for a given style changes only to fix a bug, where the previous output was wrong or unstable.
-- The defaults shipped in 1.0.0 are the baseline. Changing one waits for 2.0.
-- Rules added after 1.0.0 default to preserve or off.
+- The defaults shipped in 1.0.1 are the baseline. Changing one waits for 2.0.
+- Rules added after 1.0.1 default to preserve or off.
 - Every release diffs the formatted output of a fixed corpus against golden files.
 
 ## Runtime
@@ -763,7 +763,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 ## Building
 
 - The Maven plugin descriptor in `maven-plugin/src/main/resources/META-INF/maven/plugin.xml` is hand-written. Generating it needs either Maven itself or a Gradle plugin that no longer runs on Gradle 9. `MavenPluginDescriptorTest` checks it against the mojo annotations and the project version on every build.
-- Versions come from [Cleanroom Versioning](https://github.com/CleanroomMC/Versioning), which reads `version` and `versioning.stage` in `gradle.properties` plus `git describe`.
+- Versions come from [Cleanroom Versioning](https://github.com/CleanroomMC/Versioning), which derives the version from the nearest git tag through `git describe`.
 - Local builds get a `+local.<distance>` suffix. A release is the numeric version and requires a matching git tag with no `v` prefix.
 - The `Publish` workflow sends the Gradle plugin to the Plugin Portal, `formatj` and `formatj-maven-plugin` to [maven.cleanroommc.com](https://maven.cleanroommc.com), and the CLI zip and tar to a GitHub Release.
 
