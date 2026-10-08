@@ -63,6 +63,8 @@ public class FormatJPlugin implements Plugin<Project> {
         FileSelection tomlSelection = resolvedStyleFile
             .map(file -> StyleFiles.fileSelection(file.getAsFile().toPath()))
             .getOrElse(FileSelection.NONE);
+        // Exclude buildDir (generated sources)
+        Path buildDirectory = project.getLayout().getBuildDirectory().get().getAsFile().toPath();
         FileCollection files = project.files();
         for (SourceSet sourceSet : sourceSets) {
             if (selected.isEmpty() || selected.contains(sourceSet.getName())) {
@@ -70,7 +72,9 @@ public class FormatJPlugin implements Plugin<Project> {
                     sourceSet.getAllJava()
                         .matching(patterns -> patterns.include(extension.getIncludes().get())
                             .exclude(extension.getExcludes().get()))
-                        .filter(file -> file.getName().endsWith(".java") && tomlSelection.matches(file.toPath()))
+                        .filter(file -> file.getName().endsWith(".java") &&
+                            !file.toPath().startsWith(buildDirectory) &&
+                            tomlSelection.matches(file.toPath()))
                 );
             }
         }

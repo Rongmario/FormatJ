@@ -182,6 +182,30 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void sourcesUnderTheBuildDirectoryAreLeftAlone() throws IOException {
+        Files.writeString(
+            projectDirectory.resolve("build.gradle.kts"),
+            """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+
+                sourceSets.main { java.srcDir(layout.buildDirectory.dir("generated/java")) }
+                """
+        );
+        // Unformatted, so the check below fails if the generated directory is picked up.
+        Path generated = Files.createDirectories(projectDirectory.resolve("build/generated/java/generated"));
+        Files.writeString(
+            generated.resolve("Generated.java"),
+            "package generated;\n\nclass Generated {\n\n    void run() {\n        int x=1;\n    }\n\n}\n"
+        );
+
+        BuildResult result = run("formatJavaCheck");
+        assertEquals(TaskOutcome.SUCCESS, result.task(":formatJavaCheck").getOutcome());
+    }
+
+    @Test
     void checkTaskIsWiredIntoTheLifecycleCheckTask() {
         BuildResult result = run("check");
         assertTrue(result.getOutput().contains("formatJavaCheck"), result.getOutput());
