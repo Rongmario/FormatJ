@@ -11,6 +11,6 @@ class Reflow {
     // {@code stays  exactly   as written} and the words round it move freely
     void sample() { }
 
-    void trailing() { } // never refilled, because the second line would land under the code
+    void trailing() { } // moved above the member, because a second line would land under the code
 
 }

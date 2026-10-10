@@ -373,6 +373,15 @@ public final class CommentFormatter {
         return verbatim(comment);
     }
 
+    /** Whether a line comment is prose that re-flowing wraps once it has a line of its own. */
+    public boolean reflows(Token comment) {
+        return comment.kind() == TokenKind.LINE_COMMENT &&
+            rule(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH &&
+            !comment.hasUnicodeEscape() &&
+            !Prose.isMarkdownComment(comment) &&
+            reflowable(List.of(comment));
+    }
+
     /**
      * A run of comments the author put on their own lines, laid out as one unit.
      *

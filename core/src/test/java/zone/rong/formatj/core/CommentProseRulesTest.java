@@ -165,13 +165,38 @@ class CommentProseRulesTest {
     }
 
     @Test
-    void reflowLeavesATrailingCommentOnItsOwnLine() {
+    void reflowMovesAnOverlongTrailingCommentAboveItsStatement() {
         String formatted = format(
             style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
                 .set(WrappingRules.MAX_LINE_LENGTH, 40),
-            "    void f() { } // one two three four five six seven eight\n"
+            "    void f() {\n        g(); // one two three four five six seven eight\n        h(); // short\n    }\n"
         );
-        assertTrue(formatted.contains("// one two three four five six seven eight"), formatted);
+        assertTrue(
+            formatted.contains(
+                "        // one two three four five six\n        // seven eight\n        g();\n        h(); // short\n"
+            ),
+            formatted
+        );
+    }
+
+    @Test
+    void reflowLeavesATrailingCommentBesideAnArgument() {
+        String formatted = format(
+            style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                .set(WrappingRules.MAX_LINE_LENGTH, 40),
+            "    void f() {\n        g(\n            a, // one two three four five six seven eight\n            b\n        );\n    }\n"
+        );
+        assertTrue(formatted.contains("a, // one two three four five six seven eight"), formatted);
+    }
+
+    @Test
+    void reflowLeavesTrailingCommentedOutCodeInPlace() {
+        String formatted = format(
+            style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
+                .set(WrappingRules.MAX_LINE_LENGTH, 40),
+            "    void f() {\n        g(); //someOtherCall(withArguments, andMore);\n    }\n"
+        );
+        assertTrue(formatted.contains("g(); //someOtherCall(withArguments, andMore);"), formatted);
     }
 
     @Test

@@ -484,10 +484,14 @@ groups = [
 - `comments.indent-with-code = false` keeps the indent the author wrote. `comments.keep-first-column-comments` is narrower and only pins comments that already start in column one.
 - The off and on markers work at whole members, whole statements and whole top-level declarations. A marker in the middle of an expression is ignored.
 - `comments.reflow` refills a run of `//` lines as one paragraph. It skips:
-  - a comment trailing code
   - a comment holding a `{@code}`, `<pre>` or `@snippet` region
   - a run of `//` lines with no space after the slashes, which is what commented-out code looks like
   - anything carrying an off or on marker
+- `comments.reflow` moves a `//` comment that trails code past the margin onto its own line above the statement or member, and refills it there.
+  - The comment has to trail the statement's first line or its last token. One beside an argument in the middle of a list stays.
+  - It stays when another comment sits between the start of the statement and it, or when a `//` comment is already above the statement.
+  - It stays when moving it would let a rewriting rule remove the token it was attached to.
+  - A file holding the off marker keeps all its trailing comments in place.
 
 ### `javadoc`
 

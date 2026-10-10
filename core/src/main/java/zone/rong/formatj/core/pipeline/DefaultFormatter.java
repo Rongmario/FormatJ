@@ -9,10 +9,12 @@ import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.CommentReflow;
 import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.core.comment.CommentFormatter;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.SyntaxNode;
 import zone.rong.formatj.core.emit.DocEmitter;
@@ -115,6 +117,11 @@ public final class DefaultFormatter implements Formatter {
     private static String sourceSeparator(String source) {
         int newline = source.indexOf('\n');
         return newline > 0 && source.charAt(newline - 1) == '\r' ? "\r\n" : "\n";
+    }
+
+    private static boolean hasOverlongTrailingComment(String text, int maxWidth) {
+        return text.lines()
+            .anyMatch(line -> line.length() > maxWidth && line.contains("//") && !line.stripLeading().startsWith("//"));
     }
 
     @Override
@@ -241,7 +248,7 @@ public final class DefaultFormatter implements Formatter {
             }
         }
 
-        String formatted = layout(SyntaxNode.root(rewritten.root()), source);
+        String formatted = layout(SyntaxNode.root(rewritten.root()), source, allowed);
         if (!verify) {
             return Attempt.success(formatted, rewrote, rewritten.warnings());
         }
@@ -275,7 +282,7 @@ public final class DefaultFormatter implements Formatter {
         GreenNode second = allowed
             ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
             : formattedTree.root().green();
-        String twice = layout(SyntaxNode.root(second), source);
+        String twice = layout(SyntaxNode.root(second), source, allowed);
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
         }
@@ -290,16 +297,59 @@ public final class DefaultFormatter implements Formatter {
      * where a run of lines should share a column is not known until every line in it has been laid
      * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
      * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
+     *
+     * @param allowed whether rules that add or remove code ran, and so could run again
      */
-    String layout(SyntaxNode root, String source) {
+    String layout(SyntaxNode root, String source, boolean allowed) {
         String separator = lineSeparator(source);
-        DocPrinter.Printed printed = printer(separator).printMarked(new DocEmitter(style).emit(root));
-        String text = new ColumnAligner(
-            style.get(FileRules.TAB_WIDTH),
-            style.get(CommentRules.TRAILING_COMMENT_COLUMN)
-        ).align(printed);
+        String text = print(root, separator);
+        int maxWidth = style.get(WrappingRules.MAX_LINE_LENGTH);
+        CommentFormatter comments = new CommentFormatter(style);
+        // ponytail: a file holding the off marker keeps its long trailing comments, and tab indentation
+        // is measured in characters. Track the off regions and visual columns if either matters.
+        String off = style.get(CommentRules.OFF_MARKER);
+        boolean suspended = style.get(CommentRules.HONOUR_FORMATTER_OFF) && !off.isBlank() && text.contains(off);
+        boolean hoists = style.get(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH && !suspended;
+        while (hoists && hasOverlongTrailingComment(text, maxWidth)) {
+            GreenNode printed = JavaParser.parse(text, languageLevel, previewFeatures).root().green();
+            List<Token> moved = new ArrayList<>();
+            GreenNode hoisted = TrailingCommentHoist.apply(
+                printed,
+                maxWidth,
+                comment -> comments.reflows(comment) && moved.add(comment)
+            );
+            if (allowed && unsettles(hoisted)) {
+                // A comment on a token keeps a rewrite from deleting that token. Moving such a comment
+                // would let the rewrite run on the next pass, so it stays where it is.
+                moved.removeIf(comment -> unsettles(TrailingCommentHoist.apply(
+                    printed,
+                    maxWidth,
+                    other -> other == comment
+                )));
+                hoisted = TrailingCommentHoist.apply(printed, maxWidth, moved::contains);
+                if (unsettles(hoisted)) {
+                    break;
+                }
+            }
+            if (hoisted == printed) {
+                break;
+            }
+            text = print(SyntaxNode.root(hoisted), separator);
+        }
         String trimmed = stripTrailingBlankLines(text);
         return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
+    }
+
+    private boolean unsettles(GreenNode tree) {
+        RewriteResult rewritten = RewriteStage.apply(tree, style, rewrites);
+        return !rewritten.unchanged() || rewritten.root() != tree;
+    }
+
+    private String print(SyntaxNode root, String separator) {
+        DocPrinter.Printed printed = printer(separator).printMarked(new DocEmitter(style).emit(root));
+        return new ColumnAligner(style.get(FileRules.TAB_WIDTH), style.get(CommentRules.TRAILING_COMMENT_COLUMN)).align(
+            printed
+        );
     }
 
     private DocPrinter printer(String separator) {

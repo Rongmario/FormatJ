@@ -78,7 +78,7 @@ public final class StageTimer {
         verifyNanos += System.nanoTime() - verifyStart;
 
         long layoutStart = System.nanoTime();
-        String formatted = formatter.layout(SyntaxNode.root(rewritten.root()), source);
+        String formatted = formatter.layout(SyntaxNode.root(rewritten.root()), source, true);
         long t4 = System.nanoTime();
         ParseResult formattedTree = JavaParser.parse(formatted, formatter.languageLevel(), false);
         long t5 = System.nanoTime();
@@ -106,7 +106,7 @@ public final class StageTimer {
         verifyNanos += System.nanoTime() - verifyStart;
 
         long secondLayoutStart = System.nanoTime();
-        String twice = formatter.layout(SyntaxNode.root(second), source);
+        String twice = formatter.layout(SyntaxNode.root(second), source, true);
         long t6 = System.nanoTime();
         if (!twice.equals(formatted)) {
             throw new IllegalStateException("formatting was not stable");
