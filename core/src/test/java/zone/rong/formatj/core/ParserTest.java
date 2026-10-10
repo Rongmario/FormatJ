@@ -175,6 +175,13 @@ class ParserTest {
     }
 
     @Test
+    void anUnderscoreIsAnIdentifierInJava8() {
+        String source = "class A { int _; void f(int _) { int x = _; } }\n";
+        assertTrue(unparsedText(JavaParser.parse(source, LanguageLevel.JAVA_8, false).root()).isEmpty());
+        assertFalse(unparsedText(JavaParser.parse(source, LanguageLevel.JAVA_9, false).root()).isEmpty());
+    }
+
+    @Test
     void unnamedVariablesNeedJava22() {
         String[] sources = {
             "class A { Function<Integer, Integer> g = _ -> 1; }\n",

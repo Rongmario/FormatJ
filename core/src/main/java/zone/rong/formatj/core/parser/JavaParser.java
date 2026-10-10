@@ -47,6 +47,14 @@ public final class JavaParser extends StatementParser {
 
     /** Parses an already-lexed token stream into a lossless tree. */
     public static ParseResult parse(List<Token> tokens, LanguageLevel languageLevel, boolean previewFeatures) {
+        if (!languageLevel.isAtLeast(LanguageLevel.JAVA_9)) {
+            // Java 8 still reads a lone underscore as an identifier. Java 9 made it a keyword.
+            tokens = tokens.stream()
+                .map(token -> token.kind() == TokenKind.KEYWORD && token.is("_")
+                    ? new Token(TokenKind.IDENTIFIER, token.text(), token.start(), token.line(), token.column())
+                    : token)
+                .toList();
+        }
         JavaParser parser = new JavaParser(tokens, languageLevel, previewFeatures);
         return parser.parseCompilationUnit();
     }
