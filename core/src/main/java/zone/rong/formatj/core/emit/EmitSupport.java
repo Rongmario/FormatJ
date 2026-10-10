@@ -660,18 +660,21 @@ abstract class EmitSupport {
 
     // ------------------------------------------------------------ verbatim
 
-    /** A region reproduced exactly, used for unparsed and formatter-off code. */
+    /**
+     * A region reproduced exactly, used for unparsed and formatter-off code.
+     *
+     * <p>Only its first line is placed. The lines after it keep the columns they were written at,
+     * because indenting them again would move them further on every pass.
+     */
     protected Doc verbatim(GreenNode node) {
         String text = node.text().strip();
-        String[] lines = text.split("\r\n|\r|\n", -1);
-        List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < lines.length; i++) {
-            if (i > 0) {
-                parts.add(Doc.hardLine());
-            }
-            parts.add(Doc.text(stripTrailing(lines[i])));
+        if (rule(FileRules.TRIM_TRAILING_WHITESPACE)) {
+            text = text.replaceAll("[ \\t]+(?=[\\r\\n])", "");
         }
-        return Doc.concat(parts);
+        // Text with its own line structure has to break every group around it, as a text block does.
+        return text.contains("\n") || text.contains("\r")
+            ? Doc.concat(Doc.breakParent(), Doc.text(text))
+            : Doc.text(text);
     }
 
     /** What separates an annotation on a declaration from what follows it. */

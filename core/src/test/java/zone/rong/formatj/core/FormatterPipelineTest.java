@@ -95,6 +95,16 @@ class FormatterPipelineTest {
     }
 
     @Test
+    void anUnparsedMemberOfSeveralLinesKeepsItsLinesWhereTheyWere() {
+        String broken = "class A {\n\n    void f(int +) {\n        int x = 1;\n    }\n\n}\n";
+
+        FormatResult result = FormatJ.defaultFormatter().format(FormatRequest.of(broken).withName("A.java"));
+
+        assertFalse(result.hasErrors(), () -> "diagnostics: " + result.diagnostics());
+        assertEquals(broken, result.text());
+    }
+
+    @Test
     void tokenEquivalenceIgnoresLayoutButNotProgramChanges() {
         assertTrue(TokenEquivalence.equivalent("int  x =  1;", "int x = 1;"));
         assertTrue(TokenEquivalence.equivalent("int x = 1; // note", "int x = 1;"));
