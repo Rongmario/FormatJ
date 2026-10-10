@@ -56,7 +56,10 @@ public abstract class FormatJExtension {
     /** Ant-style patterns of the files to leave alone, relative to each source directory. */
     public abstract SetProperty<String> getExcludes();
 
-    /** Syntax level to parse. Defaults to the newest FormatJ knows. */
+    /**
+     * Syntax level to parse and to write. Defaults to the release {@code compileJava} targets, or the
+     * newest FormatJ knows when the project has no Java plugin.
+     */
     public abstract Property<LanguageLevel> getLanguageLevel();
 
     /** Whether preview syntax is accepted. Defaults to false. */

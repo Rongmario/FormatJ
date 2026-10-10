@@ -9,7 +9,8 @@ class FormatJFilesTest {
 
     @Test
     void releasesOlderThan17Become17() {
-        assertEquals(LanguageLevel.JAVA_17, FormatJFiles.languageLevel(8));
+        assertEquals(LanguageLevel.JAVA_8, FormatJFiles.languageLevel(7));
+        assertEquals(LanguageLevel.JAVA_8, FormatJFiles.languageLevel(8));
         assertEquals(LanguageLevel.JAVA_17, FormatJFiles.languageLevel(17));
     }
 

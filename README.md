@@ -92,6 +92,7 @@ formatJ {
 - `./gradlew formatJavaApply` rewrites sources in place.
 - `./gradlew formatJavaCheck` fails if anything would change. `check` depends on it unless `enforceOnCheck = false`.
 - The check task is cacheable and incremental, and rules are task inputs. Apply always runs, because it mutates the source files.
+- `languageLevel` defaults to what `compileJava` targets, which is `options.release` when set and `sourceCompatibility` otherwise. Set `languageLevel = LanguageLevel.JAVA_8` to override it.
 
 ### Maven Plugin
 
@@ -133,6 +134,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 - `-Dformatj.skip` skips the plugin, and `-Dformatj.styleFile=...` points at a style file.
 - With no `<styleFile>` or `<preset>`, the nearest `formatj.toml` above the project directory is used.
 - `<includes>` and `<excludes>` are globs relative to each source root. Source roots under `target/` are skipped.
+- `<languageLevel>` defaults to the `maven.compiler.release` property, then `maven.compiler.source`. `-Dformatj.languageLevel=8` overrides it.
 
 ### IntelliJ Plugin (Experimental)
 
@@ -168,6 +170,26 @@ FormatResult result = formatter.format(FormatRequest.of(source).withName("Foo.ja
 ```
 
 A formatter is immutable and thread-safe, so one instance can serve the whole project.
+
+### Language Level
+
+The language level is the Java release the sources compile for, from 8 to 25. FormatJ never writes syntax that release cannot compile, so one style file works across projects on different Java versions. A rule that would write newer syntax leaves the code as written and reports nothing.
+
+| Rule                                        | Writes                                          | From release           |
+|---------------------------------------------|-------------------------------------------------|------------------------|
+| `switch.case-style = "arrow"`               | `case 1 -> f();`                                | 14, or 12 with preview |
+| `text-blocks.escape-trailing-spaces = true` | `\s`                                            | 15, or 14 with preview |
+| `modifiers.remove-redundant = true`         | a `@SafeVarargs` private method without `final` | 9                      |
+
+| Entry point | Where the level comes from                                                        |
+|-------------|-----------------------------------------------------------------------------------|
+| Library     | `.languageLevel(...)`, default `LATEST`                                           |
+| CLI         | `--language-level N` and `--preview`, default latest                              |
+| Gradle      | `languageLevel`, default the release `compileJava` targets                        |
+| Maven       | `<languageLevel>`, default `maven.compiler.release`, then `maven.compiler.source` |
+| IntelliJ    | the language level of the file's module                                           |
+
+Each default falls back to the latest release when the project does not name one. A style file cannot set the level, because the level belongs to the project and a style file is shared.
 
 ## Configuration
 
@@ -553,6 +575,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
   - Annotations keep their source order and their positions among the modifiers.
   - Modifier lists with comments, duplicates or malformed modifiers stay unchanged.
 - `modifiers.remove-redundant` removes only what the JLS implies. A modifier that carries a comment stays.
+- Below Java 9, `final` stays on a private method that carries `@SafeVarargs`, because the annotation needs it there.
   - `public` and bodiless `abstract` on interface methods
   - `public static final` on interface fields
   - `public static` on interface member types
@@ -578,6 +601,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 - Neither rule touches the other's cases.
 - `never` and `when-multi-statement` coincide on an arrow case, because a block holding more than one statement has no unbraced form.
 - `yield-style = always-block` leaves a `throw` body alone, because a `throw` produces no value.
+- `switch.case-style = "arrow"` does nothing below Java 14, where arrow cases do not compile. See [Language Level](#language-level).
 - `switch.case-style` reads the whole switch first and converts it only when every condition below holds. A switch is converted wholly or left alone, because mixing the two forms does not compile.
   - Every group ends where it cannot fall through. That is an unlabelled `break`, which the rule removes, or a `return`, `throw`, `yield` or `continue`, which it keeps. The last group needs no terminator.
   - No `break` belonging to the switch is buried inside a group. A `break` inside a nested loop or switch binds to that and does not count.
@@ -639,6 +663,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 
 - `indent-policy` is layout. The language throws away the indentation every line of a block shares, so moving all lines together does not change the string. Verification compares text blocks by the string they denote.
 - `closing-delimiter-on-own-line` and `escape-trailing-spaces` are rewrites, because each changes the string.
+- `escape-trailing-spaces` does nothing below Java 15, where `\s` does not compile.
   - The first adds the line terminator that a delimiter on its own line implies.
   - The second makes trailing spaces significant that the language would discard.
   - Each may change only a line's trailing white space and the final line terminator.

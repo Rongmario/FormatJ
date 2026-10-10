@@ -66,7 +66,10 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     /** Whether to format test sources as well as main sources. */
     @Parameter(property = "formatj.includeTestSources", defaultValue = "true") protected boolean includeTestSources;
 
-    /** Java syntax level to parse, e.g. 21. Defaults to the newest FormatJ knows. */
+    /**
+     * Java syntax level to parse and to write, e.g. 21. Defaults to {@code maven.compiler.release}, then
+     * {@code maven.compiler.source}, then the newest FormatJ knows.
+     */
     @Parameter(property = "formatj.languageLevel") protected Integer languageLevel;
 
     /** Whether preview syntax is accepted for that language level. */
@@ -197,9 +200,24 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     private Formatter formatter() throws MojoExecutionException {
         return FormatJ.newFormatter()
             .style(style())
-            .languageLevel(languageLevel == null ? LanguageLevel.LATEST : LanguageLevel.ofRelease(languageLevel))
+            .languageLevel(languageLevel == null ? projectLanguageLevel() : LanguageLevel.ofRelease(languageLevel))
             .previewFeatures(previewFeatures)
             .build();
+    }
+
+    LanguageLevel projectLanguageLevel() {
+        String release = project.getProperties()
+            .getProperty("maven.compiler.release", project.getProperties().getProperty("maven.compiler.source"));
+        if (release == null) {
+            return LanguageLevel.LATEST;
+        }
+        try {
+            // 1.8 is the old spelling of 8.
+            int feature = Integer.parseInt(release.startsWith("1.") ? release.substring(2) : release);
+            return LanguageLevel.ofRelease(Math.max(feature, LanguageLevel.JAVA_8.release()));
+        } catch (IllegalArgumentException e) {
+            return LanguageLevel.LATEST;
+        }
     }
 
     /** Every Java source of the project that the include and exclude globs allow. */

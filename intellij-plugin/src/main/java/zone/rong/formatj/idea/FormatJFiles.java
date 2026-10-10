@@ -34,8 +34,8 @@ final class FormatJFiles {
 
     /** The FormatJ level for a release number, capped at {@link LanguageLevel#LATEST}. */
     static LanguageLevel languageLevel(int release) {
-        if (release <= 17) {
-            return LanguageLevel.JAVA_17;
+        if (release <= 8) {
+            return LanguageLevel.JAVA_8;
         }
         try {
             return LanguageLevel.ofRelease(release);

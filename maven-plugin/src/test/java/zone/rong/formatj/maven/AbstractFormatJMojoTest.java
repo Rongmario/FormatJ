@@ -9,6 +9,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.rules.IndentRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +29,19 @@ class AbstractFormatJMojoTest {
         mojo.project.setFile(root.resolve("pom.xml").toFile());
 
         assertEquals(6, mojo.style().get(IndentRules.SIZE));
+    }
+
+    @Test
+    void theLanguageLevelDefaultsToWhatTheCompilerTargets() {
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        assertEquals(LanguageLevel.LATEST, mojo.projectLanguageLevel());
+
+        mojo.project.getProperties().setProperty("maven.compiler.source", "1.8");
+        assertEquals(LanguageLevel.JAVA_8, mojo.projectLanguageLevel());
+
+        mojo.project.getProperties().setProperty("maven.compiler.release", "17");
+        assertEquals(LanguageLevel.JAVA_17, mojo.projectLanguageLevel());
     }
 
     @Test

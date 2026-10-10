@@ -93,6 +93,32 @@ class FormatJPluginFunctionalTest {
     }
 
     @Test
+    void theLanguageLevelDefaultsToWhatCompileJavaTargets() throws IOException {
+        Files.writeString(
+            projectDirectory.resolve("build.gradle.kts"),
+            """
+                plugins {
+                    java
+                    id("zone.rong.formatj")
+                }
+
+                tasks.compileJava {
+                    options.release = 8
+                }
+                """
+        );
+        Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
+        Files.writeString(
+            source,
+            "package sample;\n\nclass Sample {\n\n    void run(int n) {\n        switch (n) {\n            case 1:\n                run(n);\n                break;\n        }\n    }\n\n}\n"
+        );
+
+        run("formatJavaApply");
+
+        assertTrue(Files.readString(source).contains("case 1:"), Files.readString(source));
+    }
+
+    @Test
     void everySourceSetIsFormattedWhenTheBuildNamesNone() throws IOException {
         // No formatJ block at all: the extension's source set list is empty rather than absent, and
         // an empty list has to mean every source set, not none of them.

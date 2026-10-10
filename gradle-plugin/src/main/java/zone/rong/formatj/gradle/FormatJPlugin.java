@@ -3,15 +3,18 @@ package zone.rong.formatj.gradle;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.RegularFile;
+import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.config.FileSelection;
@@ -43,6 +46,26 @@ public class FormatJPlugin implements Plugin<Project> {
         task.getRules().set(extension.getRules());
         task.getLanguageLevel().set(extension.getLanguageLevel());
         task.getPreviewFeatures().set(extension.getPreviewFeatures());
+    }
+
+    /** The release the main sources compile for, or the newest level when the project does not say. */
+    private static LanguageLevel projectLanguageLevel(Project project) {
+        JavaCompile compile = project.getTasks()
+            .withType(JavaCompile.class)
+            .findByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+        if (compile == null) {
+            return LanguageLevel.LATEST;
+        }
+        // --release decides the language level over the toolchain, which sourceCompatibility follows.
+        Integer release = compile.getOptions().getRelease().getOrNull();
+        if (release == null) {
+            release = Integer.valueOf(JavaVersion.toVersion(compile.getSourceCompatibility()).getMajorVersion());
+        }
+        try {
+            return LanguageLevel.ofRelease(Math.max(release, LanguageLevel.JAVA_8.release()));
+        } catch (IllegalArgumentException e) {
+            return LanguageLevel.LATEST;
+        }
     }
 
     private static FileCollection javaSources(
@@ -84,7 +107,7 @@ public class FormatJPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         FormatJExtension extension = project.getExtensions().create(EXTENSION_NAME, FormatJExtension.class);
-        extension.getLanguageLevel().convention(LanguageLevel.LATEST);
+        extension.getLanguageLevel().convention(project.provider(() -> projectLanguageLevel(project)));
         extension.getPreviewFeatures().convention(false);
         extension.getEnforceOnCheck().convention(true);
 
