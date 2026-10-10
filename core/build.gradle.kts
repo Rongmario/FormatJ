@@ -68,6 +68,26 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     exclude("**/ExternalCorpusInvariantTest.class")
+    exclude("**/LanguageLevelCompileTest.class")
+}
+
+val languageLevelTest = tasks.register<Test>("languageLevelTest") {
+    group = "verification"
+    description = "Compiles what the gated rewrite rules write with the JDK of each release they are gated at."
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    include("**/LanguageLevelCompileTest.class")
+    listOf(8, 9, 13, 14, 15).forEach { release ->
+        val javac = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(release) }
+        jvmArgumentProviders.add(CommandLineArgumentProvider {
+            listOf("-Dformatj.javac.$release=${javac.get().executablePath}")
+        })
+    }
+}
+
+tasks.check {
+    dependsOn(languageLevelTest)
 }
 
 tasks.register<Test>("externalCorpusTest") {
