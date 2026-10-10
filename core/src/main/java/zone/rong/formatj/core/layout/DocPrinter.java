@@ -251,7 +251,11 @@ public final class DocPrinter {
         // Content that spans lines does not fit either: what follows it starts a line of its own, whether
         // the lines came from the margin or from breaks the content was always going to take.
         boolean multiline = DocBreaks.forcesBreak(content);
-        boolean contentFits = !multiline && fits(content, remaining, commands, true);
+        // What follows the fill shares a line only with its last part. Before that the line can end at
+        // the next separator, so the closing bracket after the list is not this part's to make room for.
+        Deque<Command> afterContent = parts.size() > 2 ? new ArrayDeque<>() : commands;
+        Deque<Command> afterPair = parts.size() > 3 ? new ArrayDeque<>() : commands;
+        boolean contentFits = !multiline && fits(content, remaining, afterContent, true);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -267,7 +271,7 @@ public final class DocPrinter {
         Doc pair = Doc.concat(List.of(content, separator, parts.get(2)));
         // The next part joins this line only if all of it fits. One that spans lines starts its own,
         // as it would have before it was first broken.
-        boolean pairFits = !multiline && fits(pair, remaining, commands, false);
+        boolean pairFits = !multiline && fits(pair, remaining, afterPair, false);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
