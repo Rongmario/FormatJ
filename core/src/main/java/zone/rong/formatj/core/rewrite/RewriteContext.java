@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import zone.rong.formatj.api.Diagnostic;
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -30,10 +31,33 @@ public final class RewriteContext {
     private final Map<GreenNode.Leaf, Integer> positions;
     private final List<Diagnostic> warnings = new ArrayList<>();
 
-    RewriteContext(Style style, List<TokenEdit> ledger, GreenNode original) {
+    private final LanguageLevel languageLevel;
+    private final boolean previewFeatures;
+
+    RewriteContext(
+        Style style,
+        List<TokenEdit> ledger,
+        GreenNode original,
+        LanguageLevel languageLevel,
+        boolean previewFeatures
+    ) {
         this.style = style;
         this.ledger = ledger;
         this.positions = ProgramTokens.positions(original);
+        this.languageLevel = languageLevel;
+        this.previewFeatures = previewFeatures;
+    }
+
+    public LanguageLevel languageLevel() {
+        return languageLevel;
+    }
+
+    /**
+     * Whether the target release compiles syntax that became standard in {@code standard} and was a
+     * preview feature from {@code preview}.
+     */
+    public boolean supports(LanguageLevel standard, LanguageLevel preview) {
+        return languageLevel.isAtLeast(standard) || previewFeatures && languageLevel.isAtLeast(preview);
     }
 
     public Style style() {

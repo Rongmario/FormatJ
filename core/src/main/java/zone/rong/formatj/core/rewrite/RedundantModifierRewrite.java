@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.lexer.Token;
@@ -34,7 +36,7 @@ public final class RedundantModifierRewrite implements Rewrite {
         if (body.kind() != SyntaxKind.CLASS_BODY) {
             return owner;
         }
-        GreenNode rewrittenBody = rewriteMembers(body, context, member -> redundant(owner.kind(), member));
+        GreenNode rewrittenBody = rewriteMembers(body, context, member -> redundant(owner.kind(), member, context));
         if (rewrittenBody == body) {
             return owner;
         }
@@ -66,7 +68,7 @@ public final class RedundantModifierRewrite implements Rewrite {
     }
 
     /** The modifiers the language already implies for {@code member}, given the type that owns it. */
-    private static Set<String> redundant(SyntaxKind owner, GreenNode member) {
+    private static Set<String> redundant(SyntaxKind owner, GreenNode member, RewriteContext context) {
         boolean interfaceLike = owner == SyntaxKind.INTERFACE_DECLARATION ||
             owner == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
         return switch (member.kind()) {
@@ -75,7 +77,9 @@ public final class RedundantModifierRewrite implements Rewrite {
                 if (interfaceLike) {
                     yield isBodiless(member) ? PUBLIC_ABSTRACT : PUBLIC;
                 }
-                yield hasModifier(member, "private") ? FINAL : NONE;
+                // Before Java 9, @SafeVarargs is only allowed on a method that is static or final.
+                boolean needsFinal = !context.languageLevel().isAtLeast(LanguageLevel.JAVA_9) && hasSafeVarargs(member);
+                yield hasModifier(member, "private") && !needsFinal ? FINAL : NONE;
             }
             case CLASS_DECLARATION -> interfaceLike ? PUBLIC_STATIC : NONE;
             case INTERFACE_DECLARATION, ENUM_DECLARATION, ANNOTATION_TYPE_DECLARATION ->
@@ -88,6 +92,15 @@ public final class RedundantModifierRewrite implements Rewrite {
 
     private static boolean isBodiless(GreenNode method) {
         return method.children().getLast() instanceof GreenNode.Leaf leaf && leaf.decodedLexeme().equals(";");
+    }
+
+    private static boolean hasSafeVarargs(GreenNode declaration) {
+        GreenNode first = declaration.children().getFirst();
+        return first.kind() == SyntaxKind.MODIFIERS &&
+            first.children()
+                .stream()
+                .anyMatch(child -> child.kind() == SyntaxKind.ANNOTATION &&
+                    ProgramTokens.lexemes(child).contains("SafeVarargs"));
     }
 
     private static boolean hasModifier(GreenNode declaration, String modifier) {

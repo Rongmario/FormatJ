@@ -71,6 +71,15 @@ TYPE public final record zone.rong.formatj.api.Inheritable<T>
   METHOD public static <T> zone.rong.formatj.api.Inheritable<T> zone.rong.formatj.api.Inheritable.of(T)
 TYPE public final enum zone.rong.formatj.api.LanguageLevel
   SUPER java.lang.Enum<zone.rong.formatj.api.LanguageLevel>
+  ENUM JAVA_8
+  ENUM JAVA_9
+  ENUM JAVA_10
+  ENUM JAVA_11
+  ENUM JAVA_12
+  ENUM JAVA_13
+  ENUM JAVA_14
+  ENUM JAVA_15
+  ENUM JAVA_16
   ENUM JAVA_17
   ENUM JAVA_18
   ENUM JAVA_19
@@ -80,6 +89,13 @@ TYPE public final enum zone.rong.formatj.api.LanguageLevel
   ENUM JAVA_23
   ENUM JAVA_24
   ENUM JAVA_25
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_10
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_11
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_12
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_13
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_14
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_15
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_16
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_17
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_18
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_19
@@ -89,6 +105,8 @@ TYPE public final enum zone.rong.formatj.api.LanguageLevel
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_23
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_24
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_25
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_8
+  FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.JAVA_9
   FIELD public static final zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.LATEST
   METHOD public boolean zone.rong.formatj.api.LanguageLevel.isAtLeast(zone.rong.formatj.api.LanguageLevel)
   METHOD public int zone.rong.formatj.api.LanguageLevel.release()

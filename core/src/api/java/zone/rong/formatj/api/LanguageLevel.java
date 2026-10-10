@@ -1,13 +1,23 @@
 package zone.rong.formatj.api;
 
 /**
- * The Java release whose syntax the parser accepts.
+ * The Java release whose syntax the parser accepts and the rewrite rules may write.
  *
  * <p>This is independent of the release FormatJ itself runs on: a formatter running on Java 25 can
- * be told to parse a file as Java 17 so that, say, {@code sealed} is still a contextual keyword.
+ * be told to parse a file as Java 17 so that, say, {@code sealed} is still a contextual keyword. A
+ * rule that would write syntax the level cannot compile leaves the code as written.
  */
 public enum LanguageLevel {
 
+    JAVA_8(8),
+    JAVA_9(9),
+    JAVA_10(10),
+    JAVA_11(11),
+    JAVA_12(12),
+    JAVA_13(13),
+    JAVA_14(14),
+    JAVA_15(15),
+    JAVA_16(16),
     JAVA_17(17),
     JAVA_18(18),
     JAVA_19(19),

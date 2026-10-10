@@ -3,6 +3,7 @@ package zone.rong.formatj.core.rewrite;
 import java.util.ArrayList;
 import java.util.List;
 
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.core.cst.GreenNode;
 
@@ -76,8 +77,19 @@ public final class RewriteStage {
      * behaviour, not a caller's decision.
      */
     public static RewriteResult apply(GreenNode root, Style style, List<Rewrite> rewrites) {
+        return apply(root, style, rewrites, LanguageLevel.LATEST, false);
+    }
+
+    /** Applies a given set of rewrites, holding them to the syntax {@code languageLevel} can compile. */
+    public static RewriteResult apply(
+        GreenNode root,
+        Style style,
+        List<Rewrite> rewrites,
+        LanguageLevel languageLevel,
+        boolean previewFeatures
+    ) {
         List<TokenEdit> ledger = new ArrayList<>();
-        RewriteContext context = new RewriteContext(style, ledger, root);
+        RewriteContext context = new RewriteContext(style, ledger, root, languageLevel, previewFeatures);
 
         GreenNode rewritten = root;
         for (Rewrite rewrite : rewrites) {

@@ -229,9 +229,7 @@ public final class DefaultFormatter implements Formatter {
      */
     private Attempt attempt(ParseResult parsed, boolean allowed, String source) {
         GreenNode original = parsed.root().green();
-        RewriteResult rewritten = allowed
-            ? RewriteStage.apply(original, style, this.rewrites)
-            : new RewriteResult(original, List.of());
+        RewriteResult rewritten = allowed ? rewrite(original) : new RewriteResult(original, List.of());
 
         // Not "did it declare an edit" but "did it touch anything": a rewrite that changed the tree
         // and declared nothing is the worst case, and the one most in need of the fallback.
@@ -243,7 +241,7 @@ public final class DefaultFormatter implements Formatter {
                 return Attempt.failure(problem, true);
             }
             // A rule that keeps changing its mind would cost every file it touches the fixed point.
-            if (!RewriteStage.apply(rewritten.root(), style, this.rewrites).unchanged()) {
+            if (!rewrite(rewritten.root()).unchanged()) {
                 return Attempt.failure("rewriting did not settle after one pass", true);
             }
         }
@@ -279,9 +277,7 @@ public final class DefaultFormatter implements Formatter {
             return Attempt.failure("Formatting would change what a comment says: " + prose, rewrote);
         }
 
-        GreenNode second = allowed
-            ? RewriteStage.apply(formattedTree.root().green(), style, this.rewrites).root()
-            : formattedTree.root().green();
+        GreenNode second = allowed ? rewrite(formattedTree.root().green()).root() : formattedTree.root().green();
         String twice = layout(SyntaxNode.root(second), source, allowed);
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
@@ -341,8 +337,12 @@ public final class DefaultFormatter implements Formatter {
     }
 
     private boolean unsettles(GreenNode tree) {
-        RewriteResult rewritten = RewriteStage.apply(tree, style, rewrites);
+        RewriteResult rewritten = rewrite(tree);
         return !rewritten.unchanged() || rewritten.root() != tree;
+    }
+
+    private RewriteResult rewrite(GreenNode tree) {
+        return RewriteStage.apply(tree, style, rewrites, languageLevel, previewFeatures);
     }
 
     private String print(SyntaxNode root, String separator) {

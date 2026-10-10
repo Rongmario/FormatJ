@@ -3,6 +3,7 @@ package zone.rong.formatj.core.rewrite;
 import java.util.ArrayList;
 import java.util.List;
 
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -92,7 +93,9 @@ public final class TextBlockRewrite implements Rewrite {
                 rewritten = moved;
             }
         }
-        if (context.rule(TextBlockRules.ESCAPE_TRAILING_SPACES)) {
+        // The \s escape arrived a release after text blocks did.
+        if (context.rule(TextBlockRules.ESCAPE_TRAILING_SPACES) &&
+            context.supports(LanguageLevel.JAVA_15, LanguageLevel.JAVA_14)) {
             String escaped = TextBlocks.withEscapedTrailingSpaces(rewritten);
             if (!escaped.equals(rewritten)) {
                 authority = authority == null ? TextBlockRules.ESCAPE_TRAILING_SPACES : authority;

@@ -3,6 +3,7 @@ package zone.rong.formatj.core.rewrite;
 import java.util.ArrayList;
 import java.util.List;
 
+import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.rules.SwitchCaseStyle;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -248,7 +249,11 @@ public final class SwitchCaseRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(SwitchRules.CASE_STYLE) != SwitchCaseStyle.PRESERVE;
+        return switch (context.rule(SwitchRules.CASE_STYLE)) {
+            case PRESERVE -> false;
+            case ARROW -> context.supports(LanguageLevel.JAVA_14, LanguageLevel.JAVA_12);
+            case COLON -> true;
+        };
     }
 
     @Override
