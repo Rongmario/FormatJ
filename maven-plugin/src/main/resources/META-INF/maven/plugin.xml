@@ -86,7 +86,7 @@
           <type>java.lang.Integer</type>
           <required>false</required>
           <editable>true</editable>
-          <description>Java syntax level to parse and to write, e.g. 21. Defaults to maven.compiler.release, then maven.compiler.source, then the newest FormatJ knows.</description>
+          <description>Java syntax level to parse and to write, e.g. 21. Defaults to the compiler plugin's release, then its source, then the newest FormatJ knows.</description>
         </parameter>
         <parameter>
           <name>previewFeatures</name>
@@ -195,7 +195,7 @@
           <type>java.lang.Integer</type>
           <required>false</required>
           <editable>true</editable>
-          <description>Java syntax level to parse and to write, e.g. 21. Defaults to maven.compiler.release, then maven.compiler.source, then the newest FormatJ knows.</description>
+          <description>Java syntax level to parse and to write, e.g. 21. Defaults to the compiler plugin's release, then its source, then the newest FormatJ knows.</description>
         </parameter>
         <parameter>
           <name>previewFeatures</name>

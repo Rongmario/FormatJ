@@ -5,8 +5,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import zone.rong.formatj.api.LanguageLevel;
@@ -42,6 +44,23 @@ class AbstractFormatJMojoTest {
 
         mojo.project.getProperties().setProperty("maven.compiler.release", "17");
         assertEquals(LanguageLevel.JAVA_17, mojo.projectLanguageLevel());
+    }
+
+    @Test
+    void theCompilerPluginsOwnConfigurationWinsOverTheProperty() {
+        FormatMojo mojo = new FormatMojo();
+        mojo.project = new MavenProject();
+        mojo.project.getProperties().setProperty("maven.compiler.release", "17");
+
+        Xpp3Dom release = new Xpp3Dom("release");
+        release.setValue("11");
+        Xpp3Dom configuration = new Xpp3Dom("configuration");
+        configuration.addChild(release);
+        Plugin compiler = new Plugin();
+        compiler.setArtifactId("maven-compiler-plugin");
+        compiler.setConfiguration(configuration);
+        mojo.project.getBuild().addPlugin(compiler);
+        assertEquals(LanguageLevel.JAVA_11, mojo.projectLanguageLevel());
     }
 
     @Test

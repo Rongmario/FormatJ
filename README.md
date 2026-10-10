@@ -134,7 +134,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 - `-Dformatj.skip` skips the plugin, and `-Dformatj.styleFile=...` points at a style file.
 - With no `<styleFile>` or `<preset>`, the nearest `formatj.toml` above the project directory is used.
 - `<includes>` and `<excludes>` are globs relative to each source root. Source roots under `target/` are skipped.
-- `<languageLevel>` defaults to the `maven.compiler.release` property, then `maven.compiler.source`. `-Dformatj.languageLevel=8` overrides it.
+- `<languageLevel>` defaults to the compiler plugin's `<release>`, then its `<source>`, each read from the plugin configuration or the `maven.compiler.*` property. `-Dformatj.languageLevel=8` overrides it.
 
 ### IntelliJ Plugin (Experimental)
 
@@ -186,7 +186,7 @@ The language level is the Java release the sources compile for, from 8 to 25. Fo
 | Library     | `.languageLevel(...)`, default `LATEST`                                           |
 | CLI         | `--language-level N` and `--preview`, default latest                              |
 | Gradle      | `languageLevel`, default the release `compileJava` targets                        |
-| Maven       | `<languageLevel>`, default `maven.compiler.release`, then `maven.compiler.source` |
+| Maven       | `<languageLevel>`, default the compiler plugin's `release`, then its `source`     |
 | IntelliJ    | the language level of the file's module                                           |
 
 Each default falls back to the latest release when the project does not name one. A style file cannot set the level, because the level belongs to the project and a style file is shared.

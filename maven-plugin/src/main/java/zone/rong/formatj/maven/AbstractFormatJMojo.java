@@ -13,11 +13,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import zone.rong.formatj.api.Diagnostic;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
@@ -67,8 +69,8 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     @Parameter(property = "formatj.includeTestSources", defaultValue = "true") protected boolean includeTestSources;
 
     /**
-     * Java syntax level to parse and to write, e.g. 21. Defaults to {@code maven.compiler.release}, then
-     * {@code maven.compiler.source}, then the newest FormatJ knows.
+     * Java syntax level to parse and to write, e.g. 21. Defaults to the compiler plugin's {@code release}, then its
+     * {@code source}, then the newest FormatJ knows.
      */
     @Parameter(property = "formatj.languageLevel") protected Integer languageLevel;
 
@@ -206,8 +208,10 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     }
 
     LanguageLevel projectLanguageLevel() {
-        String release = project.getProperties()
-            .getProperty("maven.compiler.release", project.getProperties().getProperty("maven.compiler.source"));
+        String release = compilerSetting("release");
+        if (release == null) {
+            release = compilerSetting("source");
+        }
         if (release == null) {
             return LanguageLevel.LATEST;
         }
@@ -218,6 +222,18 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         } catch (IllegalArgumentException e) {
             return LanguageLevel.LATEST;
         }
+    }
+
+    /** A setting of the compiler plugin, from its configuration or else from its user property. */
+    private String compilerSetting(String name) {
+        Plugin compiler = project.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        if (compiler != null && compiler.getConfiguration() instanceof Xpp3Dom configuration) {
+            Xpp3Dom setting = configuration.getChild(name);
+            if (setting != null && setting.getValue() != null) {
+                return setting.getValue();
+            }
+        }
+        return project.getProperties().getProperty("maven.compiler." + name);
     }
 
     /** Every Java source of the project that the include and exclude globs allow. */
