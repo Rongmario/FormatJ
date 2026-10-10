@@ -309,11 +309,16 @@ abstract class ExpressionEmitter extends EmitSupport {
         } else {
             inner = Doc.join(separator, elements);
         }
-        Doc edge = spaceInside ? Doc.line() : Doc.softLine();
+        // The author's break after the opening delimiter is the one this rule is named for; it is the
+        // same break the PRESERVE policy reads, so a list under either policy keeps it.
+        boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN) &&
+            AuthorLines.brokeAfterFirstToken(node);
+        boolean hugOpen = is(open, "(") && !rule(WrappingRules.BREAK_AFTER_OPEN_PAREN) && !keepOpenBreak;
+        Doc edge = hugOpen ? spaceIf(spaceInside) : spaceInside ? Doc.line() : Doc.softLine();
         // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
         boolean ownLine = is(close, "}") ||
             is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
-        Doc closingEdge = ownLine ? edge : spaceIf(spaceInside);
+        Doc closingEdge = !ownLine ? spaceIf(spaceInside) : spaceInside ? Doc.line() : Doc.softLine();
         // An inline comment in front of the closing delimiter stays with the last element, even when the
         // delimiter takes a line of its own.
         HoistedLeading closing = inlineCommentsOnly(close)
@@ -327,11 +332,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             closingEdge
         );
         Doc content = Doc.concat(emit(open), body, emit(closing.node()));
-
-        // The author's break after the opening delimiter is the one this rule is named for; it is the
-        // same break the PRESERVE policy reads, so a list under either policy keeps it.
-        boolean keepOpenBreak = rule(PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN) &&
-            AuthorLines.brokeAfterFirstToken(node);
 
         if (keepRows) {
             return Doc.breakingGroup(content);

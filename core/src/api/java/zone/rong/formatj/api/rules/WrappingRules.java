@@ -163,6 +163,18 @@ public final class WrappingRules {
         "Keep a lone call or creation argument on the line of the parenthesis and break inside it"
     );
 
+    /**
+     * Whether a wrapped parenthesised list starts on the line after its opening parenthesis.
+     *
+     * <p>When false the first element stays on the line of the parenthesis. Where the closing one goes
+     * is still {@link #CLOSING_DELIMITER}'s to say.
+     */
+    public static final Option<Boolean> BREAK_AFTER_OPEN_PAREN = Option.ofBoolean(
+        "wrapping.break-after-open-paren",
+        true,
+        "Start a wrapped parenthesised list on the line after its opening parenthesis"
+    );
+
     public static final Option<WrapPolicy> ENUM_CONSTANTS = Option.ofEnum(
         "wrapping.enum-constants",
         WrapPolicy.CHOP_DOWN_ALWAYS,
@@ -340,6 +352,11 @@ public final class WrappingRules {
 
         public Builder hugSoleArgument(boolean value) {
             style.set(HUG_SOLE_ARGUMENT, value);
+            return this;
+        }
+
+        public Builder breakAfterOpenParen(boolean value) {
+            style.set(BREAK_AFTER_OPEN_PAREN, value);
             return this;
         }
 

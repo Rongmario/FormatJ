@@ -847,6 +847,7 @@ TYPE public final enum zone.rong.formatj.api.rules.WrapPolicy
   METHOD public static zone.rong.formatj.api.rules.WrapPolicy zone.rong.formatj.api.rules.WrapPolicy.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.WrapPolicy[] zone.rong.formatj.api.rules.WrapPolicy.values()
 TYPE public final class zone.rong.formatj.api.rules.WrappingRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.BREAK_AFTER_OPEN_PAREN
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.HUG_SOLE_ARGUMENT
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE
@@ -886,6 +887,7 @@ TYPE public static final class zone.rong.formatj.api.rules.WrappingRules$Builder
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.assignment(zone.rong.formatj.api.rules.WrapPolicy)
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.assignmentBreak(zone.rong.formatj.api.rules.AssignmentBreak)
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.binaryOperators(zone.rong.formatj.api.rules.WrapPolicy)
+  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.breakAfterOpenParen(boolean)
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.chainThreshold(int)
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.chainedCalls(zone.rong.formatj.api.rules.ChainPolicy)
   METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.closingDelimiter(zone.rong.formatj.api.rules.ClosingDelimiter)

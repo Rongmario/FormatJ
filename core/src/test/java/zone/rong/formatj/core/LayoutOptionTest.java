@@ -843,6 +843,31 @@ class LayoutOptionTest {
     }
 
     @Test
+    void aFilledArgumentListCanStartOnTheLineOfItsParenthesis() {
+        String source = "class A {\n    void f() {\n        call(firstArgument, secondArgument, thirdArgument);\n    }\n}\n";
+
+        String dangling = format(
+            source,
+            style -> style.wrapping(wrapping -> wrapping.maxLineLength(44)
+                .methodArguments(WrapPolicy.WRAP_IF_LONG)
+                .breakAfterOpenParen(false))
+        );
+        String attached = format(
+            source,
+            style -> style.wrapping(wrapping -> wrapping.maxLineLength(44)
+                .methodArguments(WrapPolicy.WRAP_IF_LONG)
+                .breakAfterOpenParen(false)
+                .closingDelimiter(ClosingDelimiter.ATTACHED))
+        );
+
+        assertTrue(
+            dangling.contains("call(firstArgument, secondArgument,\n            thirdArgument\n        );"),
+            dangling
+        );
+        assertTrue(attached.contains("call(firstArgument, secondArgument,\n            thirdArgument);"), attached);
+    }
+
+    @Test
     void aQualifiedNameIsNotAChain() {
         String source = "class A {\n    void f() {\n        g(someArgument, Outer.Inner.SOME_CONSTANT_NAME);\n    }\n}\n";
 
