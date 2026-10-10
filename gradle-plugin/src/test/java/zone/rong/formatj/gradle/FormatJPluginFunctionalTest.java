@@ -3,6 +3,7 @@ package zone.rong.formatj.gradle;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
@@ -94,28 +95,26 @@ class FormatJPluginFunctionalTest {
 
     @Test
     void theLanguageLevelDefaultsToWhatCompileJavaTargets() throws IOException {
-        Files.writeString(
-            projectDirectory.resolve("build.gradle.kts"),
-            """
-                plugins {
-                    java
-                    id("zone.rong.formatj")
-                }
-
-                tasks.compileJava {
-                    options.release = 8
-                }
-                """
+        List<String> targets = List.of(
+            "tasks.compileJava { options.release = 8 }",
+            "java { sourceCompatibility = JavaVersion.VERSION_1_8 }",
+            "java { toolchain { languageVersion = JavaLanguageVersion.of(8) } }"
         );
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
-        Files.writeString(
-            source,
-            "package sample;\n\nclass Sample {\n\n    void run(int n) {\n        switch (n) {\n            case 1:\n                run(n);\n                break;\n        }\n    }\n\n}\n"
-        );
+        for (String target : targets) {
+            Files.writeString(
+                projectDirectory.resolve("build.gradle.kts"),
+                "plugins {\n    java\n    id(\"zone.rong.formatj\")\n}\n\n" + target + "\n"
+            );
+            Files.writeString(
+                source,
+                "package sample;\n\nclass Sample {\n\n    void run(int n) {\n        switch (n) {\n            case 1:\n                run(n);\n                break;\n        }\n    }\n\n}\n"
+            );
 
-        run("formatJavaApply");
+            run("formatJavaApply");
 
-        assertTrue(Files.readString(source).contains("case 1:"), Files.readString(source));
+            assertTrue(Files.readString(source).contains("case 1:"), target);
+        }
     }
 
     @Test
