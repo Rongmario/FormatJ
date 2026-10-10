@@ -76,7 +76,7 @@ import zone.rong.formatj.api.Preset
 
 plugins {
     java
-    id("zone.rong.formatj") version "1.0.1"
+    id("zone.rong.formatj") version "1.1.0"
 }
 
 formatJ {
@@ -109,7 +109,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>1.0.1</version>
+  <version>1.1.0</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
@@ -153,7 +153,7 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ### Library
 
-`zone.rong.formatj:formatj:1.0.1` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+`zone.rong.formatj:formatj:1.1.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
 
 ```java
 Formatter formatter = FormatJ.newFormatter()
