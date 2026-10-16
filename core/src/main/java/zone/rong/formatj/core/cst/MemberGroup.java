@@ -20,22 +20,42 @@ public final class MemberGroup {
     private static final int FIELDS = 14;
     private static final int INSTANCE_INITIALIZER = 18;
     private static final int CONSTRUCTORS = 19;
+    /** Four slots so the access levels can be folded into the number. */
     private static final int STATIC_METHODS = 20;
-    private static final int METHODS = 21;
-    private static final int ENUMS = 22;
-    private static final int INTERFACES = 23;
-    private static final int STATIC_CLASSES = 24;
-    private static final int INNER_CLASSES = 25;
+    private static final int METHODS = 24;
+    private static final int ENUMS = 28;
+    private static final int INTERFACES = 29;
+    private static final int STATIC_CLASSES = 30;
+    private static final int INNER_CLASSES = 31;
 
     private MemberGroup() { }
+
+    /**
+     * The group with fields and methods ordered by visibility inside it.
+     *
+     * @param member a child of a type body
+     * @param interfaceBody whether the body belongs to an interface or annotation type, whose members
+     *     are implicitly public and, for fields and nested classes, static
+     * @return the group, or {@link #NONE}
+     */
+    public static int of(GreenNode member, boolean interfaceBody) {
+        return of(member, interfaceBody, true, true);
+    }
 
     /**
      * @param member a child of a type body
      * @param interfaceBody whether the body belongs to an interface or annotation type, whose members
      *     are implicitly public and, for fields and nested classes, static
-     * @return the group from 1 to 25, or {@link #NONE}
+     * @param fieldVisibilityOrder whether fields of one kind sort by visibility, public first
+     * @param methodVisibilityOrder whether methods of one staticness sort by visibility, public first
+     * @return the group, or {@link #NONE}
      */
-    public static int of(GreenNode member, boolean interfaceBody) {
+    public static int of(
+        GreenNode member,
+        boolean interfaceBody,
+        boolean fieldVisibilityOrder,
+        boolean methodVisibilityOrder
+    ) {
         List<String> modifiers = modifiers(member);
         boolean isStatic = modifiers.contains("static");
         return switch (member.kind()) {
@@ -45,11 +65,12 @@ public final class MemberGroup {
                 int first = fieldStatic
                     ? (fieldFinal ? STATIC_FINAL_FIELDS : STATIC_FIELDS)
                     : (fieldFinal ? FINAL_FIELDS : FIELDS);
-                yield first + access(modifiers, interfaceBody);
+                yield first + (fieldVisibilityOrder ? access(modifiers, interfaceBody) : 0);
             }
             case INITIALIZER_BLOCK -> isStatic ? STATIC_INITIALIZER : INSTANCE_INITIALIZER;
             case CONSTRUCTOR_DECLARATION, COMPACT_CONSTRUCTOR_DECLARATION -> CONSTRUCTORS;
-            case METHOD_DECLARATION -> isStatic ? STATIC_METHODS : METHODS;
+            case METHOD_DECLARATION ->
+                (isStatic ? STATIC_METHODS : METHODS) + (methodVisibilityOrder ? access(modifiers, interfaceBody) : 0);
             case ANNOTATION_ELEMENT_DECLARATION -> METHODS;
             case ENUM_DECLARATION -> ENUMS;
             case INTERFACE_DECLARATION, ANNOTATION_TYPE_DECLARATION -> INTERFACES;
@@ -61,12 +82,15 @@ public final class MemberGroup {
 
     /**
      * The section a member sits in for blank-line purposes: its group with access level folded away,
-     * so a run of fields that agree on {@code static} and {@code final} reads as one block.
+     * so a run of fields or methods that agree on {@code static} reads as one block.
      */
     public static int section(GreenNode member, boolean interfaceBody) {
-        int group = of(member, interfaceBody);
+        int group = of(member, interfaceBody, true, true);
         if (group >= STATIC_FINAL_FIELDS && group < STATIC_INITIALIZER) {
             return group - (group - STATIC_FINAL_FIELDS) % 4;
+        }
+        if (group >= STATIC_METHODS && group < ENUMS) {
+            return group - (group - STATIC_METHODS) % 4;
         }
         return group >= FINAL_FIELDS && group < INSTANCE_INITIALIZER ? group - (group - FINAL_FIELDS) % 4 : group;
     }

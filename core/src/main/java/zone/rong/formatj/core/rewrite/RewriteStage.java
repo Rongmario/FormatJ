@@ -43,6 +43,7 @@ public final class RewriteStage {
     private static final List<Rewrite> REWRITES = List.of(
         new ImportRewrite(),
         new SemicolonRewrite(),
+        new SplitVariablesRewrite(),
         new MemberOrderRewrite(),
         new RedundantModifierRewrite(),
         new ModifierRewrite(),

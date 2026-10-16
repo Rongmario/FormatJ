@@ -67,6 +67,11 @@ public sealed interface Doc {
         return group(content, GroupKind.FIRST_LINE);
     }
 
+    /** A group whose optional breaks can never be taken; see {@link GroupKind#FORCED_FLAT}. */
+    static Doc flatGroup(Doc content) {
+        return group(content, GroupKind.FORCED_FLAT);
+    }
+
     static Doc indent(int columns, Doc content) {
         return new Indent(columns, content);
     }
@@ -149,7 +154,9 @@ public sealed interface Doc {
         /** Always take the group's breaks. */
         ALWAYS,
         /** Print flat when the text before the first forced break fits. */
-        FIRST_LINE
+        FIRST_LINE,
+        /** Never take the group's breaks: optional breaks inside always print flat. */
+        FORCED_FLAT
 
     }
 

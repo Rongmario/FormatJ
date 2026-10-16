@@ -45,8 +45,10 @@ public final class MemberOrderRewrite implements Rewrite {
         }
 
         List<Integer> groups = new ArrayList<>(members.size());
+        boolean fieldVisibilityOrder = context.rule(MemberRules.FIELD_VISIBILITY_ORDER);
+        boolean methodVisibilityOrder = context.rule(MemberRules.METHOD_VISIBILITY_ORDER);
         for (GreenNode member : members) {
-            int group = MemberGroup.of(member, interfaceBody);
+            int group = MemberGroup.of(member, interfaceBody, fieldVisibilityOrder, methodVisibilityOrder);
             if (group == MemberGroup.NONE || context.firstPosition(member) < 0) {
                 return body;
             }

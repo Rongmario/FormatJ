@@ -9,8 +9,10 @@ import java.util.Map;
 import java.util.Set;
 
 import zone.rong.formatj.api.Option;
+import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
@@ -29,6 +31,7 @@ import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.UnicodeEscapes;
+import zone.rong.formatj.core.rewrite.SplitVariablesRewrite;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import zone.rong.formatj.core.text.TextBlocks;
 
@@ -102,7 +105,17 @@ public final class RewriteVerification {
      * @return a description of the first problem, or null when the output is exactly what was declared
      */
     public static String verifyOutput(GreenNode before, GreenNode formatted, List<TokenEdit> edits) {
-        String lawProblem = checkEditLaws(before, edits, formatted);
+        return verifyOutput(before, formatted, edits, Style.defaults());
+    }
+
+    /** As {@link #verifyOutput(GreenNode, GreenNode, List)}, with the style the run was made under. */
+    public static String verifyOutput(
+        GreenNode before,
+        GreenNode formatted,
+        List<TokenEdit> edits,
+        Style style
+    ) {
+        String lawProblem = checkEditLaws(before, edits, formatted, style);
         if (lawProblem != null) {
             return lawProblem;
         }
@@ -239,9 +252,9 @@ public final class RewriteVerification {
      * rule has no business making. The law is what ties an edit back to the rule the user actually
      * turned on.
      */
-    private static String checkEditLaws(GreenNode before, List<TokenEdit> edits, GreenNode formatted) {
+    private static String checkEditLaws(GreenNode before, List<TokenEdit> edits, GreenNode formatted, Style style) {
         for (TokenEdit edit : edits) {
-            String problem = checkEditLaw(edit, before, formatted);
+            String problem = checkEditLaw(edit, before, formatted, style);
             if (problem != null) {
                 return problem;
             }
@@ -250,7 +263,7 @@ public final class RewriteVerification {
     }
 
     /** The law of the one rule this edit claims to be. */
-    private static String checkEditLaw(TokenEdit edit, GreenNode before, GreenNode formatted) {
+    private static String checkEditLaw(TokenEdit edit, GreenNode before, GreenNode formatted, Style style) {
         Option<?> authority = edit.authority();
         if (authority == BraceRules.IF_ELSE ||
             authority == BraceRules.FOR_LOOP ||
@@ -296,9 +309,30 @@ public final class RewriteVerification {
             return checkSemicolonLaw(edit, before);
         }
         if (authority == MemberRules.ORDER) {
-            return checkMemberOrderLaw(edit, before);
+            return checkMemberOrderLaw(edit, before, style);
+        }
+        if (authority == DeclarationRules.SPLIT_VARIABLES) {
+            return checkSplitVariablesLaw(edit, before);
         }
         return null;
+    }
+
+    /**
+     * The split rule may break one multi-variable declaration at its commas, repeating the head and
+     * moving each declarator's own brackets onto its type.
+     *
+     * <p>The check re-derives the whole edit set the rule could declare for the original tree and
+     * asks the edit to be one of them, the way the member order law re-derives its sort. An edit the
+     * derivation would not declare — a comma that is not a split point, a head that says more than
+     * the declaration did, brackets that moved somewhere else — fails.
+     */
+    private static String checkSplitVariablesLaw(TokenEdit edit, GreenNode before) {
+        for (TokenEdit expected : SplitVariablesRewrite.expectedEdits(before)) {
+            if (expected.equals(edit)) {
+                return null;
+            }
+        }
+        return DeclarationRules.SPLIT_VARIABLES.key() + " may only split a declaration of several variables";
     }
 
     /**
@@ -310,7 +344,7 @@ public final class RewriteVerification {
      * between them is a stray semicolon another edit deleted, and that the order they are written in
      * is the stable sort by group, which is re-derived from the original tree.
      */
-    private static String checkMemberOrderLaw(TokenEdit edit, GreenNode before) {
+    private static String checkMemberOrderLaw(TokenEdit edit, GreenNode before, Style style) {
         String problem = MemberRules.ORDER.key() + " may only sort the members of one type body";
         if (!edit.removed().isEmpty() || !edit.inserted().isEmpty()) {
             return problem;
@@ -347,7 +381,12 @@ public final class RewriteVerification {
         int previousIndex = -1;
         for (TokenEdit.Span span : edit.order()) {
             int index = originalIndex.get(span);
-            int group = MemberGroup.of(body.members().get(index), body.interfaceBody());
+            int group = MemberGroup.of(
+                body.members().get(index),
+                body.interfaceBody(),
+                style.get(MemberRules.FIELD_VISIBILITY_ORDER),
+                style.get(MemberRules.METHOD_VISIBILITY_ORDER)
+            );
             if (group < previousGroup || group == previousGroup && index < previousIndex) {
                 return MemberRules.ORDER.key() + " did not produce the stable order by member group";
             }

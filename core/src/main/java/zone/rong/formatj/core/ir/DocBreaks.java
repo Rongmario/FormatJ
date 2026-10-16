@@ -57,6 +57,11 @@ public final class DocBreaks {
             }
             case Doc.Group group -> {
                 Rewritten content = rewrite(group.content());
+                // A forced-flat group prints its optional breaks flat no matter what fits, and holds
+                // everything inside it: a break in there is its own, not an order to the parents.
+                if (group.kind() == Doc.GroupKind.FORCED_FLAT) {
+                    yield new Rewritten(Doc.group(content.doc(), Doc.GroupKind.FORCED_FLAT), false);
+                }
                 boolean inside = group.kind() == Doc.GroupKind.ALWAYS || content.forcesBreak();
                 // A first-line group is the one thing a break inside does not settle: it still travels
                 // outwards, because the line it makes is real, but this group is left to the printer's

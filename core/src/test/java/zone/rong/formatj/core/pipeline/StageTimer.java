@@ -89,7 +89,7 @@ public final class StageTimer {
         }
         boolean changed = !rewritten.unchanged() || rewritten.root() != original;
         String outputProblem = changed
-            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
+            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits(), formatter.style())
             : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (outputProblem != null) {
             throw new IllegalStateException(outputProblem);

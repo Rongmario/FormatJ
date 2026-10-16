@@ -325,4 +325,81 @@ class MemberOrderTest {
         assertTrue(!formatted.equals(source) && compiles(formatted), formatted);
     }
 
+    @Test
+    void methodsAreSortedByVisibilityWithinTheirGroup() {
+        String source = """
+                class A {
+                    private static final int PRIVATE_STATIC = 1;
+                    public static final int PUBLIC_STATIC = 2;
+
+                    private static void privateStatic() { }
+
+                    public static void publicStatic() { }
+
+                    private void privateMethod() { }
+
+                    public void publicMethod() { }
+                }
+                """;
+        assertEquals(
+            """
+            class A {
+
+                public static final int PUBLIC_STATIC = 2;
+                private static final int PRIVATE_STATIC = 1;
+
+                public static void publicStatic() { }
+
+                private static void privateStatic() { }
+
+                public void publicMethod() { }
+
+                private void privateMethod() { }
+
+            }
+            """,
+            sorted(source)
+        );
+    }
+
+    @Test
+    void fieldVisibilityOrderCanBeTurnedOffIndependentlyOfMethods() {
+        String source = """
+                class A {
+                    private static final int PRIVATE_STATIC = 1;
+                    public static final int PUBLIC_STATIC = 2;
+
+                    private static void privateStatic() { }
+
+                    public static void publicStatic() { }
+                }
+                """;
+        String formatted = format(
+            source,
+            Style.builder().members(members -> members.order(MemberOrder.INTELLIJ).fieldVisibilityOrder(false)).build()
+        ).text();
+        assertTrue(formatted.indexOf("PRIVATE_STATIC") < formatted.indexOf("PUBLIC_STATIC"), formatted);
+        assertTrue(formatted.indexOf("publicStatic") < formatted.indexOf("privateStatic"), formatted);
+    }
+
+    @Test
+    void methodVisibilityOrderCanBeTurnedOffIndependentlyOfFields() {
+        String source = """
+                class A {
+                    private static final int PRIVATE_STATIC = 1;
+                    public static final int PUBLIC_STATIC = 2;
+
+                    private static void privateStatic() { }
+
+                    public static void publicStatic() { }
+                }
+                """;
+        String formatted = format(
+            source,
+            Style.builder().members(members -> members.order(MemberOrder.INTELLIJ).methodVisibilityOrder(false)).build()
+        ).text();
+        assertTrue(formatted.indexOf("PUBLIC_STATIC") < formatted.indexOf("PRIVATE_STATIC"), formatted);
+        assertTrue(formatted.indexOf("privateStatic") < formatted.indexOf("publicStatic"), formatted);
+    }
+
 }

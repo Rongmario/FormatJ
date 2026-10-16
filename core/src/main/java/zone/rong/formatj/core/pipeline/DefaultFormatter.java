@@ -262,7 +262,7 @@ public final class DefaultFormatter implements Formatter {
         }
 
         String problem = rewrote
-            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits())
+            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits(), style)
             : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
             return Attempt.failure("Formatting would change the program: " + problem, rewrote);

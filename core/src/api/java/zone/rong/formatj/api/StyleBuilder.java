@@ -10,6 +10,7 @@ import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.CommentRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -190,6 +191,11 @@ public final class StyleBuilder {
 
     public StyleBuilder members(Consumer<MemberRules.Builder> rules) {
         rules.accept(new MemberRules.Builder(this));
+        return this;
+    }
+
+    public StyleBuilder declarations(Consumer<DeclarationRules.Builder> rules) {
+        rules.accept(new DeclarationRules.Builder(this));
         return this;
     }
 

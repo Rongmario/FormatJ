@@ -24,6 +24,12 @@ public final class AnnotationRules {
         "Placement of an annotation on a parameter or local variable"
     );
 
+    public static final Option<AnnotationPlacement> PACKAGE_PLACEMENT = Option.ofEnum(
+        "annotations.package-placement",
+        AnnotationPlacement.NEW_LINE,
+        "Placement of an annotation on a package declaration"
+    );
+
     public static final Option<Boolean> SINGLE_MARKER_INLINE = Option.ofBoolean(
         "annotations.single-marker-inline",
         false,
@@ -53,6 +59,11 @@ public final class AnnotationRules {
 
         public Builder parameterPlacement(AnnotationPlacement value) {
             style.set(PARAMETER_PLACEMENT, value);
+            return this;
+        }
+
+        public Builder packagePlacement(AnnotationPlacement value) {
+            style.set(PACKAGE_PLACEMENT, value);
             return this;
         }
 

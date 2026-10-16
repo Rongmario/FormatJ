@@ -12,6 +12,18 @@ public final class MemberRules {
         "Ordering of the members of a type body"
     );
 
+    public static final Option<Boolean> FIELD_VISIBILITY_ORDER = Option.ofBoolean(
+        "members.field-visibility-order",
+        true,
+        "Sort fields of one kind by visibility within their group, public first"
+    );
+
+    public static final Option<Boolean> METHOD_VISIBILITY_ORDER = Option.ofBoolean(
+        "members.method-visibility-order",
+        true,
+        "Sort methods of one kind by visibility within their group, public first"
+    );
+
     private MemberRules() { }
 
     /** Fluent view of the {@code members.*} rules. */
@@ -25,6 +37,16 @@ public final class MemberRules {
 
         public Builder order(MemberOrder value) {
             style.set(ORDER, value);
+            return this;
+        }
+
+        public Builder fieldVisibilityOrder(boolean value) {
+            style.set(FIELD_VISIBILITY_ORDER, value);
+            return this;
+        }
+
+        public Builder methodVisibilityOrder(boolean value) {
+            style.set(METHOD_VISIBILITY_ORDER, value);
             return this;
         }
 

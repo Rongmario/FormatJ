@@ -5,6 +5,8 @@ import java.util.List;
 
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BlankLineRules;
+import zone.rong.formatj.api.rules.AnnotationPlacement;
+import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -133,7 +135,8 @@ public final class DocEmitter extends StatementEmitter {
             case COMPILATION_UNIT -> emitCompilationUnit(node);
             case UNPARSED, VERBATIM -> verbatim(node);
 
-            case PACKAGE_DECLARATION, IMPORT_DECLARATION -> emitFlatDeclaration(node);
+            case PACKAGE_DECLARATION -> emitPackageDeclaration(node);
+            case IMPORT_DECLARATION -> emitFlatDeclaration(node);
 
             case MODULE_DECLARATION -> emitModuleDeclaration(node);
             case MODULE_BODY -> emitModuleBody(node);
@@ -327,6 +330,35 @@ public final class DocEmitter extends StatementEmitter {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
+    }
+
+    /**
+     * A package declaration, whose annotations may sit on lines of their own.
+     *
+     * <p>{@code package-info.java} reads {@code @NullMarked package repro.pkg;} as two lines: an
+     * annotation heading the file is a label, not part of the declaration, so
+     * {@code annotations.package-placement} decides and defaults to a line of its own. A package
+     * declaration carries no modifiers but annotations, so whatever the parser hoisted above the
+     * {@code package} keyword is emitted as the modifiers, and the rule separates it from the
+     * declaration exactly as the other placement rules separate their annotations.
+     */
+    private Doc emitPackageDeclaration(GreenNode node) {
+        List<GreenNode> children = node.children();
+        GreenNode modifiers = children.getFirst();
+        boolean annotated = modifiers.kind() == SyntaxKind.MODIFIERS &&
+            modifiers.children().stream().anyMatch(child -> child.kind() == SyntaxKind.ANNOTATION);
+        if (!annotated) {
+            return emitFlatDeclaration(node);
+        }
+        AnnotationPlacement packagePlacement = rule(AnnotationRules.PACKAGE_PLACEMENT);
+        modifierPlacement = packagePlacement;
+        Doc annotatedModifiers = emit(modifiers);
+        modifierPlacement = null;
+        return Doc.concat(
+            annotatedModifiers,
+            annotationSeparator(children.get(1), packagePlacement, children),
+            emitFlatDeclaration(GreenNode.branch(SyntaxKind.PACKAGE_DECLARATION, children.subList(1, children.size())))
+        );
     }
 
     // --------------------------------------------------------- declarations

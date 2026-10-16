@@ -458,6 +458,7 @@ Every rule takes an `AlignmentPolicy`.
 |-------------------------------------|-----------------------|-------------|-------------------------------------------------------------------------|-----------------------------------------|
 | `annotations.declaration-placement` | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a type, method or constructor declaration | `new-line`: `@Override`<br>`void f() {` |
 | `annotations.field-placement`       | `AnnotationPlacement` | `same-line` | Placement of an annotation on a field declaration                       | `same-line`: `@Nullable T t;`           |
+| `annotations.package-placement`     | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a package declaration                      | `new-line`: `@NullMarked`<br>`package repro.pkg;` |
 | `annotations.parameter-placement`   | `AnnotationPlacement` | `same-line` | Placement of an annotation on a parameter or local variable             | `same-line`: `void f(@Nullable T t)`    |
 | `annotations.single-marker-inline`  | boolean               | `false`     | Keep a lone marker annotation on the line of its declaration            | `true`: `@Override void f() {`          |
 
@@ -514,6 +515,18 @@ groups = [
   - It stays when another comment sits between the start of the statement and it, or when a `//` comment is already above the statement.
   - It stays when moving it would let a rewriting rule remove the token it was attached to.
   - A file holding the off marker keeps all its trailing comments in place.
+
+### `declarations`
+
+| Key                             | Values  | Default | Effect                                                                                                     | Example                                            |
+|---------------------------------|---------|---------|------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `declarations.split-variables`  | boolean | `false` | Split a declaration of several variables into one declaration per variable, repeating the modifiers, annotations and type | `true`: `int a, b = 2;` becomes `int a;`<br>`int b = 2;` |
+
+- Both fields and local variables split. Everything above the first declarator — modifiers, annotations, the type — is written again for each variable.
+- A Javadoc comment or other comment riding on the head prints once, on the first declaration. A comma that carries a comment of its own has nowhere to go once the comma goes, so the whole declaration is declined.
+- Array brackets written beside a name belong to that variable alone: `int a[], b;` splits to `int[] a;` and `int b;`, the brackets moving onto the type they now describe.
+- A declarator carrying its own annotation declines the split, since what that annotation applies to is the author's to spell out.
+- A for statement's init declarations are not split, because they take commas, not semicolons.
 
 ### `javadoc`
 
@@ -726,6 +739,8 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 | Key             | Values                 | Default    | Effect                                 | Example                                         |
 |-----------------|------------------------|------------|----------------------------------------|-------------------------------------------------|
 | `members.order` | `preserve`, `intellij` | `intellij` | Ordering of the members of a type body | `intellij`: a static field moves above a method |
+| `members.field-visibility-order` | boolean | `true` | Sort fields of one kind by visibility within their group, public first | `true`: `public int a;` before `private int b;` |
+| `members.method-visibility-order` | boolean | `true` | Sort methods of one kind by visibility within their group, public first | `true`: `public void a();` before `private void b();` |
 
 - `intellij` sorts each type body by IntelliJ IDEA's default arrangement. Members of one group keep the order they were written in.
 - The groups, in order:
@@ -742,7 +757,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
   11. nested interfaces
   12. static nested classes
   13. inner classes
-- Fields are ordered by access within their group, from `public` to `private`.
+- Fields and methods are ordered by access within their group, from `public` to `private`. `members.field-visibility-order` and `members.method-visibility-order` turn either kind's visibility sorting off independently.
 - A member moves with its comments and annotations, and enum constants stay first.
 - A body is left alone when it holds a formatter-off region or a stray semicolon.
 - A body is left alone, with a warning, when the sort would swap two field initializers or initializer blocks whose order matters. Two fields may swap only when their initializers are built from literals, operators, casts and names, and neither names the other.

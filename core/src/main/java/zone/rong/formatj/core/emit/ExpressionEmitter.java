@@ -515,7 +515,11 @@ abstract class ExpressionEmitter extends EmitSupport {
                 flat.add(hasTrailingLineComment(separator) ? Doc.hardLine() : spaceIf(spaced));
                 flat.add(operands.get(i + 1));
             }
-            return Doc.concat(flat);
+            // PRESERVE keeps the author's separators exactly, and NEVER forbids the run from ever
+            // breaking, so neither may let a nested separator — say an annotation divider measured
+            // against the rest of an unbreakable line — take a break inside the run instead. An
+            // overlong run under these policies overflows rather than splits.
+            return Doc.flatGroup(Doc.concat(flat));
         }
 
         Doc optionalBreak = spaced ? Doc.line() : Doc.softLine();

@@ -165,7 +165,9 @@ public final class DocPrinter {
                 }
                 case Doc.Group group -> {
                     boolean always = group.kind() == Doc.GroupKind.ALWAYS;
-                    boolean flat = !always &&
+                    boolean forcedFlat = group.kind() == Doc.GroupKind.FORCED_FLAT;
+                    boolean flat = forcedFlat ||
+                        !always &&
                             mode == Mode.BREAK &&
                             fits(
                                 group.content(),
@@ -255,7 +257,12 @@ public final class DocPrinter {
         // the next separator, so the closing bracket after the list is not this part's to make room for.
         Deque<Command> afterContent = parts.size() > 2 ? new ArrayDeque<>() : commands;
         Deque<Command> afterPair = parts.size() > 3 ? new ArrayDeque<>() : commands;
-        boolean contentFits = !multiline && fits(content, remaining, afterContent, true);
+        // A last part cannot end the line at the following separator: the closing delimiter comes after
+        // it. A delimiter that may take its own line does not excuse it either — the list has to fit
+        // the way it would with the delimiter attached — so the measurement goes on past soft lines.
+        boolean lastPart = parts.size() <= 2;
+        boolean contentFits =
+            !multiline && fits(content, Mode.FLAT, remaining, afterContent, true, lastPart);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -270,8 +277,10 @@ public final class DocPrinter {
         List<Doc> rest = parts.subList(2, parts.size());
         Doc pair = Doc.concat(List.of(content, separator, parts.get(2)));
         // The next part joins this line only if all of it fits. One that spans lines starts its own,
-        // as it would have before it was first broken.
-        boolean pairFits = !multiline && fits(pair, remaining, afterPair, false);
+        // as it would have before it was first broken. A pair that reaches the closing delimiter with
+        // no remaining element to break before it is measured the way the last part is.
+        boolean pairFits =
+            !multiline && fits(pair, Mode.FLAT, remaining, afterPair, false, parts.size() <= 3);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
@@ -299,15 +308,22 @@ public final class DocPrinter {
      *     question of whether the line up to that break fits, which is the one it is judged on.
      */
     private boolean fits(Doc doc, int remaining, Deque<Command> rest, boolean stopAtHardBreak) {
-        return fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak);
+        return fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak, false);
     }
 
     /** Whether {@code doc} fits up to the first place it could break. */
     private boolean startFits(Doc doc, int remaining, Deque<Command> rest) {
-        return fits(doc, Mode.BREAK, remaining, rest, true);
+        return fits(doc, Mode.BREAK, remaining, rest, true, false);
     }
 
-    private boolean fits(Doc doc, Mode start, int remaining, Deque<Command> rest, boolean stopAtHardBreak) {
+    private boolean fits(
+        Doc doc,
+        Mode start,
+        int remaining,
+        Deque<Command> rest,
+        boolean stopAtHardBreak,
+        boolean pastSoftLines
+    ) {
         if (remaining < 0) {
             return false;
         }
@@ -352,7 +368,8 @@ public final class DocPrinter {
                 case Doc.Group group ->
                     queue.push(new Command(
                         0,
-                        group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK : mode,
+                        group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK
+                            : group.kind() == Doc.GroupKind.FORCED_FLAT ? Mode.FLAT : mode,
                         group.content()
                     ));
                 case Doc.Indent indent -> queue.push(new Command(0, mode, indent.content()));
@@ -374,7 +391,13 @@ public final class DocPrinter {
                         lineBreak.kind() != Doc.BreakKind.LINE && lineBreak.kind() != Doc.BreakKind.SOFT) {
                         // The line ends here. Past the document that is simply where the measuring stops; inside
                         // it, a break the document was always going to take counts only for a first-line
-                        // measurement.
+                        // measurement. A soft line in what follows is the one exception: a last fill part is
+                        // measured together with the closing delimiter after it, so the delimiter's soft line
+                        // does not end the measurement — the delimiter may sit flat after the part, and the
+                        // part has to leave room for it.
+                        if (lineBreak.kind() == Doc.BreakKind.SOFT && measuringRest && pastSoftLines) {
+                            continue;
+                        }
                         return measuringRest || stopAtHardBreak;
                     }
                     if (lineBreak.kind() == Doc.BreakKind.LINE) {

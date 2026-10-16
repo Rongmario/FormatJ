@@ -682,7 +682,16 @@ abstract class EmitSupport {
         return annotationSeparator(next, rule(AnnotationRules.DECLARATION_PLACEMENT), siblings);
     }
 
-    /** What separates an annotation from what follows it, per the given placement rule. */
+    /**
+     * What separates an annotation from what follows it, per the given placement rule.
+     *
+     * <p>A same-line separator is a breakable group measured against everything that follows it on the
+     * line. A declaration that fits keeps the annotation beside it; one that does not sends the
+     * annotation to a line of its own. That fallback is what keeps the closing parenthesis of an
+     * annotation whose arguments cannot fit from ending up stranded with code printed after it —
+     * without a break the declaration could take, the annotation's own arguments are the only thing
+     * that can wrap, and no setting asks for them broken apart.
+     */
     protected Doc annotationSeparator(GreenNode next, AnnotationPlacement placement, List<GreenNode> siblings) {
         if (rule(AnnotationRules.SINGLE_MARKER_INLINE) && isLoneMarkerAnnotation(siblings)) {
             // One bare @Override reads as part of the signature, not as a line of its own.
@@ -690,10 +699,19 @@ abstract class EmitSupport {
         }
         return switch (placement) {
             case NEW_LINE -> Doc.hardLine();
-            case SAME_LINE -> space();
-            case SAME_LINE_WHEN_SHORT -> Doc.line();
+            case SAME_LINE -> sameLineWhenFits();
+            case SAME_LINE_WHEN_SHORT -> sameLineWhenFits();
             case PRESERVE -> startsNewLine(next) ? Doc.hardLine() : space();
         };
+    }
+
+    /**
+     * Same line while the annotated declaration fits the line, otherwise the annotation takes its own.
+     * {@code same-line} and {@code same-line-when-short} therefore meet here: neither can hold a line
+     * that will not fit, and a forced space cannot wrap.
+     */
+    private Doc sameLineWhenFits() {
+        return Doc.group(Doc.line());
     }
 
     protected Doc joinAll(List<GreenNode> nodes, Doc separator) {

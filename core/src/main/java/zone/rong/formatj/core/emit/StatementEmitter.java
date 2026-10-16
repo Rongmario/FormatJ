@@ -566,6 +566,12 @@ abstract class StatementEmitter extends ExpressionEmitter {
     private Doc emitMulticatchParameter(GreenNode node, List<GreenNode> children, int firstBar) {
         int firstType = firstBar - 1;
         int name = children.size() - 1;
+        // A run the policy forbids from breaking keeps its head beside it: a breakable annotation
+        // divider before the first alternative would otherwise take a break the alternatives never
+        // were allowed to take, and one reformat later the author-broken check reads the result as
+        // a layout the author chose.
+        WrapPolicy policy = rule(WrappingRules.MULTICATCH);
+        boolean flatRun = policy == WrapPolicy.NEVER || (policy == WrapPolicy.PRESERVE && !authorBrokeInside(node));
         List<Doc> parts = new ArrayList<>();
         for (int i = 0; i < firstType; i++) {
             GreenNode child = children.get(i);
@@ -608,7 +614,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
         ));
         parts.add(space());
         parts.add(emit(children.get(name)));
-        return Doc.concat(parts);
+        return flatRun ? Doc.flatGroup(Doc.concat(parts)) : Doc.concat(parts);
     }
 
     /** A statement made of a keyword, an optional operand and a semicolon. */

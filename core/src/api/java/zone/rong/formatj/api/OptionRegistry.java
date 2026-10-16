@@ -13,6 +13,7 @@ import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.CommentRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.FileRules;
 import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -66,6 +67,7 @@ public final class OptionRegistry {
         new Group("semicolons", SemicolonRules.class),
         new Group("preservation", PreservationRules.class),
         new Group("arrays", ArrayRules.class),
+        new Group("declarations", DeclarationRules.class),
         new Group("members", MemberRules.class)
     );
 
