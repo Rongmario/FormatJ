@@ -994,6 +994,15 @@ abstract class ExpressionEmitter extends EmitSupport {
      * @param startsRow for each element, whether the author started a new line before it
      */
     private ListElements splitElements(List<GreenNode> middle) {
+        return splitElements(middle, true);
+    }
+
+    /**
+     * @param firstOwnLine whether a comment leading the first element may start a line of its own;
+     *     inside an angle bracket section it may not, because the bracket in front of it cannot end
+     *     a line
+     */
+    private ListElements splitElements(List<GreenNode> middle, boolean firstOwnLine) {
         List<Doc> elements = new ArrayList<>();
         List<Boolean> startsRow = new ArrayList<>();
         List<Doc> current = new ArrayList<>();
@@ -1002,8 +1011,11 @@ abstract class ExpressionEmitter extends EmitSupport {
                 startsRow.add(authorBrokeBefore(child));
             }
             if (current.isEmpty() && hasLeadingComments(child)) {
-                // A comment above an element ends its own line, not one inside the element.
-                HoistedLeading hoisted = hoistLeadingTrivia(child);
+                // A comment above an element ends its own line, not one inside the element — unless
+                // the bracket in front of it may not end a line, which is only the first element of
+                // an angle bracket section.
+                boolean ownLine = firstOwnLine || !elements.isEmpty();
+                HoistedLeading hoisted = hoistLeadingTrivia(child, ownLine);
                 current.add(hoisted.leading());
                 current.add(emit(hoisted.node()));
             } else {
@@ -1029,6 +1041,12 @@ abstract class ExpressionEmitter extends EmitSupport {
      * moves, whole, to an indented continuation line; one that still does not fit there overflows
      * rather than coming apart at its brackets. There is no rule behind that: a {@code Map<A, B>}
      * that a reader could mistake for two tokens is not something a style should be able to ask for.
+     *
+     * <p>A comment can still force a break inside a section: it ends the line it is written on, and a
+     * line comment has no other choice. The section keeps its own indent around it, so the break
+     * lands on a continuation line of the section rather than on the line the declaration started
+     * on, and a comment written in front of a bracket shares that bracket's line instead of leaving
+     * the bracket on the end of one.
      */
     private Doc angleBracketedList(GreenNode node, int indentColumns, boolean spaceInside) {
         List<GreenNode> children = node.children();
@@ -1038,24 +1056,27 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (middle.isEmpty()) {
             return Doc.concat(emit(open), emit(close));
         }
-        List<Doc> elements = splitElements(middle).elements();
+        List<Doc> elements = splitElements(middle, false).elements();
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         // An inline comment in front of the closing bracket stays with the last element.
         HoistedLeading closing = inlineCommentsOnly(close)
             ? hoistLeadingTrivia(close)
             : new HoistedLeading(Doc.EMPTY, close);
+        // A comment against a bracket keeps the spacing the author gave it, and the space this rule
+        // would otherwise add is dropped: it lands on one side of the comment, cannot be told apart
+        // from the space already there, and the two together grew the line by one on every pass.
         Doc body = Doc.concat(
-            // Unlike a list that may stay flat around a hard break in its last element, a section
-            // that shifted did take the indent, and any break a comment forces inside it belongs on
-            // a continuation line of its own.
-            Doc.indent(
-                indentColumns,
-                Doc.concat(spaceIf(spaceInside), Doc.join(separator, elements), closing.leading())
-            ),
-            spaceIf(spaceInside)
+            commentBetween(open, middle.getFirst()) ? Doc.EMPTY : spaceIf(spaceInside),
+            Doc.join(separator, elements),
+            closing.leading(),
+            commentBetween(middle.getLast(), close) ? Doc.EMPTY : spaceIf(spaceInside),
+            emit(closing.node())
         );
-        Doc section = Doc.flatGroup(Doc.concat(emit(open), body, emit(closing.node())));
-        return Doc.group(Doc.concat(Doc.indent(indentColumns, Doc.softLine()), section));
+        // Both brackets take the section's indent with the body. A comment can force a break in
+        // front of either, and that break belongs on a continuation line of the section rather than
+        // on the line of the declaration the section stands in.
+        Doc section = Doc.flatGroup(Doc.concat(emit(open), body));
+        return Doc.group(Doc.indent(indentColumns, Doc.concat(Doc.softLine(), section)));
     }
 
     private boolean needsSpaceInType(GreenNode previous, GreenNode next) {

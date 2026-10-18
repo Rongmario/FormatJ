@@ -35,7 +35,12 @@ import zone.rong.formatj.core.text.TextBlocks;
  */
 abstract class EmitSupport {
 
-    private static final Set<String> CLOSERS = Set.of(",", ")", "]", ";");
+    /**
+     * Tokens a comment is spaced from the code before it only by the space the author wrote there: a
+     * comma, a closing bracket or a semicolon is set down against the code in front of it, so there
+     * is no rule-supplied space for the comment to sit behind.
+     */
+    private static final Set<String> CLOSERS = Set.of(",", ")", "]", ">", ";");
 
     protected final Style style;
     private final CommentFormatter comments;
@@ -120,6 +125,20 @@ abstract class EmitSupport {
     protected static boolean hasLeadingComments(GreenNode node) {
         SyntaxToken token = firstToken(node);
         return token != null && !token.leadingComments().isEmpty();
+    }
+
+    /** Whether the last token of a node trails a comment of its own. */
+    protected static boolean hasTrailingComments(GreenNode node) {
+        GreenNode last = node;
+        while (!last.children().isEmpty()) {
+            last = last.children().getLast();
+        }
+        return last instanceof GreenNode.Leaf leaf && !leaf.token().trailingComments().isEmpty();
+    }
+
+    /** Whether a comment sits between two adjacent nodes, on whichever of them carries it. */
+    protected static boolean commentBetween(GreenNode before, GreenNode after) {
+        return hasTrailingComments(before) || hasLeadingComments(after);
     }
 
     /**
@@ -430,11 +449,19 @@ abstract class EmitSupport {
      * emission order cannot consume hidden state or make a discarded document affect a later one.
      */
     protected HoistedLeading hoistLeadingTrivia(GreenNode node) {
+        return hoistLeadingTrivia(node, true);
+    }
+
+    /**
+     * @param ownLine whether the comments may start a line of their own; {@code false} where the
+     *     token in front of them may not end a line, which is only an opening angle bracket
+     */
+    protected HoistedLeading hoistLeadingTrivia(GreenNode node, boolean ownLine) {
         SyntaxToken token = firstToken(node);
         if (token == null || token.leadingComments().isEmpty()) {
             return new HoistedLeading(Doc.EMPTY, node);
         }
-        return new HoistedLeading(leadingTrivia(token), withoutLeadingTrivia(node));
+        return new HoistedLeading(leadingTrivia(token, ownLine), withoutLeadingTrivia(node));
     }
 
     /** A comment, re-indented but never re-worded. */
@@ -575,8 +602,18 @@ abstract class EmitSupport {
 
     /** Comments that come before a token, each followed by whatever separated it from what follows. */
     private Doc leadingTrivia(SyntaxToken token) {
+        return leadingTrivia(token, true);
+    }
+
+    /**
+     * @param ownLine whether the first comment may start a line of its own. Where it may not — only
+     *     in front of an opening angle bracket, which the layout keeps off the end of a line — it
+     *     takes the space a trailing comment would, and the code it leads follows on that line.
+     */
+    private Doc leadingTrivia(SyntaxToken token, boolean ownLine) {
         List<Token> leading = token.leading();
         List<Doc> parts = new ArrayList<>();
+        boolean first = true;
         for (int i = 0; i < leading.size(); i++) {
             Token trivia = leading.get(i);
             if (!trivia.kind().isComment()) {
@@ -604,9 +641,11 @@ abstract class EmitSupport {
                 parts.add(comments.ownLine(run));
                 parts.add(spaceIf(last + 1 < leading.size()));
             } else {
-                // A comment the author put on a line of its own starts one, even where the layout has
-                // no break of its own in front of the code it leads.
-                if (i > 0 && leading.get(i - 1).hasLineTerminator()) {
+                if (first && !ownLine) {
+                    parts.add(trailingSpacing());
+                } else if (i > 0 && leading.get(i - 1).hasLineTerminator()) {
+                    // A comment the author put on a line of its own starts one, even where the layout
+                    // has no break of its own in front of the code it leads.
                     parts.add(Doc.freshLine());
                 }
                 parts.add(placedOwnLine(run, leading, i));
@@ -616,6 +655,7 @@ abstract class EmitSupport {
                 );
                 parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
             }
+            first = false;
             i = last;
         }
         return Doc.concat(parts);
