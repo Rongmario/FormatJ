@@ -99,6 +99,276 @@ abstract class ExpressionParser extends ParserBase {
         return parseArraySuffix(base);
     }
 
+    /** Whether an array dimension starts here, {@code []}, possibly type-annotated: {@code @A []}. */
+    protected boolean atAnnotatedDimension() {
+        if (at("[")) {
+            return peek(1).is("]");
+        }
+        if (!at("@")) {
+            return false;
+        }
+        int start = mark();
+        try {
+            while (at("@")) {
+                parseAnnotation();
+            }
+            return at("[") && peek(1).is("]");
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
+    }
+
+    protected void parseDeclaratorDimensions(List<GreenNode> children) {
+        while (atAnnotatedDimension()) {
+            while (at("@")) {
+                children.add(parseAnnotation());
+            }
+            children.add(advance());
+            children.add(advance());
+        }
+    }
+
+    protected GreenNode parseTypeArguments() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("<"));
+        if (!at(">")) {
+            children.add(parseTypeArgument());
+            while (at(",")) {
+                children.add(advance());
+                children.add(parseTypeArgument());
+            }
+        }
+        children.add(expect(">"));
+        return branch(SyntaxKind.TYPE_ARGUMENTS, children);
+    }
+
+    protected GreenNode parseTypeParameters() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("<"));
+        children.add(parseTypeParameter());
+        while (at(",")) {
+            children.add(advance());
+            children.add(parseTypeParameter());
+        }
+        children.add(expect(">"));
+        return branch(SyntaxKind.TYPE_PARAMETERS, children);
+    }
+
+    // ----------------------------------------------------------- annotations
+
+    protected GreenNode parseAnnotation() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("@"));
+        children.add(parseQualifiedName());
+        if (at("(")) {
+            children.add(parseAnnotationArguments());
+        }
+        return branch(SyntaxKind.ANNOTATION, children);
+    }
+
+    protected GreenNode parseQualifiedName() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(identifier());
+        while (at(".") && peek(1).kind() == TokenKind.IDENTIFIER) {
+            children.add(advance());
+            children.add(identifier());
+        }
+        return children.size() == 1 ? children.getFirst() : branch(SyntaxKind.QUALIFIED_NAME, children);
+    }
+
+    // ---------------------------------------------------------- expressions
+
+    protected GreenNode parseExpression() {
+        if (atLambda()) {
+            return parseLambda();
+        }
+        GreenNode left = parseTernary();
+        String operator = peekOperator();
+        if (ASSIGNMENT_OPERATORS.contains(operator)) {
+            List<GreenNode> children = new ArrayList<>();
+            children.add(left);
+            consumeOperator(children);
+            children.add(parseExpression());
+            return branch(SyntaxKind.ASSIGNMENT_EXPRESSION, children);
+        }
+        return left;
+    }
+
+    /**
+     * The operator at the cursor, assembling any run of adjacent {@code >} tokens.
+     *
+     * @return the operator text, or an empty string when the next token is not an operator
+     */
+    protected String peekOperator() {
+        Token token = peek();
+        if (token.kind() == TokenKind.KEYWORD && token.is("instanceof")) {
+            return "instanceof";
+        }
+        if (token.kind() != TokenKind.OPERATOR) {
+            return "";
+        }
+        if (!token.is(">")) {
+            return token.decodedText();
+        }
+        StringBuilder operator = new StringBuilder(">");
+        Token previous = token;
+        for (int ahead = 1; ahead <= 3; ahead++) {
+            Token next = peek(ahead);
+            if (next.start() != previous.end() || next.kind() != TokenKind.OPERATOR) {
+                break;
+            }
+            if (next.is(">") && operator.length() < 3 && operator.indexOf("=") < 0) {
+                operator.append('>');
+            } else if (next.is("=")) {
+                operator.append('=');
+                return operator.toString();
+            } else {
+                break;
+            }
+            previous = next;
+        }
+        return operator.toString();
+    }
+
+    /** Consumes the operator {@link #peekOperator()} reported, which may be several tokens. */
+    protected void consumeOperator(List<GreenNode> children) {
+        String operator = peekOperator();
+        int tokens = operator.startsWith(">") ? operator.length() : 1;
+        for (int i = 0; i < tokens; i++) {
+            children.add(advance());
+        }
+    }
+
+    protected GreenNode parseArguments() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("("));
+        if (!at(")")) {
+            children.add(parseExpression());
+            while (at(",")) {
+                children.add(advance());
+                children.add(parseExpression());
+            }
+        }
+        children.add(expect(")"));
+        return branch(SyntaxKind.ARGUMENTS, children);
+    }
+
+    protected GreenNode parseArrayInitializer() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("{"));
+        while (!at("}") && !atEnd()) {
+            children.add(at("{") ? parseArrayInitializer() : parseExpression());
+            if (at(",")) {
+                children.add(advance());
+                continue;
+            }
+            break;
+        }
+        children.add(expect("}"));
+        return branch(SyntaxKind.ARRAY_INITIALIZER, children);
+    }
+
+    /** Implemented by the declaration layer, which owns class bodies. */
+    protected abstract GreenNode parseAnonymousClassBody();
+
+    // ------------------------------------------------------------- lambdas
+
+    protected boolean atLambda() {
+        if (atName() && peek(1).is("->")) {
+            return true;
+        }
+        if (!at("(")) {
+            return false;
+        }
+        int depth = 0;
+        for (int ahead = 0; ahead < 512; ahead++) {
+            Token token = peek(ahead);
+            if (token.kind() == TokenKind.END_OF_FILE) {
+                return false;
+            }
+            if (token.is("(")) {
+                depth++;
+            } else if (token.is(")")) {
+                depth--;
+                if (depth == 0) {
+                    return peek(ahead + 1).is("->");
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Implemented by the statement layer, which owns blocks. */
+    protected abstract GreenNode parseLambdaBody();
+
+    // ------------------------------------------------------------ patterns
+
+    /** A type pattern, record pattern, {@code var} pattern, or unnamed pattern {@code _}. */
+    protected GreenNode parsePattern() {
+        if (atUnnamed()) {
+            return branch(SyntaxKind.TYPE_PATTERN, List.of(advance()));
+        }
+        List<GreenNode> children = new ArrayList<>();
+        while (at("final") || at("@")) {
+            children.add(at("@") ? parseAnnotation() : advance());
+        }
+        children.add(parseType());
+        if (at("(")) {
+            List<GreenNode> components = new ArrayList<>();
+            components.add(advance());
+            if (!at(")")) {
+                components.add(parsePattern());
+                while (at(",")) {
+                    components.add(advance());
+                    components.add(parsePattern());
+                }
+            }
+            components.add(expect(")"));
+            children.add(branch(SyntaxKind.PATTERN_COMPONENTS, components));
+            return branch(SyntaxKind.RECORD_PATTERN, children);
+        }
+        if (atName()) {
+            children.add(name());
+        }
+        return branch(SyntaxKind.TYPE_PATTERN, children);
+    }
+
+    /** Whether a case label at the cursor is a pattern rather than a constant expression. */
+    protected boolean atPatternLabel() {
+        int start = mark();
+        try {
+            if (atUnnamed() || at("final")) {
+                return true;
+            }
+            if (!atTypeStart()) {
+                return false;
+            }
+            parseType();
+            return at("(") || atName();
+        } catch (ParseFailure failure) {
+            return false;
+        } finally {
+            reset(start);
+        }
+    }
+
+    // ------------------------------------------------------------- switches
+
+    protected GreenNode parseSwitchExpression() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("switch"));
+        children.add(expect("("));
+        children.add(parseExpression());
+        children.add(expect(")"));
+        children.add(parseSwitchBlock());
+        return branch(SyntaxKind.SWITCH_EXPRESSION, children);
+    }
+
+    /** Implemented by the statement layer: case bodies are statements. */
+    protected abstract GreenNode parseSwitchBlock();
+
     /**
      * A possibly qualified name with type arguments on any segment: {@code a.b.C<D>.E}.
      *
@@ -148,37 +418,6 @@ abstract class ExpressionParser extends ParserBase {
         return current;
     }
 
-    /** Whether an array dimension starts here, {@code []}, possibly type-annotated: {@code @A []}. */
-    protected boolean atAnnotatedDimension() {
-        if (at("[")) {
-            return peek(1).is("]");
-        }
-        if (!at("@")) {
-            return false;
-        }
-        int start = mark();
-        try {
-            while (at("@")) {
-                parseAnnotation();
-            }
-            return at("[") && peek(1).is("]");
-        } catch (ParseFailure failure) {
-            return false;
-        } finally {
-            reset(start);
-        }
-    }
-
-    protected void parseDeclaratorDimensions(List<GreenNode> children) {
-        while (atAnnotatedDimension()) {
-            while (at("@")) {
-                children.add(parseAnnotation());
-            }
-            children.add(advance());
-            children.add(advance());
-        }
-    }
-
     private boolean atAnnotatedEllipsis() {
         if (at("...")) {
             return true;
@@ -199,20 +438,6 @@ abstract class ExpressionParser extends ParserBase {
         }
     }
 
-    protected GreenNode parseTypeArguments() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("<"));
-        if (!at(">")) {
-            children.add(parseTypeArgument());
-            while (at(",")) {
-                children.add(advance());
-                children.add(parseTypeArgument());
-            }
-        }
-        children.add(expect(">"));
-        return branch(SyntaxKind.TYPE_ARGUMENTS, children);
-    }
-
     private GreenNode parseTypeArgument() {
         if (at("?")) {
             List<GreenNode> children = new ArrayList<>();
@@ -224,18 +449,6 @@ abstract class ExpressionParser extends ParserBase {
             return branch(SyntaxKind.WILDCARD_TYPE, children);
         }
         return parseType();
-    }
-
-    protected GreenNode parseTypeParameters() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("<"));
-        children.add(parseTypeParameter());
-        while (at(",")) {
-            children.add(advance());
-            children.add(parseTypeParameter());
-        }
-        children.add(expect(">"));
-        return branch(SyntaxKind.TYPE_PARAMETERS, children);
     }
 
     private GreenNode parseTypeParameter() {
@@ -255,18 +468,6 @@ abstract class ExpressionParser extends ParserBase {
             children.add(branch(SyntaxKind.TYPE_BOUND, bound));
         }
         return branch(SyntaxKind.TYPE_PARAMETER, children);
-    }
-
-    // ----------------------------------------------------------- annotations
-
-    protected GreenNode parseAnnotation() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("@"));
-        children.add(parseQualifiedName());
-        if (at("(")) {
-            children.add(parseAnnotationArguments());
-        }
-        return branch(SyntaxKind.ANNOTATION, children);
     }
 
     private GreenNode parseAnnotationArguments() {
@@ -302,34 +503,6 @@ abstract class ExpressionParser extends ParserBase {
             return parseAnnotation();
         }
         return parseExpression();
-    }
-
-    protected GreenNode parseQualifiedName() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(identifier());
-        while (at(".") && peek(1).kind() == TokenKind.IDENTIFIER) {
-            children.add(advance());
-            children.add(identifier());
-        }
-        return children.size() == 1 ? children.getFirst() : branch(SyntaxKind.QUALIFIED_NAME, children);
-    }
-
-    // ---------------------------------------------------------- expressions
-
-    protected GreenNode parseExpression() {
-        if (atLambda()) {
-            return parseLambda();
-        }
-        GreenNode left = parseTernary();
-        String operator = peekOperator();
-        if (ASSIGNMENT_OPERATORS.contains(operator)) {
-            List<GreenNode> children = new ArrayList<>();
-            children.add(left);
-            consumeOperator(children);
-            children.add(parseExpression());
-            return branch(SyntaxKind.ASSIGNMENT_EXPRESSION, children);
-        }
-        return left;
     }
 
     private GreenNode parseTernary() {
@@ -370,51 +543,6 @@ abstract class ExpressionParser extends ParserBase {
             consumeOperator(children);
             children.add(parseBinary(precedence + 1));
             left = branch(SyntaxKind.BINARY_EXPRESSION, children);
-        }
-    }
-
-    /**
-     * The operator at the cursor, assembling any run of adjacent {@code >} tokens.
-     *
-     * @return the operator text, or an empty string when the next token is not an operator
-     */
-    protected String peekOperator() {
-        Token token = peek();
-        if (token.kind() == TokenKind.KEYWORD && token.is("instanceof")) {
-            return "instanceof";
-        }
-        if (token.kind() != TokenKind.OPERATOR) {
-            return "";
-        }
-        if (!token.is(">")) {
-            return token.decodedText();
-        }
-        StringBuilder operator = new StringBuilder(">");
-        Token previous = token;
-        for (int ahead = 1; ahead <= 3; ahead++) {
-            Token next = peek(ahead);
-            if (next.start() != previous.end() || next.kind() != TokenKind.OPERATOR) {
-                break;
-            }
-            if (next.is(">") && operator.length() < 3 && operator.indexOf("=") < 0) {
-                operator.append('>');
-            } else if (next.is("=")) {
-                operator.append('=');
-                return operator.toString();
-            } else {
-                break;
-            }
-            previous = next;
-        }
-        return operator.toString();
-    }
-
-    /** Consumes the operator {@link #peekOperator()} reported, which may be several tokens. */
-    protected void consumeOperator(List<GreenNode> children) {
-        String operator = peekOperator();
-        int tokens = operator.startsWith(">") ? operator.length() : 1;
-        for (int i = 0; i < tokens; i++) {
-            children.add(advance());
         }
     }
 
@@ -703,35 +831,6 @@ abstract class ExpressionParser extends ParserBase {
         throw fail("Expected an expression");
     }
 
-    protected GreenNode parseArguments() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("("));
-        if (!at(")")) {
-            children.add(parseExpression());
-            while (at(",")) {
-                children.add(advance());
-                children.add(parseExpression());
-            }
-        }
-        children.add(expect(")"));
-        return branch(SyntaxKind.ARGUMENTS, children);
-    }
-
-    protected GreenNode parseArrayInitializer() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("{"));
-        while (!at("}") && !atEnd()) {
-            children.add(at("{") ? parseArrayInitializer() : parseExpression());
-            if (at(",")) {
-                children.add(advance());
-                continue;
-            }
-            break;
-        }
-        children.add(expect("}"));
-        return branch(SyntaxKind.ARRAY_INITIALIZER, children);
-    }
-
     private GreenNode parseObjectCreation() {
         List<GreenNode> children = new ArrayList<>();
         children.add(expect("new"));
@@ -781,36 +880,6 @@ abstract class ExpressionParser extends ParserBase {
         return branch(SyntaxKind.CLASS_TYPE, children);
     }
 
-    /** Implemented by the declaration layer, which owns class bodies. */
-    protected abstract GreenNode parseAnonymousClassBody();
-
-    // ------------------------------------------------------------- lambdas
-
-    protected boolean atLambda() {
-        if (atName() && peek(1).is("->")) {
-            return true;
-        }
-        if (!at("(")) {
-            return false;
-        }
-        int depth = 0;
-        for (int ahead = 0; ahead < 512; ahead++) {
-            Token token = peek(ahead);
-            if (token.kind() == TokenKind.END_OF_FILE) {
-                return false;
-            }
-            if (token.is("(")) {
-                depth++;
-            } else if (token.is(")")) {
-                depth--;
-                if (depth == 0) {
-                    return peek(ahead + 1).is("->");
-                }
-            }
-        }
-        return false;
-    }
-
     private GreenNode parseLambda() {
         List<GreenNode> children = new ArrayList<>();
         children.add(parseLambdaParameters());
@@ -818,9 +887,6 @@ abstract class ExpressionParser extends ParserBase {
         children.add(at("{") ? parseLambdaBody() : parseExpression());
         return branch(SyntaxKind.LAMBDA_EXPRESSION, children);
     }
-
-    /** Implemented by the statement layer, which owns blocks. */
-    protected abstract GreenNode parseLambdaBody();
 
     private GreenNode parseLambdaParameters() {
         List<GreenNode> children = new ArrayList<>();
@@ -853,71 +919,5 @@ abstract class ExpressionParser extends ParserBase {
         children.add(name());
         return branch(SyntaxKind.PARAMETER, children);
     }
-
-    // ------------------------------------------------------------ patterns
-
-    /** A type pattern, record pattern, {@code var} pattern, or unnamed pattern {@code _}. */
-    protected GreenNode parsePattern() {
-        if (atUnnamed()) {
-            return branch(SyntaxKind.TYPE_PATTERN, List.of(advance()));
-        }
-        List<GreenNode> children = new ArrayList<>();
-        while (at("final") || at("@")) {
-            children.add(at("@") ? parseAnnotation() : advance());
-        }
-        children.add(parseType());
-        if (at("(")) {
-            List<GreenNode> components = new ArrayList<>();
-            components.add(advance());
-            if (!at(")")) {
-                components.add(parsePattern());
-                while (at(",")) {
-                    components.add(advance());
-                    components.add(parsePattern());
-                }
-            }
-            components.add(expect(")"));
-            children.add(branch(SyntaxKind.PATTERN_COMPONENTS, components));
-            return branch(SyntaxKind.RECORD_PATTERN, children);
-        }
-        if (atName()) {
-            children.add(name());
-        }
-        return branch(SyntaxKind.TYPE_PATTERN, children);
-    }
-
-    /** Whether a case label at the cursor is a pattern rather than a constant expression. */
-    protected boolean atPatternLabel() {
-        int start = mark();
-        try {
-            if (atUnnamed() || at("final")) {
-                return true;
-            }
-            if (!atTypeStart()) {
-                return false;
-            }
-            parseType();
-            return at("(") || atName();
-        } catch (ParseFailure failure) {
-            return false;
-        } finally {
-            reset(start);
-        }
-    }
-
-    // ------------------------------------------------------------- switches
-
-    protected GreenNode parseSwitchExpression() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("switch"));
-        children.add(expect("("));
-        children.add(parseExpression());
-        children.add(expect(")"));
-        children.add(parseSwitchBlock());
-        return branch(SyntaxKind.SWITCH_EXPRESSION, children);
-    }
-
-    /** Implemented by the statement layer: case bodies are statements. */
-    protected abstract GreenNode parseSwitchBlock();
 
 }

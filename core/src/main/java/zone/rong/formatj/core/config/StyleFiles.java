@@ -44,16 +44,6 @@ public final class StyleFiles {
         }
     }
 
-    private static String read(Path file) {
-        try {
-            return Files.readString(file, StandardCharsets.UTF_8);
-        } catch (NoSuchFileException e) {
-            throw new UncheckedIOException("cannot read style file " + file + ": no such file", e);
-        } catch (IOException e) {
-            throw new UncheckedIOException("cannot read style file " + file + ": " + e.getMessage(), e);
-        }
-    }
-
     /** Parses style file content. */
     public static Style parse(String document) {
         Map<String, String> entries = TomlReader.read(document);
@@ -84,23 +74,6 @@ public final class StyleFiles {
     /** The file selection of the nearest style file to {@code start}, or none when there is none. */
     public static FileSelection discoverFileSelection(Path start) {
         return discover(start).map(StyleFiles::fileSelection).orElse(FileSelection.NONE);
-    }
-
-    /** A TOML string array, as {@code files.include}/{@code files.exclude} write it. */
-    private static List<String> globArray(String raw) {
-        if (raw == null) {
-            return List.of();
-        }
-        String body = raw.trim();
-        if (body.startsWith("[") && body.endsWith("]")) {
-            body = body.substring(1, body.length() - 1);
-        }
-        return TomlReader.splitTopLevel(body, ',')
-            .stream()
-            .map(String::trim)
-            .filter(element -> !element.isEmpty())
-            .map(element -> TomlReader.unquote(element, 0))
-            .toList();
     }
 
     /** Writes a style out as a commented TOML document. */
@@ -134,6 +107,33 @@ public final class StyleFiles {
     /** The nearest style file to {@code start}, or the built-in defaults when there is none. */
     public static Style discoverOrDefault(Path start) {
         return discover(start).map(StyleFiles::load).orElseGet(Style::defaults);
+    }
+
+    private static String read(Path file) {
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (NoSuchFileException e) {
+            throw new UncheckedIOException("cannot read style file " + file + ": no such file", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read style file " + file + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** A TOML string array, as {@code files.include}/{@code files.exclude} write it. */
+    private static List<String> globArray(String raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        String body = raw.trim();
+        if (body.startsWith("[") && body.endsWith("]")) {
+            body = body.substring(1, body.length() - 1);
+        }
+        return TomlReader.splitTopLevel(body, ',')
+            .stream()
+            .map(String::trim)
+            .filter(element -> !element.isEmpty())
+            .map(element -> TomlReader.unquote(element, 0))
+            .toList();
     }
 
 }

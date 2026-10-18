@@ -5,6 +5,11 @@ public final class UnicodeEscapes {
 
     private UnicodeEscapes() { }
 
+    /** Translates eligible Unicode escapes and leaves malformed or ineligible spellings untouched. */
+    public static String decode(String text) {
+        return TranslatedSource.translate(text).text();
+    }
+
     /**
      * End of a syntactically valid escape at {@code offset}, or {@code -1}. The caller checks
      * eligibility.
@@ -31,11 +36,6 @@ public final class UnicodeEscapes {
     /** The UTF-16 code unit represented by an escape ending at {@code end}. */
     static char decodedChar(String source, int end) {
         return (char) Integer.parseInt(source, end - 4, end, 16);
-    }
-
-    /** Translates eligible Unicode escapes and leaves malformed or ineligible spellings untouched. */
-    public static String decode(String text) {
-        return TranslatedSource.translate(text).text();
     }
 
 }

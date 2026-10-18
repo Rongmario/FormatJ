@@ -35,6 +35,43 @@ abstract class ExpressionEmitter extends EmitSupport {
         super(style);
     }
 
+    /** Whether the author started a new line before this node. */
+    protected static boolean authorBrokeBefore(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && token.startsNewLine();
+    }
+
+    /** Whether the author spread this node over more than one line. */
+    protected static boolean authorBrokeInside(GreenNode node) {
+        return authorBrokeInside(node.children());
+    }
+
+    /** Whether the author spread these siblings over more than one line. */
+    protected static boolean authorBrokeInside(List<GreenNode> children) {
+        for (int i = 1; i < children.size(); i++) {
+            if (authorBrokeBefore(children.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---------------------------------------------------------------- chains
+
+    /** Whether this node is the top of a call chain the emitter should lay out as a unit. */
+    protected static boolean isChainLink(GreenNode node) {
+        return node.kind() == SyntaxKind.METHOD_INVOCATION || node.kind() == SyntaxKind.MEMBER_ACCESS;
+    }
+
+    protected static int indexOf(List<GreenNode> children, String lexeme) {
+        for (int i = 0; i < children.size(); i++) {
+            if (is(children.get(i), lexeme)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private static boolean inlineCommentsOnly(GreenNode node) {
         SyntaxToken token = firstToken(node);
         return token != null &&
@@ -51,12 +88,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(elements.get(i));
         }
         return parts;
-    }
-
-    /** Whether the author started a new line before this node. */
-    protected static boolean authorBrokeBefore(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && token.startsNewLine();
     }
 
     private static boolean hasTrailingLineComment(GreenNode node) {
@@ -158,28 +189,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         };
     }
 
-    /** Whether the author spread this node over more than one line. */
-    protected static boolean authorBrokeInside(GreenNode node) {
-        return authorBrokeInside(node.children());
-    }
-
-    /** Whether the author spread these siblings over more than one line. */
-    protected static boolean authorBrokeInside(List<GreenNode> children) {
-        for (int i = 1; i < children.size(); i++) {
-            if (authorBrokeBefore(children.get(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // ---------------------------------------------------------------- chains
-
-    /** Whether this node is the top of a call chain the emitter should lay out as a unit. */
-    protected static boolean isChainLink(GreenNode node) {
-        return node.kind() == SyntaxKind.METHOD_INVOCATION || node.kind() == SyntaxKind.MEMBER_ACCESS;
-    }
-
     private static boolean isPlainReceiver(GreenNode base) {
         return switch (base.kind()) {
             case NAME, QUALIFIED_NAME, THIS_EXPRESSION, SUPER_EXPRESSION, LITERAL, CLASS_TYPE -> true;
@@ -195,15 +204,6 @@ abstract class ExpressionEmitter extends EmitSupport {
     private static boolean startsWithAnnotation(GreenNode node) {
         List<GreenNode> children = node.children();
         return !children.isEmpty() && children.getFirst().kind() == SyntaxKind.ANNOTATION;
-    }
-
-    protected static int indexOf(List<GreenNode> children, String lexeme) {
-        for (int i = 0; i < children.size(); i++) {
-            if (is(children.get(i), lexeme)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     /** Implemented by the statement layer. */
@@ -332,78 +332,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         };
     }
 
-    /**
-     * Splits a list's elements into one document each, ending every element at its comma.
-     *
-     * @param startsRow for each element, whether the author started a new line before it
-     */
-    private ListElements splitElements(List<GreenNode> middle) {
-        List<Doc> elements = new ArrayList<>();
-        List<Boolean> startsRow = new ArrayList<>();
-        List<Doc> current = new ArrayList<>();
-        for (GreenNode child : middle) {
-            if (current.isEmpty()) {
-                startsRow.add(authorBrokeBefore(child));
-            }
-            if (current.isEmpty() && hasLeadingComments(child)) {
-                // A comment above an element ends its own line, not one inside the element.
-                HoistedLeading hoisted = hoistLeadingTrivia(child);
-                current.add(hoisted.leading());
-                current.add(emit(hoisted.node()));
-            } else {
-                current.add(emit(child));
-            }
-            if (is(child, ",")) {
-                elements.add(Doc.concat(current));
-                current = new ArrayList<>();
-            }
-        }
-        if (!current.isEmpty()) {
-            elements.add(Doc.concat(current));
-        }
-        return new ListElements(elements, startsRow);
-    }
-
-    /**
-     * A type parameter or type argument section.
-     *
-     * <p>The brackets belong to the types they wrap, so the whole thing is one unit rather than a
-     * list between two delimiters: {@code <} never ends a line and {@code >} never starts one, and
-     * the section is never offered a break of its own. A section that does not fit where it stands
-     * moves, whole, to an indented continuation line; one that still does not fit there overflows
-     * rather than coming apart at its brackets. There is no rule behind that: a {@code Map<A, B>}
-     * that a reader could mistake for two tokens is not something a style should be able to ask for.
-     */
-    private Doc angleBracketedList(GreenNode node, int indentColumns, boolean spaceInside) {
-        List<GreenNode> children = node.children();
-        GreenNode open = children.getFirst();
-        GreenNode close = children.getLast();
-        List<GreenNode> middle = children.subList(1, children.size() - 1);
-        if (middle.isEmpty()) {
-            return Doc.concat(emit(open), emit(close));
-        }
-        List<Doc> elements = splitElements(middle).elements();
-        Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
-        // An inline comment in front of the closing bracket stays with the last element.
-        HoistedLeading closing = inlineCommentsOnly(close)
-            ? hoistLeadingTrivia(close)
-            : new HoistedLeading(Doc.EMPTY, close);
-        Doc body = Doc.concat(
-            // Unlike a list that may stay flat around a hard break in its last element, a section
-            // that shifted did take the indent, and any break a comment forces inside it belongs on
-            // a continuation line of its own.
-            Doc.indent(
-                indentColumns,
-                Doc.concat(spaceIf(spaceInside), Doc.join(separator, elements), closing.leading())
-            ),
-            spaceIf(spaceInside)
-        );
-        Doc section = Doc.flatGroup(Doc.concat(emit(open), body, emit(closing.node())));
-        return Doc.group(Doc.concat(Doc.indent(indentColumns, Doc.softLine()), section));
-    }
-
-    private record ListElements(List<Doc> elements, List<Boolean> startsRow) { }
-
     // ---------------------------------------------------------------- types
 
     protected Doc emitTypeLike(GreenNode node) {
@@ -417,29 +345,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
-    }
-
-    private boolean needsSpaceInType(GreenNode previous, GreenNode next) {
-        if (previous.kind() == SyntaxKind.ANNOTATION) {
-            return true;
-        }
-        if (next.kind() == SyntaxKind.ANNOTATION) {
-            // Except straight after a dot: Outer.@A Inner has no space before the annotation there.
-            return !is(previous, ".");
-        }
-        if (is(previous, "...")) {
-            return rule(SpacingRules.AFTER_VARARGS_ELLIPSIS);
-        }
-        if (is(next, "[") || is(previous, "[") || is(next, "]")) {
-            return is(next, "[") && rule(SpacingRules.BEFORE_ARRAY_BRACKETS);
-        }
-        if (is(previous, "&") || is(next, "&")) {
-            return rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR);
-        }
-        if (isAny(previous, "extends", "super") || isAny(next, "extends", "super")) {
-            return true;
-        }
-        return false;
     }
 
     protected Doc emitTypeBound(GreenNode node) {
@@ -605,34 +510,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             case PRESERVE -> Doc.breakingGroup(content);
             default -> authorGroup(node, content);
         };
-    }
-
-    /** Splits a left-nested run of same-precedence operators into operands and operator documents. */
-    private void flattenBinary(
-        GreenNode node,
-        List<GreenNode> operands,
-        List<Doc> operators,
-        List<Boolean> commented,
-        List<Boolean> ownLine
-    ) {
-        List<GreenNode> children = node.children();
-        GreenNode left = children.getFirst();
-        List<Doc> operator = new ArrayList<>();
-        for (GreenNode child : children.subList(1, children.size() - 1)) {
-            operator.add(emit(child));
-        }
-        String text = operatorText(children);
-        if (left.kind() == SyntaxKind.BINARY_EXPRESSION && samePrecedence(operatorText(left.children()), text)) {
-            flattenBinary(left, operands, operators, commented, ownLine);
-        } else {
-            operands.add(left);
-        }
-        operators.add(Doc.concat(operator));
-        commented.add(
-            hasTrailingLineComment(children.get(children.size() - 2)) || hasLeadingComments(children.getLast())
-        );
-        ownLine.add(hasLeadingComments(children.get(1)));
-        operands.add(children.getLast());
     }
 
     protected Doc emitAssignment(GreenNode node) {
@@ -969,42 +846,6 @@ abstract class ExpressionEmitter extends EmitSupport {
         return Doc.group(content);
     }
 
-    /** Splits a chain into its base expression and the links hanging off it. */
-    private GreenNode flatten(GreenNode node, List<GreenNode> links) {
-        if (!isChainLink(node)) {
-            return node;
-        }
-        GreenNode receiver = node.children().getFirst();
-        if (is(receiver, ".") || isLeaf(receiver) && !isChainLink(receiver)) {
-            return node;
-        }
-        if (!isChainLink(receiver)) {
-            links.addFirst(node);
-            return receiver;
-        }
-        GreenNode base = flatten(receiver, links);
-        links.add(node);
-        return base;
-    }
-
-    /** Everything of a chain link from its dot onwards. */
-    private Doc emitLinkTail(GreenNode link) {
-        List<Doc> parts = new ArrayList<>();
-        List<GreenNode> children = link.children();
-        for (int i = 1; i < children.size(); i++) {
-            parts.add(emit(children.get(i)));
-        }
-        return Doc.concat(parts);
-    }
-
-    private Doc emitLinkFlat(GreenNode node) {
-        List<Doc> parts = new ArrayList<>();
-        for (GreenNode child : node.children()) {
-            parts.add(emit(child));
-        }
-        return Doc.concat(parts);
-    }
-
     // --------------------------------------------------------------- lambdas
 
     protected Doc emitLambda(GreenNode node) {
@@ -1063,25 +904,6 @@ abstract class ExpressionEmitter extends EmitSupport {
             parts.add(emit(child));
         }
         return Doc.concat(parts);
-    }
-
-    private boolean needsSpaceInCreation(GreenNode previous, GreenNode next) {
-        if (is(previous, "new")) {
-            return true;
-        }
-        if (next.kind() == SyntaxKind.CLASS_BODY) {
-            return true;
-        }
-        if (next.kind() == SyntaxKind.ARGUMENTS) {
-            return rule(SpacingRules.BEFORE_METHOD_CALL_PARENTHESIS);
-        }
-        if (next.kind() == SyntaxKind.ARRAY_INITIALIZER) {
-            return true;
-        }
-        if (next.kind() == SyntaxKind.DIMENSION && startsWithAnnotation(next)) {
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -1165,5 +987,183 @@ abstract class ExpressionEmitter extends EmitSupport {
         }
         return Doc.concat(parts);
     }
+
+    /**
+     * Splits a list's elements into one document each, ending every element at its comma.
+     *
+     * @param startsRow for each element, whether the author started a new line before it
+     */
+    private ListElements splitElements(List<GreenNode> middle) {
+        List<Doc> elements = new ArrayList<>();
+        List<Boolean> startsRow = new ArrayList<>();
+        List<Doc> current = new ArrayList<>();
+        for (GreenNode child : middle) {
+            if (current.isEmpty()) {
+                startsRow.add(authorBrokeBefore(child));
+            }
+            if (current.isEmpty() && hasLeadingComments(child)) {
+                // A comment above an element ends its own line, not one inside the element.
+                HoistedLeading hoisted = hoistLeadingTrivia(child);
+                current.add(hoisted.leading());
+                current.add(emit(hoisted.node()));
+            } else {
+                current.add(emit(child));
+            }
+            if (is(child, ",")) {
+                elements.add(Doc.concat(current));
+                current = new ArrayList<>();
+            }
+        }
+        if (!current.isEmpty()) {
+            elements.add(Doc.concat(current));
+        }
+        return new ListElements(elements, startsRow);
+    }
+
+    /**
+     * A type parameter or type argument section.
+     *
+     * <p>The brackets belong to the types they wrap, so the whole thing is one unit rather than a
+     * list between two delimiters: {@code <} never ends a line and {@code >} never starts one, and
+     * the section is never offered a break of its own. A section that does not fit where it stands
+     * moves, whole, to an indented continuation line; one that still does not fit there overflows
+     * rather than coming apart at its brackets. There is no rule behind that: a {@code Map<A, B>}
+     * that a reader could mistake for two tokens is not something a style should be able to ask for.
+     */
+    private Doc angleBracketedList(GreenNode node, int indentColumns, boolean spaceInside) {
+        List<GreenNode> children = node.children();
+        GreenNode open = children.getFirst();
+        GreenNode close = children.getLast();
+        List<GreenNode> middle = children.subList(1, children.size() - 1);
+        if (middle.isEmpty()) {
+            return Doc.concat(emit(open), emit(close));
+        }
+        List<Doc> elements = splitElements(middle).elements();
+        Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
+        // An inline comment in front of the closing bracket stays with the last element.
+        HoistedLeading closing = inlineCommentsOnly(close)
+            ? hoistLeadingTrivia(close)
+            : new HoistedLeading(Doc.EMPTY, close);
+        Doc body = Doc.concat(
+            // Unlike a list that may stay flat around a hard break in its last element, a section
+            // that shifted did take the indent, and any break a comment forces inside it belongs on
+            // a continuation line of its own.
+            Doc.indent(
+                indentColumns,
+                Doc.concat(spaceIf(spaceInside), Doc.join(separator, elements), closing.leading())
+            ),
+            spaceIf(spaceInside)
+        );
+        Doc section = Doc.flatGroup(Doc.concat(emit(open), body, emit(closing.node())));
+        return Doc.group(Doc.concat(Doc.indent(indentColumns, Doc.softLine()), section));
+    }
+
+    private boolean needsSpaceInType(GreenNode previous, GreenNode next) {
+        if (previous.kind() == SyntaxKind.ANNOTATION) {
+            return true;
+        }
+        if (next.kind() == SyntaxKind.ANNOTATION) {
+            // Except straight after a dot: Outer.@A Inner has no space before the annotation there.
+            return !is(previous, ".");
+        }
+        if (is(previous, "...")) {
+            return rule(SpacingRules.AFTER_VARARGS_ELLIPSIS);
+        }
+        if (is(next, "[") || is(previous, "[") || is(next, "]")) {
+            return is(next, "[") && rule(SpacingRules.BEFORE_ARRAY_BRACKETS);
+        }
+        if (is(previous, "&") || is(next, "&")) {
+            return rule(SpacingRules.AROUND_INTERSECTION_SEPARATOR);
+        }
+        if (isAny(previous, "extends", "super") || isAny(next, "extends", "super")) {
+            return true;
+        }
+        return false;
+    }
+
+    /** Splits a left-nested run of same-precedence operators into operands and operator documents. */
+    private void flattenBinary(
+        GreenNode node,
+        List<GreenNode> operands,
+        List<Doc> operators,
+        List<Boolean> commented,
+        List<Boolean> ownLine
+    ) {
+        List<GreenNode> children = node.children();
+        GreenNode left = children.getFirst();
+        List<Doc> operator = new ArrayList<>();
+        for (GreenNode child : children.subList(1, children.size() - 1)) {
+            operator.add(emit(child));
+        }
+        String text = operatorText(children);
+        if (left.kind() == SyntaxKind.BINARY_EXPRESSION && samePrecedence(operatorText(left.children()), text)) {
+            flattenBinary(left, operands, operators, commented, ownLine);
+        } else {
+            operands.add(left);
+        }
+        operators.add(Doc.concat(operator));
+        commented.add(
+            hasTrailingLineComment(children.get(children.size() - 2)) || hasLeadingComments(children.getLast())
+        );
+        ownLine.add(hasLeadingComments(children.get(1)));
+        operands.add(children.getLast());
+    }
+
+    /** Splits a chain into its base expression and the links hanging off it. */
+    private GreenNode flatten(GreenNode node, List<GreenNode> links) {
+        if (!isChainLink(node)) {
+            return node;
+        }
+        GreenNode receiver = node.children().getFirst();
+        if (is(receiver, ".") || isLeaf(receiver) && !isChainLink(receiver)) {
+            return node;
+        }
+        if (!isChainLink(receiver)) {
+            links.addFirst(node);
+            return receiver;
+        }
+        GreenNode base = flatten(receiver, links);
+        links.add(node);
+        return base;
+    }
+
+    /** Everything of a chain link from its dot onwards. */
+    private Doc emitLinkTail(GreenNode link) {
+        List<Doc> parts = new ArrayList<>();
+        List<GreenNode> children = link.children();
+        for (int i = 1; i < children.size(); i++) {
+            parts.add(emit(children.get(i)));
+        }
+        return Doc.concat(parts);
+    }
+
+    private Doc emitLinkFlat(GreenNode node) {
+        List<Doc> parts = new ArrayList<>();
+        for (GreenNode child : node.children()) {
+            parts.add(emit(child));
+        }
+        return Doc.concat(parts);
+    }
+
+    private boolean needsSpaceInCreation(GreenNode previous, GreenNode next) {
+        if (is(previous, "new")) {
+            return true;
+        }
+        if (next.kind() == SyntaxKind.CLASS_BODY) {
+            return true;
+        }
+        if (next.kind() == SyntaxKind.ARGUMENTS) {
+            return rule(SpacingRules.BEFORE_METHOD_CALL_PARENTHESIS);
+        }
+        if (next.kind() == SyntaxKind.ARRAY_INITIALIZER) {
+            return true;
+        }
+        if (next.kind() == SyntaxKind.DIMENSION && startsWithAnnotation(next)) {
+            return true;
+        }
+        return false;
+    }
+
+    private record ListElements(List<Doc> elements, List<Boolean> startsRow) { }
 
 }

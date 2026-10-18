@@ -71,6 +71,18 @@ public final class JavaParser extends StatementParser {
         return name instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
     }
 
+    @Override
+    protected GreenNode parseLocalTypeDeclaration() {
+        return branch(SyntaxKind.LOCAL_TYPE_DECLARATION, List.of(parseTypeDeclaration(parseModifierList())));
+    }
+
+    // -------------------------------------------------------------- bodies
+
+    @Override
+    protected GreenNode parseAnonymousClassBody() {
+        return parseClassBody("", false);
+    }
+
     private ParseResult parseCompilationUnit() {
         List<GreenNode> children = new ArrayList<>();
 
@@ -300,11 +312,6 @@ public final class JavaParser extends StatementParser {
         return false;
     }
 
-    @Override
-    protected GreenNode parseLocalTypeDeclaration() {
-        return branch(SyntaxKind.LOCAL_TYPE_DECLARATION, List.of(parseTypeDeclaration(parseModifierList())));
-    }
-
     private GreenNode parseTypeDeclaration(List<GreenNode> modifiers) {
         if (at("class")) {
             return parseClassLike(modifiers, SyntaxKind.CLASS_DECLARATION);
@@ -464,13 +471,6 @@ public final class JavaParser extends StatementParser {
             children.add(parseType());
         }
         return branch(kind, children);
-    }
-
-    // -------------------------------------------------------------- bodies
-
-    @Override
-    protected GreenNode parseAnonymousClassBody() {
-        return parseClassBody("", false);
     }
 
     private GreenNode parseClassBody(String enclosingName, boolean isRecord) {

@@ -117,6 +117,59 @@ abstract class StatementParser extends ExpressionParser {
         return branch(SyntaxKind.EXPRESSION_STATEMENT, children);
     }
 
+    /** Implemented by the declaration layer. */
+    protected abstract GreenNode parseLocalTypeDeclaration();
+
+    /**
+     * @param terminated whether the declaration ends with a semicolon; a for header's does not
+     */
+    protected GreenNode parseLocalVariableDeclaration(boolean terminated) {
+        List<GreenNode> children = new ArrayList<>();
+        while (at("final") || at("@")) {
+            children.add(at("@") ? parseAnnotation() : advance());
+        }
+        children.add(parseType());
+        children.add(parseVariableDeclarator(true));
+        while (at(",")) {
+            children.add(advance());
+            children.add(parseVariableDeclarator(true));
+        }
+        if (terminated) {
+            children.add(expect(";"));
+        }
+        return branch(SyntaxKind.LOCAL_VARIABLE_DECLARATION, children);
+    }
+
+    protected GreenNode parseVariableDeclarator() {
+        return parseVariableDeclarator(false);
+    }
+
+    /**
+     * @param unnamedAllowed whether {@code _} is accepted as the declarator name; locals and for
+     *     headers allow it as of Java 22, fields do not
+     */
+    protected GreenNode parseVariableDeclarator(boolean unnamedAllowed) {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(unnamedAllowed ? name() : identifier());
+        parseDeclaratorDimensions(children);
+        if (at("=")) {
+            children.add(advance());
+            children.add(at("{") ? parseArrayInitializer() : parseExpression());
+        }
+        return branch(SyntaxKind.VARIABLE_DECLARATOR, children);
+    }
+
+    @Override
+    protected GreenNode parseSwitchBlock() {
+        List<GreenNode> children = new ArrayList<>();
+        children.add(expect("{"));
+        while (!at("}") && !atEnd()) {
+            children.add(parseSwitchCase());
+        }
+        children.add(expect("}"));
+        return branch(SyntaxKind.SWITCH_BLOCK, children);
+    }
+
     /**
      * Whether a statement-starting {@code yield} is a yield statement, mirroring javac's
      * disambiguation (JLS 14.21) from an expression statement that happens to begin with the
@@ -216,9 +269,6 @@ abstract class StatementParser extends ExpressionParser {
         }
     }
 
-    /** Implemented by the declaration layer. */
-    protected abstract GreenNode parseLocalTypeDeclaration();
-
     private boolean atLocalVariableDeclaration() {
         if (at("final") || at("@")) {
             return true;
@@ -240,45 +290,6 @@ abstract class StatementParser extends ExpressionParser {
         } finally {
             reset(start);
         }
-    }
-
-    /**
-     * @param terminated whether the declaration ends with a semicolon; a for header's does not
-     */
-    protected GreenNode parseLocalVariableDeclaration(boolean terminated) {
-        List<GreenNode> children = new ArrayList<>();
-        while (at("final") || at("@")) {
-            children.add(at("@") ? parseAnnotation() : advance());
-        }
-        children.add(parseType());
-        children.add(parseVariableDeclarator(true));
-        while (at(",")) {
-            children.add(advance());
-            children.add(parseVariableDeclarator(true));
-        }
-        if (terminated) {
-            children.add(expect(";"));
-        }
-        return branch(SyntaxKind.LOCAL_VARIABLE_DECLARATION, children);
-    }
-
-    protected GreenNode parseVariableDeclarator() {
-        return parseVariableDeclarator(false);
-    }
-
-    /**
-     * @param unnamedAllowed whether {@code _} is accepted as the declarator name; locals and for
-     *     headers allow it as of Java 22, fields do not
-     */
-    protected GreenNode parseVariableDeclarator(boolean unnamedAllowed) {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(unnamedAllowed ? name() : identifier());
-        parseDeclaratorDimensions(children);
-        if (at("=")) {
-            children.add(advance());
-            children.add(at("{") ? parseArrayInitializer() : parseExpression());
-        }
-        return branch(SyntaxKind.VARIABLE_DECLARATOR, children);
     }
 
     private GreenNode parseIf() {
@@ -405,17 +416,6 @@ abstract class StatementParser extends ExpressionParser {
         children.add(expect(")"));
         children.add(parseSwitchBlock());
         return branch(SyntaxKind.SWITCH_STATEMENT, children);
-    }
-
-    @Override
-    protected GreenNode parseSwitchBlock() {
-        List<GreenNode> children = new ArrayList<>();
-        children.add(expect("{"));
-        while (!at("}") && !atEnd()) {
-            children.add(parseSwitchCase());
-        }
-        children.add(expect("}"));
-        return branch(SyntaxKind.SWITCH_BLOCK, children);
     }
 
     private GreenNode parseSwitchCase() {

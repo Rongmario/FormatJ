@@ -63,6 +63,21 @@ public final class TokenEquivalence {
             TextBlocks.value(left).equals(TextBlocks.value(right));
     }
 
+    /** Every token that carries program meaning, in order. */
+    public static List<Token> significantTokens(String source) {
+        List<Token> significant = new ArrayList<>();
+        for (Token token : JavaLexer.tokenize(source)) {
+            if (token.kind().isSignificant()) {
+                significant.add(token);
+            }
+        }
+        return List.copyOf(significant);
+    }
+
+    static List<String> programTokens(GreenNode node) {
+        return ProgramTokens.lexemes(node);
+    }
+
     private static String firstDifference(List<String> left, List<String> right) {
         int shared = Math.min(left.size(), right.size());
         for (int i = 0; i < shared; i++) {
@@ -76,27 +91,12 @@ public final class TokenEquivalence {
         return null;
     }
 
-    /** Every token that carries program meaning, in order. */
-    public static List<Token> significantTokens(String source) {
-        List<Token> significant = new ArrayList<>();
-        for (Token token : JavaLexer.tokenize(source)) {
-            if (token.kind().isSignificant()) {
-                significant.add(token);
-            }
-        }
-        return List.copyOf(significant);
-    }
-
     private static List<String> lexemes(List<Token> tokens) {
         List<String> lexemes = new ArrayList<>(tokens.size());
         for (Token token : tokens) {
             lexemes.add(token.text());
         }
         return lexemes;
-    }
-
-    static List<String> programTokens(GreenNode node) {
-        return ProgramTokens.lexemes(node);
     }
 
 }

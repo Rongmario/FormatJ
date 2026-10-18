@@ -151,14 +151,14 @@ public enum Preset {
         throw new IllegalArgumentException("Unknown preset '" + name + "'");
     }
 
-    /** Writes this preset's rules into the builder. */
-    abstract void applyTo(StyleBuilder style);
-
     /** This preset as a finished style. */
     public Style style() {
         StyleBuilder builder = Style.builder();
         applyTo(builder);
         return builder.build();
     }
+
+    /** Writes this preset's rules into the builder. */
+    abstract void applyTo(StyleBuilder style);
 
 }

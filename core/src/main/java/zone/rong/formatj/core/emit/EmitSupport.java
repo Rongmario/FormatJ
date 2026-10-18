@@ -117,6 +117,57 @@ abstract class EmitSupport {
         return Doc.concat(parts);
     }
 
+    protected static boolean hasLeadingComments(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && !token.leadingComments().isEmpty();
+    }
+
+    /**
+     * Whether the only annotation among these siblings is a marker.
+     *
+     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
+     * sit; a second annotation anywhere means the set is no longer a lone marker.
+     */
+    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
+        GreenNode only = null;
+        int count = 0;
+        for (GreenNode sibling : siblings) {
+            if (sibling.kind() == SyntaxKind.ANNOTATION) {
+                count++;
+                only = sibling;
+            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
+                for (GreenNode modifier : sibling.children()) {
+                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
+                        count++;
+                        only = modifier;
+                    }
+                }
+            }
+        }
+        if (count != 1) {
+            return false;
+        }
+        for (GreenNode part : only.children()) {
+            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected static boolean startsNewLine(GreenNode node) {
+        SyntaxToken token = firstToken(node);
+        return token != null && token.startsNewLine();
+    }
+
+    protected static Doc space() {
+        return Doc.text(" ");
+    }
+
+    protected static Doc spaceIf(boolean condition) {
+        return condition ? space() : Doc.EMPTY;
+    }
+
     /** Copies the path to the first token and removes that token's leading trivia. */
     private static GreenNode withoutLeadingTrivia(GreenNode node) {
         if (node instanceof GreenNode.Leaf leaf) {
@@ -130,11 +181,6 @@ abstract class EmitSupport {
         List<GreenNode> copy = new ArrayList<>(children);
         copy.set(0, withoutLeadingTrivia(copy.getFirst()));
         return GreenNode.branch(node.kind(), copy);
-    }
-
-    protected static boolean hasLeadingComments(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && !token.leadingComments().isEmpty();
     }
 
     /** The index of the next comment in a trivia list, or -1 when there is none. */
@@ -182,52 +228,6 @@ abstract class EmitSupport {
             }
         }
         return lastBreak < 0 ? whitespace : whitespace.substring(lastBreak + 1);
-    }
-
-    /**
-     * Whether the only annotation among these siblings is a marker.
-     *
-     * <p>Modifier lists are looked through, since that is where a declaration's annotations usually
-     * sit; a second annotation anywhere means the set is no longer a lone marker.
-     */
-    protected static boolean isLoneMarkerAnnotation(List<GreenNode> siblings) {
-        GreenNode only = null;
-        int count = 0;
-        for (GreenNode sibling : siblings) {
-            if (sibling.kind() == SyntaxKind.ANNOTATION) {
-                count++;
-                only = sibling;
-            } else if (sibling.kind() == SyntaxKind.MODIFIERS) {
-                for (GreenNode modifier : sibling.children()) {
-                    if (modifier.kind() == SyntaxKind.ANNOTATION) {
-                        count++;
-                        only = modifier;
-                    }
-                }
-            }
-        }
-        if (count != 1) {
-            return false;
-        }
-        for (GreenNode part : only.children()) {
-            if (part.kind() == SyntaxKind.ANNOTATION_ARGUMENTS) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    protected static boolean startsNewLine(GreenNode node) {
-        SyntaxToken token = firstToken(node);
-        return token != null && token.startsNewLine();
-    }
-
-    protected static Doc space() {
-        return Doc.text(" ");
-    }
-
-    protected static Doc spaceIf(boolean condition) {
-        return condition ? space() : Doc.EMPTY;
     }
 
     protected abstract Doc emit(GreenNode node);
@@ -389,10 +389,6 @@ abstract class EmitSupport {
         return Doc.concat(parts);
     }
 
-    private Doc trailingSpacing() {
-        return Doc.text(" ".repeat(Math.max(1, rule(CommentRules.TRAILING_COMMENT_MIN_SPACES))));
-    }
-
     /**
      * The comments leading a node, separated as the author had them but with no break after the last.
      *
@@ -441,91 +437,9 @@ abstract class EmitSupport {
         return new HoistedLeading(leadingTrivia(token), withoutLeadingTrivia(node));
     }
 
-    /** Comments that come before a token, each followed by whatever separated it from what follows. */
-    private Doc leadingTrivia(SyntaxToken token) {
-        List<Token> leading = token.leading();
-        List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < leading.size(); i++) {
-            Token trivia = leading.get(i);
-            if (!trivia.kind().isComment()) {
-                continue;
-            }
-            // A paragraph of // lines is one unit: refilling them one at a time could only ever make
-            // each line shorter, never move a word from the end of one onto the next.
-            int last = i;
-            List<Token> run = new ArrayList<>();
-            run.add(trivia);
-            while (newlinesAfter(leading, last) == 1) {
-                int next = nextComment(leading, last);
-                if (next < 0 || !comments.joinsLineComments(trivia, leading.get(next))) {
-                    break;
-                }
-                run.add(leading.get(next));
-                last = next;
-            }
-            int newlines = newlinesAfter(leading, last);
-            if (newlines == 0 && leading.get(last).kind() != TokenKind.LINE_COMMENT) {
-                // A block comment the author kept inline stays inline, spaced from the code as it was.
-                // Only a closing token has no space of its own in front for the comment to use.
-                boolean spacedBefore = i > 0 && !leading.get(i - 1).hasLineTerminator();
-                parts.add(spaceIf(spacedBefore && CLOSERS.contains(token.token().text())));
-                parts.add(comments.ownLine(run));
-                parts.add(spaceIf(last + 1 < leading.size()));
-            } else {
-                // A comment the author put on a line of its own starts one, even where the layout has
-                // no break of its own in front of the code it leads.
-                if (i > 0 && leading.get(i - 1).hasLineTerminator()) {
-                    parts.add(Doc.freshLine());
-                }
-                parts.add(placedOwnLine(run, leading, i));
-                int cap = Math.min(
-                    rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
-                    rule(BlankLineRules.MAX_CONSECUTIVE)
-                );
-                parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
-            }
-            i = last;
-        }
-        return Doc.concat(parts);
-    }
-
     /** A comment, re-indented but never re-worded. */
     protected Doc commentDoc(Token comment) {
         return comments.verbatim(comment);
-    }
-
-    /**
-     * An own-line comment run, honouring {@code comments.keep-first-column-comments} and
-     * {@code comments.indent-with-code}.
-     *
-     * <p>Default is to take the indent of the code that follows, which is what the printer already
-     * does. The two rules only wrap the document when they need a different column: first-column
-     * comments pinned to the left margin, or comments that keep the indent the author wrote.
-     */
-    private Doc placedOwnLine(List<Token> run, List<Token> leading, int firstIndex) {
-        return placed(comments.ownLine(run), run.getFirst(), leading, firstIndex);
-    }
-
-    private Doc placed(Doc body, Token comment, List<Token> leading, int index) {
-        if (comment.isSynthetic()) {
-            return body;
-        }
-        if (rule(CommentRules.KEEP_FIRST_COLUMN_COMMENTS) && comment.column() == 1) {
-            return Doc.lineIndent(0, body);
-        }
-        if (!rule(CommentRules.INDENT_WITH_CODE)) {
-            return Doc.lineIndent(visualIndent(rawIndent(leading, index)), body);
-        }
-        return body;
-    }
-
-    private int visualIndent(String indent) {
-        int columns = 0;
-        int tabWidth = rule(FileRules.TAB_WIDTH);
-        for (int i = 0; i < indent.length(); i++) {
-            columns = indent.charAt(i) == '\t' ? (columns / tabWidth + 1) * tabWidth : columns + 1;
-        }
-        return columns;
     }
 
     /** Token text; multi-line tokens such as text blocks are emitted exactly as written. */
@@ -542,46 +456,6 @@ abstract class EmitSupport {
         }
         // A text block carries its own line structure, so it must break every group around it.
         return Doc.concat(Doc.breakParent(), Doc.text(text));
-    }
-
-    /**
-     * A text block re-indented by the layout engine.
-     *
-     * <p>Safe to do here, and only here, because the amount of indentation a text block carries is
-     * incidental: the language strips whatever every line of it shares. Shifting all of them by the
-     * same amount therefore denotes the same string, which is why re-indenting is layout and the
-     * other two {@code text-blocks.*} rules — which do change the string — are rewrites.
-     *
-     * <p>The two policies differ only in what "the same amount" is measured from.
-     * {@code reindent-to-block} lets the ordinary indentation of the enclosing block carry the block,
-     * so it moves with the code it belongs to. {@code minimal} pins it to the column the opening
-     * delimiter landed in, which is the least indentation the content can be given without the
-     * incidental whitespace becoming somebody's problem.
-     */
-    private Doc textBlock(String text) {
-        List<String> lines = TextBlocks.strippedLines(text);
-        List<Doc> parts = new ArrayList<>();
-        parts.add(Doc.breakParent());
-        parts.add(Doc.text("\"\"\"" + TextBlocks.openingTail(text)));
-        for (int i = 0; i < lines.size(); i++) {
-            parts.add(Doc.hardLine());
-            String line = lines.get(i);
-            parts.add(Doc.text(i == lines.size() - 1 ? line + "\"\"\"" : line));
-        }
-        Doc block = Doc.concat(parts);
-        return rule(TextBlockRules.INDENT_POLICY) == TextBlockIndentPolicy.MINIMAL ? Doc.align(block) : block;
-    }
-
-    /** Drops the trailing spaces of a comment or verbatim line, unless the file rule keeps them. */
-    private String stripTrailing(String text) {
-        if (!rule(FileRules.TRIM_TRAILING_WHITESPACE)) {
-            return text;
-        }
-        int end = text.length();
-        while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t')) {
-            end--;
-        }
-        return text.substring(0, end);
     }
 
     // ------------------------------------------------------- formatter off
@@ -603,24 +477,6 @@ abstract class EmitSupport {
     /** Whether a node's leading comments turn formatting back on. */
     protected boolean turnsFormattingOn(GreenNode node) {
         return markerIndex(node, rule(CommentRules.ON_MARKER)) >= 0;
-    }
-
-    private int markerIndex(GreenNode node, String marker) {
-        if (!rule(CommentRules.HONOUR_FORMATTER_OFF) || marker.isBlank()) {
-            return -1;
-        }
-        SyntaxToken token = firstToken(node);
-        if (token == null) {
-            return -1;
-        }
-        List<Token> leading = token.leading();
-        for (int i = 0; i < leading.size(); i++) {
-            Token trivia = leading.get(i);
-            if (trivia.kind().isComment() && trivia.decodedText().contains(marker)) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     /**
@@ -705,6 +561,158 @@ abstract class EmitSupport {
         };
     }
 
+    protected Doc joinAll(List<GreenNode> nodes, Doc separator) {
+        List<Doc> parts = new ArrayList<>(nodes.size());
+        for (GreenNode node : nodes) {
+            parts.add(emit(node));
+        }
+        return Doc.join(separator, parts);
+    }
+
+    private Doc trailingSpacing() {
+        return Doc.text(" ".repeat(Math.max(1, rule(CommentRules.TRAILING_COMMENT_MIN_SPACES))));
+    }
+
+    /** Comments that come before a token, each followed by whatever separated it from what follows. */
+    private Doc leadingTrivia(SyntaxToken token) {
+        List<Token> leading = token.leading();
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < leading.size(); i++) {
+            Token trivia = leading.get(i);
+            if (!trivia.kind().isComment()) {
+                continue;
+            }
+            // A paragraph of // lines is one unit: refilling them one at a time could only ever make
+            // each line shorter, never move a word from the end of one onto the next.
+            int last = i;
+            List<Token> run = new ArrayList<>();
+            run.add(trivia);
+            while (newlinesAfter(leading, last) == 1) {
+                int next = nextComment(leading, last);
+                if (next < 0 || !comments.joinsLineComments(trivia, leading.get(next))) {
+                    break;
+                }
+                run.add(leading.get(next));
+                last = next;
+            }
+            int newlines = newlinesAfter(leading, last);
+            if (newlines == 0 && leading.get(last).kind() != TokenKind.LINE_COMMENT) {
+                // A block comment the author kept inline stays inline, spaced from the code as it was.
+                // Only a closing token has no space of its own in front for the comment to use.
+                boolean spacedBefore = i > 0 && !leading.get(i - 1).hasLineTerminator();
+                parts.add(spaceIf(spacedBefore && CLOSERS.contains(token.token().text())));
+                parts.add(comments.ownLine(run));
+                parts.add(spaceIf(last + 1 < leading.size()));
+            } else {
+                // A comment the author put on a line of its own starts one, even where the layout has
+                // no break of its own in front of the code it leads.
+                if (i > 0 && leading.get(i - 1).hasLineTerminator()) {
+                    parts.add(Doc.freshLine());
+                }
+                parts.add(placedOwnLine(run, leading, i));
+                int cap = Math.min(
+                    rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
+                    rule(BlankLineRules.MAX_CONSECUTIVE)
+                );
+                parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
+            }
+            i = last;
+        }
+        return Doc.concat(parts);
+    }
+
+    /**
+     * An own-line comment run, honouring {@code comments.keep-first-column-comments} and
+     * {@code comments.indent-with-code}.
+     *
+     * <p>Default is to take the indent of the code that follows, which is what the printer already
+     * does. The two rules only wrap the document when they need a different column: first-column
+     * comments pinned to the left margin, or comments that keep the indent the author wrote.
+     */
+    private Doc placedOwnLine(List<Token> run, List<Token> leading, int firstIndex) {
+        return placed(comments.ownLine(run), run.getFirst(), leading, firstIndex);
+    }
+
+    private Doc placed(Doc body, Token comment, List<Token> leading, int index) {
+        if (comment.isSynthetic()) {
+            return body;
+        }
+        if (rule(CommentRules.KEEP_FIRST_COLUMN_COMMENTS) && comment.column() == 1) {
+            return Doc.lineIndent(0, body);
+        }
+        if (!rule(CommentRules.INDENT_WITH_CODE)) {
+            return Doc.lineIndent(visualIndent(rawIndent(leading, index)), body);
+        }
+        return body;
+    }
+
+    private int visualIndent(String indent) {
+        int columns = 0;
+        int tabWidth = rule(FileRules.TAB_WIDTH);
+        for (int i = 0; i < indent.length(); i++) {
+            columns = indent.charAt(i) == '\t' ? (columns / tabWidth + 1) * tabWidth : columns + 1;
+        }
+        return columns;
+    }
+
+    /**
+     * A text block re-indented by the layout engine.
+     *
+     * <p>Safe to do here, and only here, because the amount of indentation a text block carries is
+     * incidental: the language strips whatever every line of it shares. Shifting all of them by the
+     * same amount therefore denotes the same string, which is why re-indenting is layout and the
+     * other two {@code text-blocks.*} rules — which do change the string — are rewrites.
+     *
+     * <p>The two policies differ only in what "the same amount" is measured from.
+     * {@code reindent-to-block} lets the ordinary indentation of the enclosing block carry the block,
+     * so it moves with the code it belongs to. {@code minimal} pins it to the column the opening
+     * delimiter landed in, which is the least indentation the content can be given without the
+     * incidental whitespace becoming somebody's problem.
+     */
+    private Doc textBlock(String text) {
+        List<String> lines = TextBlocks.strippedLines(text);
+        List<Doc> parts = new ArrayList<>();
+        parts.add(Doc.breakParent());
+        parts.add(Doc.text("\"\"\"" + TextBlocks.openingTail(text)));
+        for (int i = 0; i < lines.size(); i++) {
+            parts.add(Doc.hardLine());
+            String line = lines.get(i);
+            parts.add(Doc.text(i == lines.size() - 1 ? line + "\"\"\"" : line));
+        }
+        Doc block = Doc.concat(parts);
+        return rule(TextBlockRules.INDENT_POLICY) == TextBlockIndentPolicy.MINIMAL ? Doc.align(block) : block;
+    }
+
+    /** Drops the trailing spaces of a comment or verbatim line, unless the file rule keeps them. */
+    private String stripTrailing(String text) {
+        if (!rule(FileRules.TRIM_TRAILING_WHITESPACE)) {
+            return text;
+        }
+        int end = text.length();
+        while (end > 0 && (text.charAt(end - 1) == ' ' || text.charAt(end - 1) == '\t')) {
+            end--;
+        }
+        return text.substring(0, end);
+    }
+
+    private int markerIndex(GreenNode node, String marker) {
+        if (!rule(CommentRules.HONOUR_FORMATTER_OFF) || marker.isBlank()) {
+            return -1;
+        }
+        SyntaxToken token = firstToken(node);
+        if (token == null) {
+            return -1;
+        }
+        List<Token> leading = token.leading();
+        for (int i = 0; i < leading.size(); i++) {
+            Token trivia = leading.get(i);
+            if (trivia.kind().isComment() && trivia.decodedText().contains(marker)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     /**
      * Same line while the annotated declaration fits the line, otherwise the annotation takes its own.
      * {@code same-line} and {@code same-line-when-short} therefore meet here: neither can hold a line
@@ -712,14 +720,6 @@ abstract class EmitSupport {
      */
     private Doc sameLineWhenFits() {
         return Doc.group(Doc.line());
-    }
-
-    protected Doc joinAll(List<GreenNode> nodes, Doc separator) {
-        List<Doc> parts = new ArrayList<>(nodes.size());
-        for (GreenNode node : nodes) {
-            parts.add(emit(node));
-        }
-        return Doc.join(separator, parts);
     }
 
     /** A node paired with the leading trivia lifted out of its first token. */

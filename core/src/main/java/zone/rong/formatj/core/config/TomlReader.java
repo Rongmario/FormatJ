@@ -97,6 +97,44 @@ public final class TomlReader {
         return values;
     }
 
+    /** Splits {@code body} on a top-level {@code separator}, skipping one nested inside brackets or a string. */
+    static List<String> splitTopLevel(String body, char separator) {
+        boolean[] quoted = quotedPositions(body);
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        int depth = 0;
+        for (int i = 0; i < body.length(); i++) {
+            if (quoted[i]) {
+                continue;
+            }
+            char c = body.charAt(i);
+            if (c == '[') {
+                depth++;
+            } else if (c == ']') {
+                depth--;
+            } else if (c == separator && depth == 0) {
+                parts.add(body.substring(start, i));
+                start = i + 1;
+            }
+        }
+        parts.add(body.substring(start));
+        return parts;
+    }
+
+    /**
+     * Removes a scalar's surrounding quotes. A basic string's escapes are decoded; a literal
+     * string's content is kept exactly as written, since TOML gives it no escapes at all.
+     */
+    static String unquote(String value, int lineNumber) {
+        if (value.length() >= 2 && value.startsWith("'") && value.endsWith("'")) {
+            return value.substring(1, value.length() - 1);
+        }
+        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+            return decodeBasicString(value.substring(1, value.length() - 1), lineNumber);
+        }
+        return value;
+    }
+
     /** Assigns each {@code key = value} pair of an inline table body under {@code prefix}. */
     private static void putInlineTable(Map<String, String> values, String prefix, String body, int lineNumber) {
         for (String pair : splitTopLevel(body, ',')) {
@@ -156,30 +194,6 @@ public final class TomlReader {
         return -1;
     }
 
-    /** Splits {@code body} on a top-level {@code separator}, skipping one nested inside brackets or a string. */
-    static List<String> splitTopLevel(String body, char separator) {
-        boolean[] quoted = quotedPositions(body);
-        List<String> parts = new ArrayList<>();
-        int start = 0;
-        int depth = 0;
-        for (int i = 0; i < body.length(); i++) {
-            if (quoted[i]) {
-                continue;
-            }
-            char c = body.charAt(i);
-            if (c == '[') {
-                depth++;
-            } else if (c == ']') {
-                depth--;
-            } else if (c == separator && depth == 0) {
-                parts.add(body.substring(start, i));
-                start = i + 1;
-            }
-        }
-        parts.add(body.substring(start));
-        return parts;
-    }
-
     /**
      * Marks which characters of {@code line} fall inside a basic ({@code "..."}) or literal
      * ({@code '...'}) string, so callers can skip a '#', bracket or '=' that appears inside quoted
@@ -213,20 +227,6 @@ public final class TomlReader {
             }
         }
         return quoted;
-    }
-
-    /**
-     * Removes a scalar's surrounding quotes. A basic string's escapes are decoded; a literal
-     * string's content is kept exactly as written, since TOML gives it no escapes at all.
-     */
-    static String unquote(String value, int lineNumber) {
-        if (value.length() >= 2 && value.startsWith("'") && value.endsWith("'")) {
-            return value.substring(1, value.length() - 1);
-        }
-        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
-            return decodeBasicString(value.substring(1, value.length() - 1), lineNumber);
-        }
-        return value;
     }
 
     /** Decodes TOML basic-string escapes: quote, backslash, the control-char shorthands, and unicode escapes. */

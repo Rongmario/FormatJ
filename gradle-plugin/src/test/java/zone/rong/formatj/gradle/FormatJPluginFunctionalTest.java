@@ -51,19 +51,6 @@ class FormatJPluginFunctionalTest {
         );
     }
 
-    private BuildResult run(String... arguments) {
-        return runner(arguments).build();
-    }
-
-    private GradleRunner runner(String... arguments) {
-        GradleRunner runner = GradleRunner.create()
-            .withProjectDir(projectDirectory.toFile())
-            .withPluginClasspath()
-            .withArguments(arguments);
-        String version = System.getProperty("formatj.gradle.version");
-        return version == null || version.isBlank() ? runner : runner.withGradleVersion(version);
-    }
-
     @Test
     void checkTaskRunsAndIsUpToDateOnASecondInvocation() {
         BuildResult first = run("formatJavaCheck");
@@ -333,6 +320,19 @@ class FormatJPluginFunctionalTest {
 
         assertEquals(TaskOutcome.SUCCESS, run("formatJavaApply").task(":formatJavaApply").getOutcome());
         assertTrue(Files.readString(source).contains("public static class Nested"), Files.readString(source));
+    }
+
+    private BuildResult run(String... arguments) {
+        return runner(arguments).build();
+    }
+
+    private GradleRunner runner(String... arguments) {
+        GradleRunner runner = GradleRunner.create()
+            .withProjectDir(projectDirectory.toFile())
+            .withPluginClasspath()
+            .withArguments(arguments);
+        String version = System.getProperty("formatj.gradle.version");
+        return version == null || version.isBlank() ? runner : runner.withGradleVersion(version);
     }
 
 }

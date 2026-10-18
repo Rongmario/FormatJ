@@ -280,7 +280,8 @@ class CommentProseRulesTest {
                 "    /// [guide]: https://example.com/guide\n" + "    ///\n" +
                 "    /// @return a result description with enough words to wrap onto another line\n" +
                 "    /// @param a short parameter description\n" +
-                "    /// @param longer another parameter description\n" + "    int f(int a, int longer) { return a; }\n"
+                "    /// @param longer another parameter description\n" +
+                "    int f(int a, int longer) { return a; }\n"
         );
 
         assertTrue(formatted.contains("/// This ordinary paragraph contains enough\n"), formatted);

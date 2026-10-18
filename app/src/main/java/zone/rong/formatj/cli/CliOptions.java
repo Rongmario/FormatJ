@@ -159,6 +159,54 @@ public record CliOptions(
         );
     }
 
+    /** The usage text printed by {@code --help}. */
+    public static String usage() {
+        return """
+                formatj - a configurable Java formatter
+
+                USAGE
+                  formatj [options] <path>...
+                  formatj --stdin [--stdin-name Foo.java] [options]
+                  formatj --lines START:END [options] <file>
+
+                MODES
+                  -c, --check           report files that would change, exit 1 if any would (default)
+                  -w, --write           rewrite files in place
+                  -d, --diff            print a unified diff of what would change
+                      --dump-config     print every rule with its effective value as TOML
+                  -h, --help            print this help
+                      --version         print the version
+
+                STYLE
+                  -s, --style FILE      read rules from a TOML style file
+                  -p, --preset NAME     start from a preset: formatj (default) or google
+                      --set KEY=VALUE   override one rule, repeatable
+                      --language-level N  syntax level to parse, e.g. 21 (default: latest)
+                      --preview         accept preview syntax for that level
+                      --no-verify       skip the safety checks; for debugging the formatter only
+
+                FILES
+                      --include GLOB    only format paths matching this glob, repeatable
+                      --exclude GLOB    skip paths matching this glob, repeatable
+                      --stdin           read source from standard input, write to standard output
+                      --lines START:END format only these lines (1-based, inclusive), repeatable;
+                                        needs --stdin or exactly one file
+                      --stdin-name NAME name used for diagnostics when reading standard input
+
+                OTHER
+                  -j, --jobs N          files to format in parallel (default: available processors)
+                  -v, --verbose         report every file and every diagnostic
+
+                EXIT CODES
+                  0  success: nothing to do, or the requested rewrite succeeded
+                  1  files would be reformatted (--check and --diff only)
+                  2  an error occurred
+
+                Style resolution: --set overrides --preset and --style, which override the nearest
+                formatj.toml found by walking up from each file, which overrides the built-in defaults.
+                """;
+    }
+
     private static CliOptions helpOptions(Mode mode) {
         return new CliOptions(
             mode,
@@ -207,54 +255,6 @@ public record CliOptions(
         } catch (NumberFormatException e) {
             throw new CliException(option + " expects a number, got '" + raw + "'");
         }
-    }
-
-    /** The usage text printed by {@code --help}. */
-    public static String usage() {
-        return """
-                formatj - a configurable Java formatter
-
-                USAGE
-                  formatj [options] <path>...
-                  formatj --stdin [--stdin-name Foo.java] [options]
-                  formatj --lines START:END [options] <file>
-
-                MODES
-                  -c, --check           report files that would change, exit 1 if any would (default)
-                  -w, --write           rewrite files in place
-                  -d, --diff            print a unified diff of what would change
-                      --dump-config     print every rule with its effective value as TOML
-                  -h, --help            print this help
-                      --version         print the version
-
-                STYLE
-                  -s, --style FILE      read rules from a TOML style file
-                  -p, --preset NAME     start from a preset: formatj (default) or google
-                      --set KEY=VALUE   override one rule, repeatable
-                      --language-level N  syntax level to parse, e.g. 21 (default: latest)
-                      --preview         accept preview syntax for that level
-                      --no-verify       skip the safety checks; for debugging the formatter only
-
-                FILES
-                      --include GLOB    only format paths matching this glob, repeatable
-                      --exclude GLOB    skip paths matching this glob, repeatable
-                      --stdin           read source from standard input, write to standard output
-                      --lines START:END format only these lines (1-based, inclusive), repeatable;
-                                        needs --stdin or exactly one file
-                      --stdin-name NAME name used for diagnostics when reading standard input
-
-                OTHER
-                  -j, --jobs N          files to format in parallel (default: available processors)
-                  -v, --verbose         report every file and every diagnostic
-
-                EXIT CODES
-                  0  success: nothing to do, or the requested rewrite succeeded
-                  1  files would be reformatted (--check and --diff only)
-                  2  an error occurred
-
-                Style resolution: --set overrides --preset and --style, which override the nearest
-                formatj.toml found by walking up from each file, which overrides the built-in defaults.
-                """;
     }
 
     /** What the CLI was asked to do. */

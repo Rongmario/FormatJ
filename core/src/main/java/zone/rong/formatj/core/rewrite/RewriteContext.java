@@ -77,10 +77,6 @@ public final class RewriteContext {
         warnings.add(Diagnostic.warning(message, line, column));
     }
 
-    List<Diagnostic> warnings() {
-        return List.copyOf(warnings);
-    }
-
     /**
      * The position of a node's first program token in the original token stream.
      *
@@ -114,6 +110,10 @@ public final class RewriteContext {
             }
         }
         return -1;
+    }
+
+    List<Diagnostic> warnings() {
+        return List.copyOf(warnings);
     }
 
 }

@@ -358,10 +358,6 @@ public final class CommentFormatter {
         return false;
     }
 
-    private <T> T rule(Option<T> option) {
-        return style.get(option);
-    }
-
     // ------------------------------------------------------------ entry points
 
     /**
@@ -415,6 +411,42 @@ public final class CommentFormatter {
             return false;
         }
         return markdown || rule(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH;
+    }
+
+    // ------------------------------------------------------------- verbatim
+
+    /** A comment re-indented but never re-worded, which is what every rule here defaults to. */
+    public Doc verbatim(Token comment) {
+        if (comment.kind() == TokenKind.LINE_COMMENT) {
+            return Prose.isMarkdownComment(comment)
+                ? Doc.textPreservingTrailingWhitespace(comment.text())
+                : Doc.text(stripTrailing(comment.text()));
+        }
+        String[] lines = comment.text().split("\r\n|\r|\n", -1);
+        if (lines.length == 1) {
+            return Doc.text(stripTrailing(comment.text()));
+        }
+        boolean alignStars = rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT);
+        List<Doc> parts = new ArrayList<>();
+        parts.add(Doc.text(stripTrailing(lines[0])));
+        for (int i = 1; i < lines.length; i++) {
+            String line = stripTrailing(lines[i]);
+            String trimmed = line.strip();
+            parts.add(Doc.hardLine());
+            if (alignStars && trimmed.startsWith("*")) {
+                parts.add(Doc.text(" " + trimmed));
+            } else if (trimmed.isEmpty() || trimmed.startsWith("*")) {
+                parts.add(Doc.text(trimmed));
+            } else {
+                // Without a star, the indentation is the content: a code sample in a Javadoc keeps it.
+                parts.add(Doc.lineIndent(0, Doc.text(line)));
+            }
+        }
+        return Doc.concat(parts);
+    }
+
+    private <T> T rule(Option<T> option) {
+        return style.get(option);
     }
 
     // ------------------------------------------------------------ line comments
@@ -863,38 +895,6 @@ public final class CommentFormatter {
         String off = rule(CommentRules.OFF_MARKER);
         String on = rule(CommentRules.ON_MARKER);
         return !off.isBlank() && text.contains(off) || !on.isBlank() && text.contains(on);
-    }
-
-    // ------------------------------------------------------------- verbatim
-
-    /** A comment re-indented but never re-worded, which is what every rule here defaults to. */
-    public Doc verbatim(Token comment) {
-        if (comment.kind() == TokenKind.LINE_COMMENT) {
-            return Prose.isMarkdownComment(comment)
-                ? Doc.textPreservingTrailingWhitespace(comment.text())
-                : Doc.text(stripTrailing(comment.text()));
-        }
-        String[] lines = comment.text().split("\r\n|\r|\n", -1);
-        if (lines.length == 1) {
-            return Doc.text(stripTrailing(comment.text()));
-        }
-        boolean alignStars = rule(CommentRules.BLOCK_COMMENT_STAR_ALIGNMENT);
-        List<Doc> parts = new ArrayList<>();
-        parts.add(Doc.text(stripTrailing(lines[0])));
-        for (int i = 1; i < lines.length; i++) {
-            String line = stripTrailing(lines[i]);
-            String trimmed = line.strip();
-            parts.add(Doc.hardLine());
-            if (alignStars && trimmed.startsWith("*")) {
-                parts.add(Doc.text(" " + trimmed));
-            } else if (trimmed.isEmpty() || trimmed.startsWith("*")) {
-                parts.add(Doc.text(trimmed));
-            } else {
-                // Without a star, the indentation is the content: a code sample in a Javadoc keeps it.
-                parts.add(Doc.lineIndent(0, Doc.text(line)));
-            }
-        }
-        return Doc.concat(parts);
     }
 
     private String stripTrailing(String text) {

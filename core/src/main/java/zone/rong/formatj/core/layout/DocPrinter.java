@@ -86,14 +86,6 @@ public final class DocPrinter {
         return last == ' ' || last == '\t';
     }
 
-    /** Indentation text for a column count, honouring the tab settings. */
-    private String indentation(int columns) {
-        if (!useTabs) {
-            return " ".repeat(columns);
-        }
-        return "\t".repeat(columns / tabWidth) + " ".repeat(columns % tabWidth);
-    }
-
     /** The printed text, for callers with no alignment to apply. */
     public String print(Doc document) {
         return printMarked(document).text();
@@ -238,6 +230,14 @@ public final class DocPrinter {
         return new Printed(out.toString(), List.copyOf(marks));
     }
 
+    /** Indentation text for a column count, honouring the tab settings. */
+    private String indentation(int columns) {
+        if (!useTabs) {
+            return " ".repeat(columns);
+        }
+        return "\t".repeat(columns / tabWidth) + " ".repeat(columns % tabWidth);
+    }
+
     /**
      * Fills as many parts onto the current line as fit.
      *
@@ -267,8 +267,7 @@ public final class DocPrinter {
         // it. A delimiter that may take its own line does not excuse it either — the list has to fit
         // the way it would with the delimiter attached — so the measurement goes on past soft lines.
         boolean lastPart = parts.size() <= 2;
-        boolean contentFits =
-            !multiline && fits(content, Mode.FLAT, remaining, afterContent, true, lastPart);
+        boolean contentFits = !multiline && fits(content, Mode.FLAT, remaining, afterContent, true, lastPart);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -285,8 +284,7 @@ public final class DocPrinter {
         // The next part joins this line only if all of it fits. One that spans lines starts its own,
         // as it would have before it was first broken. A pair that reaches the closing delimiter with
         // no remaining element to break before it is measured the way the last part is.
-        boolean pairFits =
-            !multiline && fits(pair, Mode.FLAT, remaining, afterPair, false, parts.size() <= 3);
+        boolean pairFits = !multiline && fits(pair, Mode.FLAT, remaining, afterPair, false, parts.size() <= 3);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
@@ -374,7 +372,8 @@ public final class DocPrinter {
                 case Doc.Group group ->
                     queue.push(new Command(
                         0,
-                        group.kind() == Doc.GroupKind.ALWAYS ? Mode.BREAK
+                        group.kind() == Doc.GroupKind.ALWAYS
+                            ? Mode.BREAK
                             : group.kind() == Doc.GroupKind.FORCED_FLAT ? Mode.FLAT : mode,
                         group.content()
                     ));

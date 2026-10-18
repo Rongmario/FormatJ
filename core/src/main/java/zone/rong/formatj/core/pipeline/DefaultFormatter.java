@@ -223,6 +223,56 @@ public final class DefaultFormatter implements Formatter {
     }
 
     /**
+     * Lays out a parsed file and normalises how it ends.
+     *
+     * <p>Column alignment happens after the text has been printed, not while it is being printed:
+     * where a run of lines should share a column is not known until every line in it has been laid
+     * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
+     * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
+     *
+     * @param allowed whether rules that add or remove code ran, and so could run again
+     */
+    String layout(SyntaxNode root, String source, boolean allowed) {
+        String separator = lineSeparator(source);
+        String text = print(root, separator);
+        int maxWidth = style.get(WrappingRules.MAX_LINE_LENGTH);
+        CommentFormatter comments = new CommentFormatter(style);
+        // ponytail: a file holding the off marker keeps its long trailing comments, and tab indentation
+        // is measured in characters. Track the off regions and visual columns if either matters.
+        String off = style.get(CommentRules.OFF_MARKER);
+        boolean suspended = style.get(CommentRules.HONOUR_FORMATTER_OFF) && !off.isBlank() && text.contains(off);
+        boolean hoists = style.get(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH && !suspended;
+        while (hoists && hasOverlongTrailingComment(text, maxWidth)) {
+            GreenNode printed = JavaParser.parse(text, languageLevel, previewFeatures).root().green();
+            List<Token> moved = new ArrayList<>();
+            GreenNode hoisted = TrailingCommentHoist.apply(
+                printed,
+                maxWidth,
+                comment -> comments.reflows(comment) && moved.add(comment)
+            );
+            if (allowed && unsettles(hoisted)) {
+                // A comment on a token keeps a rewrite from deleting that token. Moving such a comment
+                // would let the rewrite run on the next pass, so it stays where it is.
+                moved.removeIf(comment -> unsettles(TrailingCommentHoist.apply(
+                    printed,
+                    maxWidth,
+                    other -> other == comment
+                )));
+                hoisted = TrailingCommentHoist.apply(printed, maxWidth, moved::contains);
+                if (unsettles(hoisted)) {
+                    break;
+                }
+            }
+            if (hoisted == printed) {
+                break;
+            }
+            text = print(SyntaxNode.root(hoisted), separator);
+        }
+        String trimmed = stripTrailingBlankLines(text);
+        return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
+    }
+
+    /**
      * One run of rewrite, emit, lay out and verify.
      *
      * @param allowed whether rules that add or remove code may run
@@ -284,56 +334,6 @@ public final class DefaultFormatter implements Formatter {
         }
 
         return Attempt.success(formatted, rewrote, rewritten.warnings());
-    }
-
-    /**
-     * Lays out a parsed file and normalises how it ends.
-     *
-     * <p>Column alignment happens after the text has been printed, not while it is being printed:
-     * where a run of lines should share a column is not known until every line in it has been laid
-     * out. Because it only ever inserts padding into finished text, it cannot change which breaks were
-     * taken, and formatting stays a fixed point — see {@link ColumnAligner}.
-     *
-     * @param allowed whether rules that add or remove code ran, and so could run again
-     */
-    String layout(SyntaxNode root, String source, boolean allowed) {
-        String separator = lineSeparator(source);
-        String text = print(root, separator);
-        int maxWidth = style.get(WrappingRules.MAX_LINE_LENGTH);
-        CommentFormatter comments = new CommentFormatter(style);
-        // ponytail: a file holding the off marker keeps its long trailing comments, and tab indentation
-        // is measured in characters. Track the off regions and visual columns if either matters.
-        String off = style.get(CommentRules.OFF_MARKER);
-        boolean suspended = style.get(CommentRules.HONOUR_FORMATTER_OFF) && !off.isBlank() && text.contains(off);
-        boolean hoists = style.get(CommentRules.REFLOW) == CommentReflow.REFLOW_TO_LINE_LENGTH && !suspended;
-        while (hoists && hasOverlongTrailingComment(text, maxWidth)) {
-            GreenNode printed = JavaParser.parse(text, languageLevel, previewFeatures).root().green();
-            List<Token> moved = new ArrayList<>();
-            GreenNode hoisted = TrailingCommentHoist.apply(
-                printed,
-                maxWidth,
-                comment -> comments.reflows(comment) && moved.add(comment)
-            );
-            if (allowed && unsettles(hoisted)) {
-                // A comment on a token keeps a rewrite from deleting that token. Moving such a comment
-                // would let the rewrite run on the next pass, so it stays where it is.
-                moved.removeIf(comment -> unsettles(TrailingCommentHoist.apply(
-                    printed,
-                    maxWidth,
-                    other -> other == comment
-                )));
-                hoisted = TrailingCommentHoist.apply(printed, maxWidth, moved::contains);
-                if (unsettles(hoisted)) {
-                    break;
-                }
-            }
-            if (hoisted == printed) {
-                break;
-            }
-            text = print(SyntaxNode.root(hoisted), separator);
-        }
-        String trimmed = stripTrailingBlankLines(text);
-        return style.get(FileRules.FINAL_NEWLINE) ? trimmed + separator : trimmed;
     }
 
     private boolean unsettles(GreenNode tree) {

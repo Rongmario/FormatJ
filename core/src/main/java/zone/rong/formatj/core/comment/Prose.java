@@ -63,14 +63,6 @@ public final class Prose {
         return String.join("\n", contentLines(comment));
     }
 
-    private static String stripLeadingSlashes(String text) {
-        int index = 0;
-        while (index < text.length() && text.charAt(index) == '/') {
-            index++;
-        }
-        return text.substring(index);
-    }
-
     /** The content lines of a {@code /*} or {@code /**} comment. */
     public static List<String> blockContentLines(String text) {
         String inner = text;
@@ -94,23 +86,6 @@ public final class Prose {
             content.add(stripStar(lines[i]));
         }
         return List.copyOf(content);
-    }
-
-    /** One continuation line of a block comment, without its leading whitespace and star. */
-    private static String stripStar(String line) {
-        String stripped = line.stripLeading();
-        if (!stripped.startsWith("*")) {
-            return stripped.isEmpty() ? "" : line.strip();
-        }
-        int index = 0;
-        while (index < stripped.length() && stripped.charAt(index) == '*') {
-            index++;
-        }
-        // Exactly one space, so that indentation inside a <pre> block is preserved relative to it.
-        if (index < stripped.length() && stripped.charAt(index) == ' ') {
-            index++;
-        }
-        return stripped.substring(index);
     }
 
     // --------------------------------------------------------------- atoms
@@ -193,6 +168,31 @@ public final class Prose {
             }
         }
         return false;
+    }
+
+    private static String stripLeadingSlashes(String text) {
+        int index = 0;
+        while (index < text.length() && text.charAt(index) == '/') {
+            index++;
+        }
+        return text.substring(index);
+    }
+
+    /** One continuation line of a block comment, without its leading whitespace and star. */
+    private static String stripStar(String line) {
+        String stripped = line.stripLeading();
+        if (!stripped.startsWith("*")) {
+            return stripped.isEmpty() ? "" : line.strip();
+        }
+        int index = 0;
+        while (index < stripped.length() && stripped.charAt(index) == '*') {
+            index++;
+        }
+        // Exactly one space, so that indentation inside a <pre> block is preserved relative to it.
+        if (index < stripped.length() && stripped.charAt(index) == ' ') {
+            index++;
+        }
+        return stripped.substring(index);
     }
 
     private static void flush(StringBuilder word, List<Atom> atoms) {

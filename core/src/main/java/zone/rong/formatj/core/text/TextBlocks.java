@@ -164,11 +164,6 @@ public final class TextBlocks {
         return changed ? rebuild(lexeme, escaped) : lexeme;
     }
 
-    /** Puts a set of content lines back into a text block, keeping the delimiters as they were. */
-    private static String rebuild(String lexeme, List<String> lines) {
-        return "\"\"\"" + openingTail(lexeme) + "\n" + String.join("\n", lines) + "\"\"\"";
-    }
-
     // --------------------------------------------------------------- escapes
 
     /** Interprets the escape sequences of a text block, line continuations included. */
@@ -204,6 +199,11 @@ public final class TextBlocks {
             }
         }
         return out.toString();
+    }
+
+    /** Puts a set of content lines back into a text block, keeping the delimiters as they were. */
+    private static String rebuild(String lexeme, List<String> lines) {
+        return "\"\"\"" + openingTail(lexeme) + "\n" + String.join("\n", lines) + "\"\"\"";
     }
 
     private static int octal(String text, int start, StringBuilder out) {

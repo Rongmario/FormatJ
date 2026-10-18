@@ -34,16 +34,12 @@ abstract class ParserBase {
         this.previewFeatures = previewFeatures;
     }
 
-    private static String describe(Token token) {
-        return token.kind() == TokenKind.END_OF_FILE ? "end of file" : token.text();
-    }
-
     protected static GreenNode branch(SyntaxKind kind, List<GreenNode> children) {
         return GreenNode.branch(kind, children);
     }
 
-    List<Diagnostic> diagnostics() {
-        return List.copyOf(diagnostics);
+    private static String describe(Token token) {
+        return token.kind() == TokenKind.END_OF_FILE ? "end of file" : token.text();
     }
 
     // ---------------------------------------------------------------- cursor
@@ -186,74 +182,6 @@ abstract class ParserBase {
         diagnostics.add(diagnostic);
     }
 
-    // --------------------------------------------------------------- trivia
-
-    private List<Token> takeLeading() {
-        List<Token> leading = new ArrayList<>();
-        while (index < tokens.size() && tokens.get(index).isTrivia()) {
-            leading.add(tokens.get(index++));
-        }
-        return leading;
-    }
-
-    /**
-     * Trivia that stays on the line of the token just consumed.
-     *
-     * <p>Whitespace is only taken when a comment follows it on the same line; otherwise it belongs to
-     * the next token, where it carries the blank line count the author wrote.
-     */
-    private List<Token> takeTrailing() {
-        List<Token> trailing = new ArrayList<>();
-        List<Token> pending = new ArrayList<>();
-        int committed = index;
-        while (index < tokens.size()) {
-            Token token = tokens.get(index);
-            if (token.kind() == TokenKind.WHITESPACE) {
-                if (token.hasLineTerminator()) {
-                    break;
-                }
-                pending.add(token);
-                index++;
-                continue;
-            }
-            if (!token.kind().isComment()) {
-                break;
-            }
-            if (token.kind() != TokenKind.LINE_COMMENT && codeFollowsOnLine(index + 1)) {
-                // An inline block comment belongs to the code after it. Trailing, it would be held to
-                // the end of the line like any other trailing comment.
-                break;
-            }
-            trailing.addAll(pending);
-            pending.clear();
-            trailing.add(token);
-            index++;
-            committed = index;
-            if (token.kind() == TokenKind.LINE_COMMENT) {
-                break;
-            }
-        }
-        index = committed;
-        return trailing;
-    }
-
-    private boolean codeFollowsOnLine(int from) {
-        for (int i = from; i < tokens.size(); i++) {
-            Token token = tokens.get(i);
-            if (token.kind() == TokenKind.WHITESPACE) {
-                if (token.hasLineTerminator()) {
-                    return false;
-                }
-            } else if (token.kind() == TokenKind.LINE_COMMENT) {
-                return false;
-            } else if (!token.kind().isComment()) {
-                // A closing brace starts its own line, so a comment in front of it stays trailing.
-                return token.kind() != TokenKind.END_OF_FILE && !token.is("}");
-            }
-        }
-        return false;
-    }
-
     // ------------------------------------------------------------- recovery
 
     /**
@@ -330,6 +258,78 @@ abstract class ParserBase {
                 return;
             }
         }
+    }
+
+    List<Diagnostic> diagnostics() {
+        return List.copyOf(diagnostics);
+    }
+
+    // --------------------------------------------------------------- trivia
+
+    private List<Token> takeLeading() {
+        List<Token> leading = new ArrayList<>();
+        while (index < tokens.size() && tokens.get(index).isTrivia()) {
+            leading.add(tokens.get(index++));
+        }
+        return leading;
+    }
+
+    /**
+     * Trivia that stays on the line of the token just consumed.
+     *
+     * <p>Whitespace is only taken when a comment follows it on the same line; otherwise it belongs to
+     * the next token, where it carries the blank line count the author wrote.
+     */
+    private List<Token> takeTrailing() {
+        List<Token> trailing = new ArrayList<>();
+        List<Token> pending = new ArrayList<>();
+        int committed = index;
+        while (index < tokens.size()) {
+            Token token = tokens.get(index);
+            if (token.kind() == TokenKind.WHITESPACE) {
+                if (token.hasLineTerminator()) {
+                    break;
+                }
+                pending.add(token);
+                index++;
+                continue;
+            }
+            if (!token.kind().isComment()) {
+                break;
+            }
+            if (token.kind() != TokenKind.LINE_COMMENT && codeFollowsOnLine(index + 1)) {
+                // An inline block comment belongs to the code after it. Trailing, it would be held to
+                // the end of the line like any other trailing comment.
+                break;
+            }
+            trailing.addAll(pending);
+            pending.clear();
+            trailing.add(token);
+            index++;
+            committed = index;
+            if (token.kind() == TokenKind.LINE_COMMENT) {
+                break;
+            }
+        }
+        index = committed;
+        return trailing;
+    }
+
+    private boolean codeFollowsOnLine(int from) {
+        for (int i = from; i < tokens.size(); i++) {
+            Token token = tokens.get(i);
+            if (token.kind() == TokenKind.WHITESPACE) {
+                if (token.hasLineTerminator()) {
+                    return false;
+                }
+            } else if (token.kind() == TokenKind.LINE_COMMENT) {
+                return false;
+            } else if (!token.kind().isComment()) {
+                // A closing brace starts its own line, so a comment in front of it stays trailing.
+                return token.kind() != TokenKind.END_OF_FILE && !token.is("}");
+            }
+        }
+        return false;
     }
 
     /** Thrown when a construct does not parse. Caught at a recovery point, never by a caller. */

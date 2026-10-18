@@ -109,12 +109,7 @@ public final class RewriteVerification {
     }
 
     /** As {@link #verifyOutput(GreenNode, GreenNode, List)}, with the style the run was made under. */
-    public static String verifyOutput(
-        GreenNode before,
-        GreenNode formatted,
-        List<TokenEdit> edits,
-        Style style
-    ) {
+    public static String verifyOutput(GreenNode before, GreenNode formatted, List<TokenEdit> edits, Style style) {
         String lawProblem = checkEditLaws(before, edits, formatted, style);
         if (lawProblem != null) {
             return lawProblem;

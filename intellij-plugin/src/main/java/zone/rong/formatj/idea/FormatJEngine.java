@@ -78,23 +78,6 @@ public final class FormatJEngine {
         return StyleFiles.discover(start).map(this::load).orElseGet(Style::defaults);
     }
 
-    /** Re-reads a style file only when its modification time changes. */
-    private Style load(Path file) {
-        FileTime modified;
-        try {
-            modified = Files.getLastModifiedTime(file);
-        } catch (IOException e) {
-            return StyleFiles.load(file);
-        }
-        LoadedStyle cached = styleFiles.get(file);
-        if (cached != null && cached.lastModified().equals(modified)) {
-            return cached.style();
-        }
-        Style style = StyleFiles.load(file);
-        styleFiles.put(file, new LoadedStyle(modified, style));
-        return style;
-    }
-
     /** A one-line description of which style would apply, for the settings page. */
     public String describeStyle(Path path) {
         if (settings.styleFile() != null) {
@@ -126,6 +109,23 @@ public final class FormatJEngine {
             return new Outcome(request.source(), true, result.diagnostics());
         }
         return new Outcome(result.text(), result.isUnchanged(), result.diagnostics());
+    }
+
+    /** Re-reads a style file only when its modification time changes. */
+    private Style load(Path file) {
+        FileTime modified;
+        try {
+            modified = Files.getLastModifiedTime(file);
+        } catch (IOException e) {
+            return StyleFiles.load(file);
+        }
+        LoadedStyle cached = styleFiles.get(file);
+        if (cached != null && cached.lastModified().equals(modified)) {
+            return cached.style();
+        }
+        Style style = StyleFiles.load(file);
+        styleFiles.put(file, new LoadedStyle(modified, style));
+        return style;
     }
 
     /**

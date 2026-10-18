@@ -113,30 +113,6 @@ public final class ImportOrder {
     }
 
     /**
-     * The group an import falls in, once the buckets have had their say.
-     *
-     * <p>Static imports and module imports that sit in a bucket of their own are one group each. The
-     * package prefixes exist to keep the JDK away from everybody else's code in the main block; using
-     * them again inside a block of four static imports would scatter it across four paragraphs for no
-     * reader's benefit. Where static imports are interleaved instead, they are part of the main block
-     * and the prefixes apply to them like anything else.
-     */
-    private static int groupWithin(
-        ImportEntry entry,
-        List<List<String>> groups,
-        StaticImportPlacement placement,
-        boolean modulesFirst
-    ) {
-        if (modulesFirst && entry.isModule()) {
-            return 0;
-        }
-        if (entry.isStatic() && placement != StaticImportPlacement.INLINE) {
-            return 0;
-        }
-        return group(entry, groups);
-    }
-
-    /**
      * Which group a name falls in. The longest prefix that matches it wins, wherever it is declared,
      * so a group can hold several prefixes and a narrower prefix in a later group still beats a
      * broader one earlier.
@@ -161,6 +137,30 @@ public final class ImportOrder {
             }
         }
         return best < 0 ? catchAll : best;
+    }
+
+    /**
+     * The group an import falls in, once the buckets have had their say.
+     *
+     * <p>Static imports and module imports that sit in a bucket of their own are one group each. The
+     * package prefixes exist to keep the JDK away from everybody else's code in the main block; using
+     * them again inside a block of four static imports would scatter it across four paragraphs for no
+     * reader's benefit. Where static imports are interleaved instead, they are part of the main block
+     * and the prefixes apply to them like anything else.
+     */
+    private static int groupWithin(
+        ImportEntry entry,
+        List<List<String>> groups,
+        StaticImportPlacement placement,
+        boolean modulesFirst
+    ) {
+        if (modulesFirst && entry.isModule()) {
+            return 0;
+        }
+        if (entry.isStatic() && placement != StaticImportPlacement.INLINE) {
+            return 0;
+        }
+        return group(entry, groups);
     }
 
     private static boolean matches(String name, String prefix) {

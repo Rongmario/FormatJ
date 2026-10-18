@@ -14,13 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class FieldAnnotationPlacementTest {
 
-    private static final String LONG =
-        "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when they hit final or inaccessible fields.\")\n"
-            + "public static boolean reflectFields = true;\n";
+    private static final String LONG = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when they hit final or inaccessible fields.\")\n" +
+        "public static boolean reflectFields = true;\n";
 
-    private static final String SHORT =
-        "@Config.Comment(\"Short comment.\")\n"
-            + "public static boolean shortField = true;\n";
+    private static final String SHORT = "@Config.Comment(\"Short comment.\")\n" +
+        "public static boolean shortField = true;\n";
 
     private static String format(String source, AnnotationPlacement placement) {
         Style style = Style.builder().annotations(annotations -> annotations.fieldPlacement(placement)).build();

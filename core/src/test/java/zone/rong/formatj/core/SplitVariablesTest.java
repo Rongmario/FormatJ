@@ -17,7 +17,10 @@ class SplitVariablesTest {
     private static final Style ON = Style.builder().declarations(d -> d.splitVariables(true)).build();
 
     private static String format(String source, Style style) {
-        FormatResult result = FormatJ.newFormatter().style(style).build().format(FormatRequest.of(source).withName("T.java"));
+        FormatResult result = FormatJ.newFormatter()
+            .style(style)
+            .build()
+            .format(FormatRequest.of(source).withName("T.java"));
         assertTrue(result.diagnostics().isEmpty(), () -> result.diagnostics().toString());
         return result.text();
     }
@@ -28,14 +31,16 @@ class SplitVariablesTest {
 
     @Test
     void fieldsAndLocalsSplitIntoOneDeclarationPerVariable() {
-        String formatted = format("""
+        String formatted = format(
+            """
                 class A {
                     int a, b = 2, c;
                     void f() {
                         int x, y = 1, z;
                     }
                 }
-                """);
+                """
+        );
         assertEquals(
             """
             class A {
@@ -59,12 +64,14 @@ class SplitVariablesTest {
 
     @Test
     void commentsOnTheHeadPrintOnceOnTheFirstDeclaration() {
-        String formatted = format("""
+        String formatted = format(
+            """
                 class A {
                     /** Docs for a. */
                     @Anno int a, b = 2, c[]; // trailing
                 }
-                """);
+                """
+        );
         assertEquals(
             """
             class A {
@@ -82,13 +89,15 @@ class SplitVariablesTest {
 
     @Test
     void dimensionsWrittenOnTheNameBelongToThatVariable() {
-        String formatted = format("""
+        String formatted = format(
+            """
                 class A {
                     int a[], b;
                     int d[], e[];
                     int[] f[], g[];
                 }
-                """);
+                """
+        );
         assertEquals(
             """
             class A {
@@ -121,14 +130,16 @@ class SplitVariablesTest {
 
     @Test
     void aForInitDeclarationIsNotSplit() {
-        String formatted = format("""
+        String formatted = format(
+            """
                 class A {
                     void f() {
                         for (int i = 0, j = 1; i < j; i++) {
                         }
                     }
                 }
-                """);
+                """
+        );
         assertTrue(formatted.contains("for (int i = 0, j = 1; i < j; i++)"), formatted);
         assertEquals(formatted, format(formatted));
     }

@@ -296,6 +296,11 @@ public final class Option<T> {
         return String.valueOf(value);
     }
 
+    @Override
+    public String toString() {
+        return key;
+    }
+
     private Boolean parseBoolean(String raw) {
         if (raw.equalsIgnoreCase("true")) {
             return Boolean.TRUE;
@@ -408,11 +413,6 @@ public final class Option<T> {
         }
         addElement(elements, element);
         return elements;
-    }
-
-    @Override
-    public String toString() {
-        return key;
     }
 
     /** The value shapes an option can take. Determines how it is parsed and rendered. */

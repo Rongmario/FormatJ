@@ -55,6 +55,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CorpusInvariantTest {
 
+    /** The default style rewrites tokens. This one holds the layout to the tokens it was given. */
+    static Style layoutOnly() {
+        return Style.builder()
+            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
+            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
+            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
+            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
+            .set(LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.PRESERVE)
+            .set(ImportRules.ORDER, SortOrder.PRESERVE)
+            .set(ArrayRules.C_STYLE_BRACKETS, BracketStyle.PRESERVE)
+            .set(MemberRules.ORDER, MemberOrder.PRESERVE)
+            .set(SemicolonRules.REMOVE_REDUNDANT, false)
+            .set(LiteralRules.LONG_SUFFIX, LongSuffix.PRESERVE)
+            .set(LiteralRules.HEX_DIGITS, HexDigitCase.PRESERVE)
+            .set(SwitchRules.CASE_STYLE, SwitchCaseStyle.PRESERVE)
+            .set(SwitchRules.ARROW_CASE_BRACES, BracePolicy.PRESERVE)
+            .set(SwitchRules.YIELD_STYLE, YieldStyle.PRESERVE)
+            .set(ModifierRules.ORDER, ModifierOrder.PRESERVE)
+            .set(ModifierRules.REMOVE_REDUNDANT, false)
+            .build();
+    }
+
     private static List<String> unparsedRegions(SyntaxNode node) {
         List<String> regions = new ArrayList<>();
         collect(node, regions);
@@ -93,28 +115,6 @@ class CorpusInvariantTest {
             }
         }
         return false;
-    }
-
-    /** The default style rewrites tokens. This one holds the layout to the tokens it was given. */
-    static Style layoutOnly() {
-        return Style.builder()
-            .set(BraceRules.IF_ELSE, BracePolicy.PRESERVE)
-            .set(BraceRules.FOR_LOOP, BracePolicy.PRESERVE)
-            .set(BraceRules.WHILE_LOOP, BracePolicy.PRESERVE)
-            .set(LambdaRules.BODY_BRACES, BracePolicy.PRESERVE)
-            .set(LambdaRules.PARAMETER_STYLE, LambdaParameterStyle.PRESERVE)
-            .set(ImportRules.ORDER, SortOrder.PRESERVE)
-            .set(ArrayRules.C_STYLE_BRACKETS, BracketStyle.PRESERVE)
-            .set(MemberRules.ORDER, MemberOrder.PRESERVE)
-            .set(SemicolonRules.REMOVE_REDUNDANT, false)
-            .set(LiteralRules.LONG_SUFFIX, LongSuffix.PRESERVE)
-            .set(LiteralRules.HEX_DIGITS, HexDigitCase.PRESERVE)
-            .set(SwitchRules.CASE_STYLE, SwitchCaseStyle.PRESERVE)
-            .set(SwitchRules.ARROW_CASE_BRACES, BracePolicy.PRESERVE)
-            .set(SwitchRules.YIELD_STYLE, YieldStyle.PRESERVE)
-            .set(ModifierRules.ORDER, ModifierOrder.PRESERVE)
-            .set(ModifierRules.REMOVE_REDUNDANT, false)
-            .build();
     }
 
     @Test

@@ -84,13 +84,6 @@ public final class OptionRegistry {
 
     private OptionRegistry() { }
 
-    static void register(Option<?> option) {
-        Option<?> previous = BY_KEY.putIfAbsent(option.key(), option);
-        if (previous != null) {
-            throw new IllegalStateException("Duplicate option key: " + option.key());
-        }
-    }
-
     /**
      * Every registered option, in catalogue order: groups in the order declared by {@link #GROUPS},
      * and options in declaration order within each group.
@@ -145,6 +138,13 @@ public final class OptionRegistry {
     /** Read-only view of the whole catalogue keyed by dotted key, in catalogue order. */
     public static Map<String, Option<?>> asMap() {
         return Collections.unmodifiableMap(ordered());
+    }
+
+    static void register(Option<?> option) {
+        Option<?> previous = BY_KEY.putIfAbsent(option.key(), option);
+        if (previous != null) {
+            throw new IllegalStateException("Duplicate option key: " + option.key());
+        }
     }
 
     /** The catalogue re-ordered by group, with any option from an unlisted group kept at the end. */

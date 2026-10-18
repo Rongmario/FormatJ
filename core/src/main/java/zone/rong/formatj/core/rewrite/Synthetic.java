@@ -36,10 +36,6 @@ final class Synthetic {
         return leaf(TokenKind.IDENTIFIER, lexeme);
     }
 
-    private static GreenNode leaf(TokenKind kind, String lexeme) {
-        return GreenNode.leaf(SyntaxToken.of(Token.synthetic(kind, lexeme)));
-    }
-
     /**
      * Whether deleting this node would take a comment with it.
      *
@@ -61,6 +57,10 @@ final class Synthetic {
             }
         }
         return false;
+    }
+
+    private static GreenNode leaf(TokenKind kind, String lexeme) {
+        return GreenNode.leaf(SyntaxToken.of(Token.synthetic(kind, lexeme)));
     }
 
 }

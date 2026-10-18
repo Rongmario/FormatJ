@@ -65,25 +65,6 @@ class LanguageLevelCompileTest {
         return FormatJ.newFormatter().style(style).languageLevel(level).previewFeatures(preview).build().format(source);
     }
 
-    private boolean compiles(String source, int release, boolean preview) throws IOException, InterruptedException {
-        Path file = Files.writeString(directory.resolve("T.java"), source);
-        List<String> command = new ArrayList<>(List.of(
-            System.getProperty("formatj.javac." + release),
-            "-d",
-            directory.toString()
-        ));
-        if (preview) {
-            command.addAll(List.of("--enable-preview", "-source", String.valueOf(release)));
-        }
-        command.add(file.toString());
-        return new ProcessBuilder(command)
-                .redirectErrorStream(true)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                .start()
-                .waitFor() ==
-            0;
-    }
-
     @Test
     void arrowCasesCompileFromJava14() throws IOException, InterruptedException {
         String arrow = format(SWITCH, ARROW, LanguageLevel.JAVA_14, false);
@@ -115,6 +96,25 @@ class LanguageLevelCompileTest {
         assertTrue(compiles(format(SAFE_VARARGS, REMOVE, LanguageLevel.JAVA_8, false), 8, false));
         assertFalse(compiles(stripped, 8, false));
         assertTrue(compiles(stripped, 9, false));
+    }
+
+    private boolean compiles(String source, int release, boolean preview) throws IOException, InterruptedException {
+        Path file = Files.writeString(directory.resolve("T.java"), source);
+        List<String> command = new ArrayList<>(List.of(
+            System.getProperty("formatj.javac." + release),
+            "-d",
+            directory.toString()
+        ));
+        if (preview) {
+            command.addAll(List.of("--enable-preview", "-source", String.valueOf(release)));
+        }
+        command.add(file.toString());
+        return new ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .start()
+                .waitFor() ==
+            0;
     }
 
 }

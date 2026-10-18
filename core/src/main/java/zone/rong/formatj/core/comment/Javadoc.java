@@ -162,6 +162,31 @@ public final class Javadoc {
         );
     }
 
+    /** The tag and optional argument that precede its description. */
+    public static String tagHead(String line) {
+        String stripped = line.strip();
+        int space = firstWhitespace(stripped, 0);
+        if (space < 0) {
+            return stripped;
+        }
+        String tag = stripped.substring(0, space).toLowerCase(Locale.ROOT);
+        if (!tag.equals("@param") && !tag.equals("@throws") && !tag.equals("@exception")) {
+            return stripped.substring(0, space);
+        }
+        int argument = skipWhitespace(stripped, space);
+        int end = firstWhitespace(stripped, argument);
+        return end < 0 ? stripped : stripped.substring(0, end);
+    }
+
+    /** Removes up to {@code count} leading whitespace characters from one Markdown line. */
+    public static String removeIndent(String line, int count) {
+        int index = 0;
+        while (index < line.length() && index < count && Character.isWhitespace(line.charAt(index))) {
+            index++;
+        }
+        return line.substring(index);
+    }
+
     private static Tag traditionalTag(String name, List<String> sourceLines) {
         List<String> lines = new ArrayList<>(sourceLines);
         trimBlankEnds(lines);
@@ -193,22 +218,6 @@ public final class Javadoc {
     private static String firstTagBody(List<String> lines, String head) {
         String stripped = lines.getFirst().strip();
         return stripped.substring(Math.min(head.length(), stripped.length())).stripLeading();
-    }
-
-    /** The tag and optional argument that precede its description. */
-    public static String tagHead(String line) {
-        String stripped = line.strip();
-        int space = firstWhitespace(stripped, 0);
-        if (space < 0) {
-            return stripped;
-        }
-        String tag = stripped.substring(0, space).toLowerCase(Locale.ROOT);
-        if (!tag.equals("@param") && !tag.equals("@throws") && !tag.equals("@exception")) {
-            return stripped.substring(0, space);
-        }
-        int argument = skipWhitespace(stripped, space);
-        int end = firstWhitespace(stripped, argument);
-        return end < 0 ? stripped : stripped.substring(0, end);
     }
 
     private static int firstWhitespace(String text, int start) {
@@ -434,15 +443,6 @@ public final class Javadoc {
             }
         }
         return indent == Integer.MAX_VALUE ? 0 : indent;
-    }
-
-    /** Removes up to {@code count} leading whitespace characters from one Markdown line. */
-    public static String removeIndent(String line, int count) {
-        int index = 0;
-        while (index < line.length() && index < count && Character.isWhitespace(line.charAt(index))) {
-            index++;
-        }
-        return line.substring(index);
     }
 
     // ---------------------------------------------------------- traditional

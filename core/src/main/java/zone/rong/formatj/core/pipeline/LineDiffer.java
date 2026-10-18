@@ -27,34 +27,6 @@ public final class LineDiffer {
 
     private LineDiffer() { }
 
-    static String splice(String original, String formatted, List<SourceRange> ranges) {
-        if (original.equals(formatted) || ranges.isEmpty()) {
-            return original.equals(formatted) ? original : formatted;
-        }
-        Split left = Split.of(original);
-        Split right = Split.of(formatted);
-        List<Hunk> hunks = refine(left, right, hunks(left.lines, right.lines));
-        if (hunks.isEmpty()) {
-            return original;
-        }
-
-        StringBuilder out = new StringBuilder(original.length());
-        int line = 0;
-        for (Hunk hunk : hunks) {
-            left.append(out, line, hunk.originalStart);
-            int startOffset = left.offsetOfLine(hunk.originalStart);
-            int endOffset = left.offsetOfLine(hunk.originalEnd);
-            if (overlaps(ranges, startOffset, endOffset) && selectedLines(left, hunk, ranges)) {
-                right.append(out, hunk.formattedStart, hunk.formattedEnd);
-            } else {
-                left.append(out, hunk.originalStart, hunk.originalEnd);
-            }
-            line = hunk.originalEnd;
-        }
-        left.append(out, line, left.lines.size());
-        return out.toString();
-    }
-
     public static List<Hunk> hunks(List<String> original, List<String> formatted) {
         int n = original.size();
         int m = formatted.size();
@@ -106,6 +78,34 @@ public final class LineDiffer {
 
         hunks.sort(Comparator.comparingInt(Hunk::originalStart).thenComparingInt(Hunk::formattedStart));
         return List.copyOf(hunks);
+    }
+
+    static String splice(String original, String formatted, List<SourceRange> ranges) {
+        if (original.equals(formatted) || ranges.isEmpty()) {
+            return original.equals(formatted) ? original : formatted;
+        }
+        Split left = Split.of(original);
+        Split right = Split.of(formatted);
+        List<Hunk> hunks = refine(left, right, hunks(left.lines, right.lines));
+        if (hunks.isEmpty()) {
+            return original;
+        }
+
+        StringBuilder out = new StringBuilder(original.length());
+        int line = 0;
+        for (Hunk hunk : hunks) {
+            left.append(out, line, hunk.originalStart);
+            int startOffset = left.offsetOfLine(hunk.originalStart);
+            int endOffset = left.offsetOfLine(hunk.originalEnd);
+            if (overlaps(ranges, startOffset, endOffset) && selectedLines(left, hunk, ranges)) {
+                right.append(out, hunk.formattedStart, hunk.formattedEnd);
+            } else {
+                left.append(out, hunk.originalStart, hunk.originalEnd);
+            }
+            line = hunk.originalEnd;
+        }
+        left.append(out, line, left.lines.size());
+        return out.toString();
     }
 
     private static Window trim(List<String> original, List<String> formatted, Window window) {

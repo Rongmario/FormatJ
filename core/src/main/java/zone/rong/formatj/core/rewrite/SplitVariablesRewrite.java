@@ -36,38 +36,6 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 public final class SplitVariablesRewrite implements Rewrite {
 
-    @Override
-    public String name() {
-        return DeclarationRules.SPLIT_VARIABLES.key();
-    }
-
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(DeclarationRules.SPLIT_VARIABLES);
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        List<GreenNode> children = node.children();
-        List<GreenNode> rewritten = null;
-        int offset = 0;
-        for (int i = 0; i < children.size(); i++) {
-            List<TokenEdit> edits = new ArrayList<>();
-            List<GreenNode> split = split(children.get(i), context::firstPosition, edits);
-            if (split == null) {
-                continue;
-            }
-            edits.forEach(context::record);
-            if (rewritten == null) {
-                rewritten = new ArrayList<>(children);
-            }
-            rewritten.remove(i + offset);
-            rewritten.addAll(i + offset, split);
-            offset += split.size() - 1;
-        }
-        return rewritten == null ? node : GreenNode.branch(node.kind(), rewritten);
-    }
-
     /**
      * Every edit the split could declare for {@code tree}, whichever declarations qualify.
      *
@@ -108,7 +76,7 @@ public final class SplitVariablesRewrite implements Rewrite {
      */
     private static List<GreenNode> split(GreenNode declaration, PositionLookup positions, List<TokenEdit> edits) {
         if (declaration.kind() != SyntaxKind.FIELD_DECLARATION &&
-            declaration.kind() != SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
+                declaration.kind() != SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
             positions.of(declaration) < 0) {
             return null;
         }
@@ -135,8 +103,7 @@ public final class SplitVariablesRewrite implements Rewrite {
         List<List<GreenNode>> brackets = new ArrayList<>(declarators.size());
         for (int i : declarators) {
             GreenNode separator = children.get(i + 1);
-            if (isLexeme(separator, ",") &&
-                (positions.of(separator) < 0 || Synthetic.carriesComments(separator))) {
+            if (isLexeme(separator, ",") && (positions.of(separator) < 0 || Synthetic.carriesComments(separator))) {
                 return null;
             }
             List<GreenNode> own = dims(children.get(i).children());
@@ -253,10 +220,7 @@ public final class SplitVariablesRewrite implements Rewrite {
     private static GreenNode wrap(GreenNode type, List<GreenNode> brackets) {
         GreenNode wrapped = GreenNode.branch(SyntaxKind.ARRAY_TYPE, concat(List.of(type), brackets.subList(0, 2)));
         for (int i = 2; i < brackets.size(); i += 2) {
-            wrapped = GreenNode.branch(
-                SyntaxKind.ARRAY_TYPE,
-                List.of(wrapped, brackets.get(i), brackets.get(i + 1))
-            );
+            wrapped = GreenNode.branch(SyntaxKind.ARRAY_TYPE, List.of(wrapped, brackets.get(i), brackets.get(i + 1)));
         }
         return wrapped;
     }
@@ -328,6 +292,38 @@ public final class SplitVariablesRewrite implements Rewrite {
         all.addAll(first);
         all.addAll(second);
         return all;
+    }
+
+    @Override
+    public String name() {
+        return DeclarationRules.SPLIT_VARIABLES.key();
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(DeclarationRules.SPLIT_VARIABLES);
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        List<GreenNode> children = node.children();
+        List<GreenNode> rewritten = null;
+        int offset = 0;
+        for (int i = 0; i < children.size(); i++) {
+            List<TokenEdit> edits = new ArrayList<>();
+            List<GreenNode> split = split(children.get(i), context::firstPosition, edits);
+            if (split == null) {
+                continue;
+            }
+            edits.forEach(context::record);
+            if (rewritten == null) {
+                rewritten = new ArrayList<>(children);
+            }
+            rewritten.remove(i + offset);
+            rewritten.addAll(i + offset, split);
+            offset += split.size() - 1;
+        }
+        return rewritten == null ? node : GreenNode.branch(node.kind(), rewritten);
     }
 
     /** Where a node's tokens sat in the original stream: the rewrite's context, or the verifier's map. */

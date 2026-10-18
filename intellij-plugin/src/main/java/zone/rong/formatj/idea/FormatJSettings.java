@@ -72,6 +72,18 @@ public final class FormatJSettings implements PersistentStateComponent<FormatJSe
         return base == null ? null : Path.of(base);
     }
 
+    @Override
+    public @Nullable
+    State getState() {
+        return state;
+    }
+
+    @Override
+    public void loadState(@NotNull State state) {
+        this.state = state;
+        engine = null;
+    }
+
     FormatJEngine.Settings engineSettings() {
         Path styleFile = null;
         if (state.styleFile != null && !state.styleFile.isBlank()) {
@@ -89,18 +101,6 @@ public final class FormatJSettings implements PersistentStateComponent<FormatJSe
             preset = Preset.of(state.preset);
         }
         return new FormatJEngine.Settings(styleFile, preset);
-    }
-
-    @Override
-    public @Nullable
-    State getState() {
-        return state;
-    }
-
-    @Override
-    public void loadState(@NotNull State state) {
-        this.state = state;
-        engine = null;
     }
 
     public static final class State {

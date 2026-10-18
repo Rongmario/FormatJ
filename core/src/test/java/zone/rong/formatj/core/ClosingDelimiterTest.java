@@ -28,12 +28,13 @@ class ClosingDelimiterTest {
             """;
 
     private static String format(String source, ClosingDelimiter delimiter) {
-        return format(source, style -> style.wrapping(
-            wrapping -> wrapping.maxLineLength(117)
+        return format(
+            source,
+            style -> style.wrapping(wrapping -> wrapping.maxLineLength(117)
                 .closingDelimiter(delimiter)
                 .methodParameters(WrapPolicy.WRAP_IF_LONG)
-                .breakAfterOpenParen(false)
-        ));
+                .breakAfterOpenParen(false))
+        );
     }
 
     private static String format(String source, java.util.function.Consumer<StyleBuilder> configure) {
@@ -104,7 +105,12 @@ class ClosingDelimiterTest {
             ClosingDelimiter.OWN_LINE
         );
         // The last argument belongs with the ) below it, so the list breaks as a whole.
-        assertFalse(formatted.contains("someCall(version, access, name, signature, superName, interfaces, interfaces, version, version, more, args, here, a, b, c\n"), formatted);
+        assertFalse(
+            formatted.contains(
+                "someCall(version, access, name, signature, superName, interfaces, interfaces, version, version, more, args, here, a, b, c\n"
+            ),
+            formatted
+        );
         assertEquals(formatted, format(formatted, ClosingDelimiter.OWN_LINE));
     }
 

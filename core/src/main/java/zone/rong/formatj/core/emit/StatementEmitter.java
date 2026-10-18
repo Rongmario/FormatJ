@@ -31,6 +31,15 @@ abstract class StatementEmitter extends ExpressionEmitter {
         super(style);
     }
 
+    protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            if (is(children.get(i), lexeme)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     /**
      * A hard break, or the choice between it and a space.
      *
@@ -85,15 +94,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return parts;
     }
 
-    protected static int lastIndexOfLexeme(List<GreenNode> children, String lexeme) {
-        for (int i = children.size() - 1; i >= 0; i--) {
-            if (is(children.get(i), lexeme)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     @Override
     protected Doc emitBlockLike(GreenNode node) {
         return emitBlock(node);
@@ -140,17 +140,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
             0,
             keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)
         );
-    }
-
-    /**
-     * A braced body: the braces themselves plus its indented contents.
-     *
-     * @param blankLinesAfterOpen minimum blank lines just inside the opening brace
-     * @param blankLinesBeforeClose minimum blank lines just before the closing brace
-     */
-    /** Blank lines just inside a brace: the rule's own count, plus the author's unless those are stripped. */
-    private int edgeBlankLines(GreenNode node, int minimum) {
-        return rule(BlankLineRules.STRIP_AT_BRACE_EDGES) ? minimum : blankLinesBefore(node, minimum);
     }
 
     protected Doc emitBracedBody(
@@ -236,16 +225,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
         );
         Doc braced = Doc.concat(emit(open), contents, closing);
         return inline ? Doc.group(braced) : braced;
-    }
-
-    /** Whether any statement of this body turns formatting off. */
-    private boolean turnsFormattingOff(List<GreenNode> body) {
-        for (GreenNode statement : body) {
-            if (formatterOffIndex(statement) >= 0) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** One child of a braced body. Override to pass neighbour context into a layout rule. */
@@ -563,60 +542,6 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return Doc.concat(parts);
     }
 
-    private Doc emitMulticatchParameter(GreenNode node, List<GreenNode> children, int firstBar) {
-        int firstType = firstBar - 1;
-        int name = children.size() - 1;
-        // A run the policy forbids from breaking keeps its head beside it: a breakable annotation
-        // divider before the first alternative would otherwise take a break the alternatives never
-        // were allowed to take, and one reformat later the author-broken check reads the result as
-        // a layout the author chose.
-        WrapPolicy policy = rule(WrappingRules.MULTICATCH);
-        boolean flatRun = policy == WrapPolicy.NEVER || (policy == WrapPolicy.PRESERVE && !authorBrokeInside(node));
-        List<Doc> parts = new ArrayList<>();
-        for (int i = 0; i < firstType; i++) {
-            GreenNode child = children.get(i);
-            if (i > 0) {
-                GreenNode previous = children.get(i - 1);
-                parts.add(
-                    previous.kind() == SyntaxKind.ANNOTATION
-                        ? annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children)
-                        : space()
-                );
-            }
-            parts.add(emit(child));
-        }
-        if (firstType > 0) {
-            GreenNode previous = children.get(firstType - 1);
-            parts.add(
-                previous.kind() == SyntaxKind.ANNOTATION
-                    ? annotationSeparator(children.get(firstType), rule(AnnotationRules.PARAMETER_PLACEMENT), children)
-                    : space()
-            );
-        }
-
-        List<Doc> alternatives = new ArrayList<>();
-        List<GreenNode> separators = new ArrayList<>();
-        for (int i = firstType; i < name; i++) {
-            GreenNode child = children.get(i);
-            if (is(child, "|")) {
-                separators.add(child);
-            } else {
-                alternatives.add(emit(child));
-            }
-        }
-        parts.add(emitOperatorSeparated(
-            node,
-            alternatives,
-            separators,
-            rule(SpacingRules.AROUND_MULTICATCH_SEPARATOR),
-            rule(WrappingRules.MULTICATCH),
-            rule(WrappingRules.MULTICATCH_SEPARATOR_POSITION)
-        ));
-        parts.add(space());
-        parts.add(emit(children.get(name)));
-        return flatRun ? Doc.flatGroup(Doc.concat(parts)) : Doc.concat(parts);
-    }
-
     /** A statement made of a keyword, an optional operand and a semicolon. */
     protected Doc emitKeywordStatement(GreenNode node) {
         List<GreenNode> children = node.children();
@@ -858,6 +783,81 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return rule(SwitchRules.GUARD_ON_SAME_LINE)
             ? guard
             : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
+    }
+
+    /**
+     * A braced body: the braces themselves plus its indented contents.
+     *
+     * @param blankLinesAfterOpen minimum blank lines just inside the opening brace
+     * @param blankLinesBeforeClose minimum blank lines just before the closing brace
+     */
+    /** Blank lines just inside a brace: the rule's own count, plus the author's unless those are stripped. */
+    private int edgeBlankLines(GreenNode node, int minimum) {
+        return rule(BlankLineRules.STRIP_AT_BRACE_EDGES) ? minimum : blankLinesBefore(node, minimum);
+    }
+
+    /** Whether any statement of this body turns formatting off. */
+    private boolean turnsFormattingOff(List<GreenNode> body) {
+        for (GreenNode statement : body) {
+            if (formatterOffIndex(statement) >= 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Doc emitMulticatchParameter(GreenNode node, List<GreenNode> children, int firstBar) {
+        int firstType = firstBar - 1;
+        int name = children.size() - 1;
+        // A run the policy forbids from breaking keeps its head beside it: a breakable annotation
+        // divider before the first alternative would otherwise take a break the alternatives never
+        // were allowed to take, and one reformat later the author-broken check reads the result as
+        // a layout the author chose.
+        WrapPolicy policy = rule(WrappingRules.MULTICATCH);
+        boolean flatRun = policy == WrapPolicy.NEVER || (policy == WrapPolicy.PRESERVE && !authorBrokeInside(node));
+        List<Doc> parts = new ArrayList<>();
+        for (int i = 0; i < firstType; i++) {
+            GreenNode child = children.get(i);
+            if (i > 0) {
+                GreenNode previous = children.get(i - 1);
+                parts.add(
+                    previous.kind() == SyntaxKind.ANNOTATION
+                        ? annotationSeparator(child, rule(AnnotationRules.PARAMETER_PLACEMENT), children)
+                        : space()
+                );
+            }
+            parts.add(emit(child));
+        }
+        if (firstType > 0) {
+            GreenNode previous = children.get(firstType - 1);
+            parts.add(
+                previous.kind() == SyntaxKind.ANNOTATION
+                    ? annotationSeparator(children.get(firstType), rule(AnnotationRules.PARAMETER_PLACEMENT), children)
+                    : space()
+            );
+        }
+
+        List<Doc> alternatives = new ArrayList<>();
+        List<GreenNode> separators = new ArrayList<>();
+        for (int i = firstType; i < name; i++) {
+            GreenNode child = children.get(i);
+            if (is(child, "|")) {
+                separators.add(child);
+            } else {
+                alternatives.add(emit(child));
+            }
+        }
+        parts.add(emitOperatorSeparated(
+            node,
+            alternatives,
+            separators,
+            rule(SpacingRules.AROUND_MULTICATCH_SEPARATOR),
+            rule(WrappingRules.MULTICATCH),
+            rule(WrappingRules.MULTICATCH_SEPARATOR_POSITION)
+        ));
+        parts.add(space());
+        parts.add(emit(children.get(name)));
+        return flatRun ? Doc.flatGroup(Doc.concat(parts)) : Doc.concat(parts);
     }
 
 }

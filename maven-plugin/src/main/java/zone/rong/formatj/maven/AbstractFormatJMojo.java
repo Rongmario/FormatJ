@@ -78,9 +78,8 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
     @Parameter(property = "formatj.previewFeatures", defaultValue = "false") protected boolean previewFeatures;
 
     /** Encoding of the source files. */
-    @Parameter(
-        property = "formatj.encoding", defaultValue = "${project.build.sourceEncoding}"
-    ) protected String encoding;
+    @Parameter(property = "formatj.encoding", defaultValue = "${project.build.sourceEncoding}")
+    protected String encoding;
 
     /** Skips the goal entirely. */
     @Parameter(property = "formatj.skip", defaultValue = "false") protected boolean skip;
@@ -92,9 +91,6 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             throw new MojoExecutionException("Unknown <encoding> '" + name + "'", e);
         }
     }
-
-    /** Whether a file that would change is rewritten, or merely reported. */
-    protected abstract boolean checkOnly();
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -162,6 +158,9 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         getLog().info("FormatJ checked " + files.size() + " file(s), formatted " + formatted);
     }
 
+    /** Whether a file that would change is rewritten, or merely reported. */
+    protected abstract boolean checkOnly();
+
     /**
      * The style these goals apply, resolved from preset, style file and inline rules.
      *
@@ -186,54 +185,6 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
         }
         rules.forEach(builder::setRaw);
         return builder.build();
-    }
-
-    /** The style file driving {@link #style()}, if any: explicit, or the nearest discovered one. */
-    private Optional<Path> styleFileInUse() {
-        if (styleFile != null) {
-            return Optional.of(styleFile.toPath());
-        }
-        if (preset != null && !preset.isBlank()) {
-            return Optional.empty();
-        }
-        return StyleFiles.discover(project.getBasedir().toPath());
-    }
-
-    private Formatter formatter() throws MojoExecutionException {
-        return FormatJ.newFormatter()
-            .style(style())
-            .languageLevel(languageLevel == null ? projectLanguageLevel() : LanguageLevel.ofRelease(languageLevel))
-            .previewFeatures(previewFeatures)
-            .build();
-    }
-
-    LanguageLevel projectLanguageLevel() {
-        String release = compilerSetting("release");
-        if (release == null) {
-            release = compilerSetting("source");
-        }
-        if (release == null) {
-            return LanguageLevel.LATEST;
-        }
-        try {
-            // 1.8 is the old spelling of 8.
-            int feature = Integer.parseInt(release.startsWith("1.") ? release.substring(2) : release);
-            return LanguageLevel.ofRelease(Math.max(feature, LanguageLevel.JAVA_8.release()));
-        } catch (IllegalArgumentException e) {
-            return LanguageLevel.LATEST;
-        }
-    }
-
-    /** A setting of the compiler plugin, from its configuration or else from its user property. */
-    private String compilerSetting(String name) {
-        Plugin compiler = project.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
-        if (compiler != null && compiler.getConfiguration() instanceof Xpp3Dom configuration) {
-            Xpp3Dom setting = configuration.getChild(name);
-            if (setting != null && setting.getValue() != null) {
-                return setting.getValue();
-            }
-        }
-        return project.getProperties().getProperty("maven.compiler." + name);
     }
 
     /** Every Java source of the project that the include and exclude globs allow. */
@@ -272,6 +223,54 @@ abstract class AbstractFormatJMojo extends AbstractMojo {
             }
         }
         return files;
+    }
+
+    LanguageLevel projectLanguageLevel() {
+        String release = compilerSetting("release");
+        if (release == null) {
+            release = compilerSetting("source");
+        }
+        if (release == null) {
+            return LanguageLevel.LATEST;
+        }
+        try {
+            // 1.8 is the old spelling of 8.
+            int feature = Integer.parseInt(release.startsWith("1.") ? release.substring(2) : release);
+            return LanguageLevel.ofRelease(Math.max(feature, LanguageLevel.JAVA_8.release()));
+        } catch (IllegalArgumentException e) {
+            return LanguageLevel.LATEST;
+        }
+    }
+
+    /** The style file driving {@link #style()}, if any: explicit, or the nearest discovered one. */
+    private Optional<Path> styleFileInUse() {
+        if (styleFile != null) {
+            return Optional.of(styleFile.toPath());
+        }
+        if (preset != null && !preset.isBlank()) {
+            return Optional.empty();
+        }
+        return StyleFiles.discover(project.getBasedir().toPath());
+    }
+
+    private Formatter formatter() throws MojoExecutionException {
+        return FormatJ.newFormatter()
+            .style(style())
+            .languageLevel(languageLevel == null ? projectLanguageLevel() : LanguageLevel.ofRelease(languageLevel))
+            .previewFeatures(previewFeatures)
+            .build();
+    }
+
+    /** A setting of the compiler plugin, from its configuration or else from its user property. */
+    private String compilerSetting(String name) {
+        Plugin compiler = project.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        if (compiler != null && compiler.getConfiguration() instanceof Xpp3Dom configuration) {
+            Xpp3Dom setting = configuration.getChild(name);
+            if (setting != null && setting.getValue() != null) {
+                return setting.getValue();
+            }
+        }
+        return project.getProperties().getProperty("maven.compiler." + name);
     }
 
 }

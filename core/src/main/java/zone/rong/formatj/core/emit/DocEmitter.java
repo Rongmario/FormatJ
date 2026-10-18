@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
+import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
@@ -245,6 +245,29 @@ public final class DocEmitter extends StatementEmitter {
 
             case TOKEN, LOCAL_TYPE_DECLARATION -> emitConcatenated(node);
         };
+    }
+
+    @Override
+    protected int minimumAfterOpen(GreenNode first, int fallback) {
+        return first.kind() == SyntaxKind.ENUM_CONSTANTS ? rule(BlankLineRules.BEFORE_FIRST_ENUM_CONSTANT) : fallback;
+    }
+
+    @Override
+    protected Doc emitBodyChild(GreenNode statement, List<GreenNode> body, int index) {
+        if (statement.kind() == SyntaxKind.ENUM_CONSTANTS) {
+            return emitEnumConstants(statement, membersFollow(body, index));
+        }
+        return emit(statement);
+    }
+
+    @Override
+    protected int minimumBetween(GreenNode previous, GreenNode next) {
+        int previousGroup = MemberGroup.section(previous, inInterfaceBody);
+        int nextGroup = MemberGroup.section(next, inInterfaceBody);
+        int groupGap = previousGroup != nextGroup && previousGroup != MemberGroup.NONE && nextGroup != MemberGroup.NONE
+            ? rule(BlankLineRules.BETWEEN_MEMBER_GROUPS)
+            : 0;
+        return Math.max(ruleBetween(previous, next), groupGap);
     }
 
     // ------------------------------------------------------ compilation unit
@@ -527,29 +550,6 @@ public final class DocEmitter extends StatementEmitter {
             ? Doc.fill(withSeparators(elements, separator))
             : Doc.join(separator, elements);
         return policy == WrapPolicy.CHOP_DOWN_ALWAYS ? Doc.breakingGroup(content) : authorGroup(owner, content);
-    }
-
-    @Override
-    protected int minimumAfterOpen(GreenNode first, int fallback) {
-        return first.kind() == SyntaxKind.ENUM_CONSTANTS ? rule(BlankLineRules.BEFORE_FIRST_ENUM_CONSTANT) : fallback;
-    }
-
-    @Override
-    protected Doc emitBodyChild(GreenNode statement, List<GreenNode> body, int index) {
-        if (statement.kind() == SyntaxKind.ENUM_CONSTANTS) {
-            return emitEnumConstants(statement, membersFollow(body, index));
-        }
-        return emit(statement);
-    }
-
-    @Override
-    protected int minimumBetween(GreenNode previous, GreenNode next) {
-        int previousGroup = MemberGroup.section(previous, inInterfaceBody);
-        int nextGroup = MemberGroup.section(next, inInterfaceBody);
-        int groupGap = previousGroup != nextGroup && previousGroup != MemberGroup.NONE && nextGroup != MemberGroup.NONE
-            ? rule(BlankLineRules.BETWEEN_MEMBER_GROUPS)
-            : 0;
-        return Math.max(ruleBetween(previous, next), groupGap);
     }
 
     private int ruleBetween(GreenNode previous, GreenNode next) {
