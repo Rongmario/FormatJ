@@ -1,0 +1,8 @@
+preset = "formatj"
+
+[wrapping]
+max-line-length = 80
+
+[spacing]
+within-angle-brackets = true
+after-comma = false
