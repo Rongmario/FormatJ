@@ -127,12 +127,6 @@ public final class WrappingRules {
         "Wrapping of a throws clause"
     );
 
-    public static final Option<WrapPolicy> TYPE_PARAMETERS = Option.ofEnum(
-        "wrapping.type-parameters",
-        WrapPolicy.NEVER,
-        "Wrapping of a type parameter or type argument list"
-    );
-
     public static final Option<WrapPolicy> ANNOTATION_ARGUMENTS = Option.ofEnum(
         "wrapping.annotation-arguments",
         WrapPolicy.WRAP_IF_LONG,
@@ -332,11 +326,6 @@ public final class WrappingRules {
 
         public Builder throwsClause(WrapPolicy value) {
             style.set(THROWS_CLAUSE, value);
-            return this;
-        }
-
-        public Builder typeParameters(WrapPolicy value) {
-            style.set(TYPE_PARAMETERS, value);
             return this;
         }
 

@@ -202,6 +202,12 @@ public final class DocPrinter {
                     if (lineBreak.kind() == Doc.BreakKind.FRESH && lineSuffixes.isEmpty() && lineIsAllWhitespace(out)) {
                         break;
                     }
+                    // An optional break taken at the start of a line would only open an empty one: the
+                    // break separates content from content, and there is none above it. The content
+                    // stays where it is, keeping the indent that line already carries.
+                    if (!hard && mode == Mode.BREAK && lineSuffixes.isEmpty() && lineIsAllWhitespace(out)) {
+                        break;
+                    }
                     if (mode == Mode.FLAT && !hard && !endsLine(lineSuffixes)) {
                         if (lineBreak.kind() == Doc.BreakKind.LINE) {
                             out.append(' ');

@@ -226,6 +226,9 @@ abstract class ExpressionEmitter extends EmitSupport {
      * <p>Every token is emitted from the tree rather than synthesised, including the commas, so a
      * comment the author attached to one cannot go missing.
      *
+     * <p>An angle bracket section is not laid out as a list: its brackets belong to the types they
+     * wrap, so it is routed to {@link #angleBracketedList} and never offered a break of its own.
+     *
      * @param node the node whose first and last children are the delimiters
      * @param policy how the list wraps
      * @param indentColumns columns to indent wrapped elements by
@@ -268,30 +271,13 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (middle.isEmpty()) {
             return Doc.concat(emit(open), emit(close));
         }
+        if (is(open, "<") && is(close, ">")) {
+            return angleBracketedList(node, indentColumns, spaceInside);
+        }
 
-        List<Doc> elements = new ArrayList<>();
-        List<Boolean> startsRow = new ArrayList<>();
-        List<Doc> current = new ArrayList<>();
-        for (GreenNode child : middle) {
-            if (current.isEmpty()) {
-                startsRow.add(authorBrokeBefore(child));
-            }
-            if (current.isEmpty() && hasLeadingComments(child)) {
-                // A comment above an element ends its own line, not one inside the element.
-                HoistedLeading hoisted = hoistLeadingTrivia(child);
-                current.add(hoisted.leading());
-                current.add(emit(hoisted.node()));
-            } else {
-                current.add(emit(child));
-            }
-            if (is(child, ",")) {
-                elements.add(Doc.concat(current));
-                current = new ArrayList<>();
-            }
-        }
-        if (!current.isEmpty()) {
-            elements.add(Doc.concat(current));
-        }
+        ListElements split = splitElements(middle);
+        List<Doc> elements = split.elements();
+        List<Boolean> startsRow = split.startsRow();
 
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
         Doc inner;
@@ -337,6 +323,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             return Doc.breakingGroup(content);
         }
         return switch (policy) {
+            // A list that never wraps prints whole even where it overflows.
             case NEVER -> Doc.concat(emit(open), spaceIf(spaceInside), inner, spaceIf(spaceInside), emit(close));
             case CHOP_DOWN_ALWAYS -> Doc.breakingGroup(content);
             case PRESERVE ->
@@ -344,6 +331,78 @@ abstract class ExpressionEmitter extends EmitSupport {
             default -> keepOpenBreak ? Doc.breakingGroup(content) : authorGroup(node, content, groupKind);
         };
     }
+
+    /**
+     * Splits a list's elements into one document each, ending every element at its comma.
+     *
+     * @param startsRow for each element, whether the author started a new line before it
+     */
+    private ListElements splitElements(List<GreenNode> middle) {
+        List<Doc> elements = new ArrayList<>();
+        List<Boolean> startsRow = new ArrayList<>();
+        List<Doc> current = new ArrayList<>();
+        for (GreenNode child : middle) {
+            if (current.isEmpty()) {
+                startsRow.add(authorBrokeBefore(child));
+            }
+            if (current.isEmpty() && hasLeadingComments(child)) {
+                // A comment above an element ends its own line, not one inside the element.
+                HoistedLeading hoisted = hoistLeadingTrivia(child);
+                current.add(hoisted.leading());
+                current.add(emit(hoisted.node()));
+            } else {
+                current.add(emit(child));
+            }
+            if (is(child, ",")) {
+                elements.add(Doc.concat(current));
+                current = new ArrayList<>();
+            }
+        }
+        if (!current.isEmpty()) {
+            elements.add(Doc.concat(current));
+        }
+        return new ListElements(elements, startsRow);
+    }
+
+    /**
+     * A type parameter or type argument section.
+     *
+     * <p>The brackets belong to the types they wrap, so the whole thing is one unit rather than a
+     * list between two delimiters: {@code <} never ends a line and {@code >} never starts one, and
+     * the section is never offered a break of its own. A section that does not fit where it stands
+     * moves, whole, to an indented continuation line; one that still does not fit there overflows
+     * rather than coming apart at its brackets. There is no rule behind that: a {@code Map<A, B>}
+     * that a reader could mistake for two tokens is not something a style should be able to ask for.
+     */
+    private Doc angleBracketedList(GreenNode node, int indentColumns, boolean spaceInside) {
+        List<GreenNode> children = node.children();
+        GreenNode open = children.getFirst();
+        GreenNode close = children.getLast();
+        List<GreenNode> middle = children.subList(1, children.size() - 1);
+        if (middle.isEmpty()) {
+            return Doc.concat(emit(open), emit(close));
+        }
+        List<Doc> elements = splitElements(middle).elements();
+        Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
+        // An inline comment in front of the closing bracket stays with the last element.
+        HoistedLeading closing = inlineCommentsOnly(close)
+            ? hoistLeadingTrivia(close)
+            : new HoistedLeading(Doc.EMPTY, close);
+        Doc body = Doc.concat(
+            // Unlike a list that may stay flat around a hard break in its last element, a section
+            // that shifted did take the indent, and any break a comment forces inside it belongs on
+            // a continuation line of its own.
+            Doc.indent(
+                indentColumns,
+                Doc.concat(spaceIf(spaceInside), Doc.join(separator, elements), closing.leading())
+            ),
+            spaceIf(spaceInside)
+        );
+        Doc section = Doc.flatGroup(Doc.concat(emit(open), body, emit(closing.node())));
+        return Doc.group(Doc.concat(Doc.indent(indentColumns, Doc.softLine()), section));
+    }
+
+    private record ListElements(List<Doc> elements, List<Boolean> startsRow) { }
 
     // ---------------------------------------------------------------- types
 
@@ -410,16 +469,11 @@ abstract class ExpressionEmitter extends EmitSupport {
     }
 
     protected Doc emitTypeArguments(GreenNode node) {
-        return delimitedList(node, WrapPolicy.WRAP_IF_LONG, continuation(), rule(SpacingRules.WITHIN_ANGLE_BRACKETS));
+        return angleBracketedList(node, continuation(), rule(SpacingRules.WITHIN_ANGLE_BRACKETS));
     }
 
     protected Doc emitTypeParameters(GreenNode node) {
-        return delimitedList(
-            node,
-            rule(WrappingRules.TYPE_PARAMETERS),
-            continuation(),
-            rule(SpacingRules.WITHIN_ANGLE_BRACKETS)
-        );
+        return angleBracketedList(node, continuation(), rule(SpacingRules.WITHIN_ANGLE_BRACKETS));
     }
 
     // ----------------------------------------------------------- expressions

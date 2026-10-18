@@ -70,7 +70,6 @@ public enum Preset {
                     .assignment(WrapPolicy.WRAP_IF_LONG)
                     .arrayInitializers(WrapPolicy.WRAP_IF_LONG)
                     .extendsImplements(WrapPolicy.WRAP_IF_LONG)
-                    .typeParameters(WrapPolicy.WRAP_IF_LONG)
                     .enumConstants(WrapPolicy.CHOP_DOWN_IF_LONG)
                     .forStatement(WrapPolicy.WRAP_IF_LONG)
                     .tryResources(WrapPolicy.CHOP_DOWN_IF_LONG)
