@@ -1,0 +1,5 @@
+preset = "formatj"
+
+[members]
+field-order = ["instance", ["final", "static"], "static-final"]
+visibility-order = ["private", "package-private", "protected", "public"]

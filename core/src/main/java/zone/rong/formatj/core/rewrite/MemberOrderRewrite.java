@@ -16,7 +16,8 @@ import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.lexer.Token;
 
 /**
- * Sorts the members of each type body into IntelliJ IDEA's default arrangement order.
+ * Sorts the members of each type body into IntelliJ IDEA's default arrangement order, with field kinds
+ * and access levels ranked by {@code members.field-order} and {@code members.visibility-order}.
  *
  * <p>The sort is stable, so members of one group keep the order the author gave them, and a member
  * moves as a whole node, which carries its comments, annotations and trailing comment with it. The
@@ -33,9 +34,6 @@ import zone.rong.formatj.core.lexer.Token;
  */
 public final class MemberOrderRewrite implements Rewrite {
 
-    private static final int STATIC_INITIALIZER = 9;
-    private static final int INSTANCE_INITIALIZER = 18;
-
     private static GreenNode sort(GreenNode body, GreenNode owner, boolean interfaceBody, RewriteContext context) {
         List<GreenNode> children = body.children();
         int first = children.get(1).kind() == SyntaxKind.ENUM_CONSTANTS ? 2 : 1;
@@ -45,10 +43,14 @@ public final class MemberOrderRewrite implements Rewrite {
         }
 
         List<Integer> groups = new ArrayList<>(members.size());
-        boolean fieldVisibilityOrder = context.rule(MemberRules.FIELD_VISIBILITY_ORDER);
-        boolean methodVisibilityOrder = context.rule(MemberRules.METHOD_VISIBILITY_ORDER);
+        MemberGroup.Order rank = new MemberGroup.Order(
+            context.rule(MemberRules.FIELD_ORDER),
+            context.rule(MemberRules.VISIBILITY_ORDER),
+            context.rule(MemberRules.FIELD_VISIBILITY_ORDER),
+            context.rule(MemberRules.METHOD_VISIBILITY_ORDER)
+        );
         for (GreenNode member : members) {
-            int group = MemberGroup.of(member, interfaceBody, fieldVisibilityOrder, methodVisibilityOrder);
+            int group = MemberGroup.of(member, interfaceBody, rank);
             if (group == MemberGroup.NONE || context.firstPosition(member) < 0) {
                 return body;
             }
@@ -64,7 +66,7 @@ public final class MemberOrderRewrite implements Rewrite {
             return body;
         }
 
-        String conflict = initializationConflict(members, groups, order);
+        String conflict = initializationConflict(members, order, interfaceBody);
         if (conflict != null) {
             GreenNode.Leaf open = (GreenNode.Leaf) children.getFirst();
             Token token = open.token().token();
@@ -119,23 +121,23 @@ public final class MemberOrderRewrite implements Rewrite {
      * initializing member and a field without an initializer may swap when the first does not mention
      * the second by name, since a simple-name use before the declaration does not compile.
      */
-    private static String initializationConflict(List<GreenNode> members, List<Integer> groups, List<Integer> order) {
+    private static String initializationConflict(List<GreenNode> members, List<Integer> order, boolean interfaceBody) {
         int[] newIndex = new int[members.size()];
         for (int i = 0; i < order.size(); i++) {
             newIndex[order.get(i)] = i;
         }
         for (int earlier = 0; earlier < members.size(); earlier++) {
-            if (groups.get(earlier) > INSTANCE_INITIALIZER) {
+            GreenNode a = members.get(earlier);
+            if (!fieldOrInitializer(a)) {
                 continue;
             }
             for (int later = earlier + 1; later < members.size(); later++) {
+                GreenNode b = members.get(later);
                 if (newIndex[earlier] < newIndex[later] ||
-                    groups.get(later) > INSTANCE_INITIALIZER ||
-                    isStatic(groups.get(earlier)) != isStatic(groups.get(later))) {
+                    !fieldOrInitializer(b) ||
+                    MemberGroup.isStatic(a, interfaceBody) != MemberGroup.isStatic(b, interfaceBody)) {
                     continue;
                 }
-                GreenNode a = members.get(earlier);
-                GreenNode b = members.get(later);
                 if (!initializes(a) && !initializes(b)) {
                     continue;
                 }
@@ -147,8 +149,8 @@ public final class MemberOrderRewrite implements Rewrite {
         return null;
     }
 
-    private static boolean isStatic(int group) {
-        return group <= STATIC_INITIALIZER;
+    private static boolean fieldOrInitializer(GreenNode member) {
+        return member.kind() == SyntaxKind.FIELD_DECLARATION || member.kind() == SyntaxKind.INITIALIZER_BLOCK;
     }
 
     private static boolean swapIsSafe(GreenNode a, GreenNode b) {
@@ -201,7 +203,7 @@ public final class MemberOrderRewrite implements Rewrite {
 
     private static String describe(GreenNode member) {
         if (member.kind() == SyntaxKind.INITIALIZER_BLOCK) {
-            return isStatic(MemberGroup.of(member, false)) ? "a static initializer" : "an initializer block";
+            return MemberGroup.isStatic(member, false) ? "a static initializer" : "an initializer block";
         }
         return String.join(", ", declaredNames(member).stream().sorted().toList());
     }

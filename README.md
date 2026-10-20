@@ -741,8 +741,10 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 | Key             | Values                 | Default    | Effect                                 | Example                                         |
 |-----------------|------------------------|------------|----------------------------------------|-------------------------------------------------|
 | `members.order` | `preserve`, `intellij` | `intellij` | Ordering of the members of a type body | `intellij`: a static field moves above a method |
-| `members.field-visibility-order` | boolean | `true` | Sort fields of one kind by visibility within their group, public first | `true`: `public int a;` before `private int b;` |
-| `members.method-visibility-order` | boolean | `true` | Sort methods of one kind by visibility within their group, public first | `true`: `public void a();` before `private void b();` |
+| `members.field-order` | list of field kinds or kind lists | `["static-final", "static", "final", "instance"]` | Ranking of field kinds: `static-final`, `static`, `final` and `instance` | `["instance", "final", "static", "static-final"]` puts instance fields first |
+| `members.visibility-order` | list of access levels or level lists | `["public", "protected", "package-private", "private"]` | Ranking of access levels for fields and methods sorted by visibility | `["private", "package-private", "protected", "public"]` puts private members first |
+| `members.field-visibility-order` | boolean | `true` | Sort fields of one kind by visibility within their group, in `members.visibility-order` | `true`: `public int a;` before `private int b;` |
+| `members.method-visibility-order` | boolean | `true` | Sort methods of one kind by visibility within their group, in `members.visibility-order` | `true`: `public void a();` before `private void b();` |
 
 - `intellij` sorts each type body by IntelliJ IDEA's default arrangement. Members of one group keep the order they were written in.
 - The groups, in order:
@@ -759,7 +761,9 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
   11. nested interfaces
   12. static nested classes
   13. inner classes
-- Fields and methods are ordered by access within their group, from `public` to `private`. `members.field-visibility-order` and `members.method-visibility-order` turn either kind's visibility sorting off independently.
+- `members.field-order` reorders the four field groups. A static initializer follows the last static field group, and an instance initializer the last instance one.
+- Fields and methods are ordered by access within their group, in `members.visibility-order`. `members.field-visibility-order` and `members.method-visibility-order` turn either kind's visibility sorting off independently.
+- In both lists, kinds written as one inner list rank equal and keep their source order, and a kind left out ranks after every listed one.
 - A member moves with its comments and annotations, and enum constants stay first.
 - A body is left alone when it holds a formatter-off region or a stray semicolon.
 - A body is left alone, with a warning, when the sort would swap two field initializers or initializer blocks whose order matters. Two fields may swap only when their initializers are built from literals, operators, casts and names, and neither names the other.

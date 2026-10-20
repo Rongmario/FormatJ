@@ -616,12 +616,16 @@ TYPE public final enum zone.rong.formatj.api.rules.MemberOrder
 TYPE public final class zone.rong.formatj.api.rules.MemberRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.MemberRules.FIELD_VISIBILITY_ORDER
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.MemberRules.METHOD_VISIBILITY_ORDER
+  FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.MemberRules.FIELD_ORDER
+  FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.MemberRules.VISIBILITY_ORDER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.MemberOrder> zone.rong.formatj.api.rules.MemberRules.ORDER
 TYPE public static final class zone.rong.formatj.api.rules.MemberRules$Builder
   CTOR public zone.rong.formatj.api.rules.MemberRules$Builder(zone.rong.formatj.api.StyleBuilder)
+  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.fieldOrder(java.util.List<java.util.List<java.lang.String>>)
   METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.fieldVisibilityOrder(boolean)
   METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.methodVisibilityOrder(boolean)
   METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.order(zone.rong.formatj.api.rules.MemberOrder)
+  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.visibilityOrder(java.util.List<java.util.List<java.lang.String>>)
 TYPE public final enum zone.rong.formatj.api.rules.ModifierOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ModifierOrder>
   ENUM PRESERVE

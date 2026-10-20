@@ -379,8 +379,12 @@ public final class RewriteVerification {
             int group = MemberGroup.of(
                 body.members().get(index),
                 body.interfaceBody(),
-                style.get(MemberRules.FIELD_VISIBILITY_ORDER),
-                style.get(MemberRules.METHOD_VISIBILITY_ORDER)
+                new MemberGroup.Order(
+                    style.get(MemberRules.FIELD_ORDER),
+                    style.get(MemberRules.VISIBILITY_ORDER),
+                    style.get(MemberRules.FIELD_VISIBILITY_ORDER),
+                    style.get(MemberRules.METHOD_VISIBILITY_ORDER)
+                )
             );
             if (group < previousGroup || group == previousGroup && index < previousIndex) {
                 return MemberRules.ORDER.key() + " did not produce the stable order by member group";
