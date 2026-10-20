@@ -6,11 +6,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import zone.rong.formatj.api.rules.CommentRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.api.rules.VisibilityPosition;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
+import zone.rong.formatj.core.cst.SyntaxToken;
+import zone.rong.formatj.core.lexer.Token;
 
 /** Puts declaration modifiers in their declaration-specific canonical order. */
 public final class ModifierRewrite implements Rewrite {
@@ -75,6 +79,7 @@ public final class ModifierRewrite implements Rewrite {
         "strictfp"
     );
     private static final List<String> CONSTRUCTOR_ORDER = List.of("public", "protected", "private");
+    private static final List<String> VISIBILITY = List.of("public", "protected", "private");
 
     private static List<Part> parts(GreenNode modifiers) {
         List<GreenNode> children = modifiers.children();
@@ -105,13 +110,49 @@ public final class ModifierRewrite implements Rewrite {
         return node instanceof GreenNode.Leaf leaf ? leaf.decodedLexeme() : "";
     }
 
-    private static boolean hasComments(GreenNode node) {
-        for (GreenNode.Leaf leaf : ProgramTokens.leaves(node)) {
-            if (leaf.token().hasComments()) {
+    /**
+     * Whether a comment is attached anywhere but in front of the first token. The comments in front,
+     * a declaration's Javadoc among them, belong to the declaration and stay at its start.
+     */
+    private static boolean hasInnerComments(GreenNode node) {
+        List<GreenNode.Leaf> leaves = ProgramTokens.leaves(node);
+        for (int i = 0; i < leaves.size(); i++) {
+            SyntaxToken token = leaves.get(i).token();
+            if (!token.trailingComments().isEmpty() || i > 0 && !token.leadingComments().isEmpty()) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Whether the comments in front of the declaration turn formatting off or back on. */
+    private static boolean marksFormatting(GreenNode modifiers, RewriteContext context) {
+        if (!context.rule(CommentRules.HONOUR_FORMATTER_OFF)) {
+            return false;
+        }
+        String off = context.rule(CommentRules.OFF_MARKER);
+        String on = context.rule(CommentRules.ON_MARKER);
+        for (Token comment : ProgramTokens.leaves(modifiers).getFirst().token().leadingComments()) {
+            if (!off.isBlank() && comment.decodedText().contains(off) ||
+                !on.isBlank() && comment.decodedText().contains(on)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Swaps the leading trivia of the first leaves of two parts. */
+    private static List<Part> swapLeading(List<Part> parts, int first, int other) {
+        GreenNode.Leaf a = (GreenNode.Leaf) parts.get(first).nodes().getFirst();
+        GreenNode.Leaf b = (GreenNode.Leaf) parts.get(other).nodes().getFirst();
+        List<Part> swapped = new ArrayList<>(parts);
+        swapped.set(first, parts.get(first).withFirst(withLeading(a, b.token().leading())));
+        swapped.set(other, parts.get(other).withFirst(withLeading(b, a.token().leading())));
+        return swapped;
+    }
+
+    private static GreenNode.Leaf withLeading(GreenNode.Leaf leaf, List<Token> leading) {
+        return GreenNode.leaf(new SyntaxToken(leading, leaf.token().token(), leaf.token().trailing()));
     }
 
     private static List<String> order(SyntaxKind kind) {
@@ -128,6 +169,13 @@ public final class ModifierRewrite implements Rewrite {
         };
     }
 
+    private static List<String> visibilityLast(List<String> order) {
+        List<String> moved = new ArrayList<>(order);
+        moved.removeAll(VISIBILITY);
+        moved.addAll(VISIBILITY.stream().filter(order::contains).toList());
+        return moved;
+    }
+
     @Override
     public String name() {
         return "modifiers";
@@ -140,13 +188,18 @@ public final class ModifierRewrite implements Rewrite {
 
     @Override
     public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        List<String> order = order(node.kind());
-        if (order == null || node.children().isEmpty()) {
+        List<String> canonical = order(node.kind());
+        if (canonical == null || node.children().isEmpty()) {
             return node;
         }
+        List<String> order = context.rule(ModifierRules.VISIBILITY_POSITION) == VisibilityPosition.LAST
+            ? visibilityLast(canonical)
+            : canonical;
 
         GreenNode modifiers = node.children().getFirst();
-        if (modifiers.kind() != SyntaxKind.MODIFIERS || hasComments(modifiers)) {
+        if (modifiers.kind() != SyntaxKind.MODIFIERS ||
+            hasInnerComments(modifiers) ||
+            marksFormatting(modifiers, context)) {
             return node;
         }
 
@@ -176,11 +229,18 @@ public final class ModifierRewrite implements Rewrite {
             return node;
         }
 
-        List<GreenNode> modifierChildren = new ArrayList<>();
+        List<Part> placed = new ArrayList<>();
         int next = 0;
         for (Part part : parts) {
-            Part rewritten = part.modifier() == null ? part : sorted.get(next++);
-            modifierChildren.addAll(rewritten.nodes());
+            placed.add(part.modifier() == null ? part : sorted.get(next++));
+        }
+        // The trivia in front of the declaration stays in front of it, whichever keyword moves there.
+        if (placed.getFirst() != parts.getFirst()) {
+            placed = swapLeading(placed, 0, placed.indexOf(parts.getFirst()));
+        }
+        List<GreenNode> modifierChildren = new ArrayList<>();
+        for (Part part : placed) {
+            modifierChildren.addAll(part.nodes());
         }
         GreenNode rewrittenModifiers = GreenNode.branch(SyntaxKind.MODIFIERS, modifierChildren);
 
@@ -206,6 +266,12 @@ public final class ModifierRewrite implements Rewrite {
 
         private Part {
             nodes = List.copyOf(nodes);
+        }
+
+        private Part withFirst(GreenNode first) {
+            List<GreenNode> replaced = new ArrayList<>(nodes);
+            replaced.set(0, first);
+            return new Part(replaced, modifier);
         }
 
     }

@@ -583,10 +583,12 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 |------------------------------|-------------------------|-------------|-----------------------------------------|-----------------------------------------------------------------------------|
 | `modifiers.order`            | `preserve`, `canonical` | `canonical` | Ordering of declaration modifiers       | `canonical`: `static public` becomes `public static`                        |
 | `modifiers.remove-redundant` | boolean                 | `true`      | Remove modifiers the JLS makes implicit | `true`: `public abstract void run();` in an interface becomes `void run();` |
+| `modifiers.visibility-position` | `first`, `last` | `first` | Where the access modifier sits among the other modifiers in the canonical order | `last`: `public static final` becomes `static final public` |
 
 - `canonical` uses the per-declaration orders documented in `ModifierRules`.
   - Annotations keep their source order and their positions among the modifiers.
-  - Modifier lists with comments, duplicates or malformed modifiers stay unchanged.
+  - A comment or Javadoc in front of the declaration stays in front of it while the keywords move.
+  - Modifier lists with comments between the modifiers, duplicates or malformed modifiers stay unchanged.
 - `modifiers.remove-redundant` removes only what the JLS implies. A modifier that carries a comment stays.
 - Below Java 9, `final` stays on a private method that carries `@SafeVarargs`, because the annotation needs it there.
   - `public` and bodiless `abstract` on interface methods

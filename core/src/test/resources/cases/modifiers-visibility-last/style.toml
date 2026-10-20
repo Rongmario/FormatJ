@@ -1,0 +1,4 @@
+preset = "formatj"
+
+[modifiers]
+visibility-position = "last"

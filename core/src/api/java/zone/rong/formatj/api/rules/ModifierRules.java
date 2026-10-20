@@ -19,7 +19,9 @@ import zone.rong.formatj.api.StyleBuilder;
  *   <li>constructors: {@code public protected private}
  * </ul>
  *
- * <p>Annotations keep their source order and position among modifier slots.
+ * <p>{@code modifiers.visibility-position = "last"} moves {@code public}, {@code protected} and
+ * {@code private} after the others. Annotations keep their source order and position among modifier
+ * slots.
  */
 public final class ModifierRules {
 
@@ -27,6 +29,12 @@ public final class ModifierRules {
         "modifiers.order",
         ModifierOrder.CANONICAL,
         "Ordering of declaration modifiers"
+    );
+
+    public static final Option<VisibilityPosition> VISIBILITY_POSITION = Option.ofEnum(
+        "modifiers.visibility-position",
+        VisibilityPosition.FIRST,
+        "Where the access modifier sits among the other modifiers in the canonical order"
     );
 
     public static final Option<Boolean> REMOVE_REDUNDANT = Option.ofBoolean(
@@ -48,6 +56,11 @@ public final class ModifierRules {
 
         public Builder order(ModifierOrder value) {
             style.set(ORDER, value);
+            return this;
+        }
+
+        public Builder visibilityPosition(VisibilityPosition value) {
+            style.set(VISIBILITY_POSITION, value);
             return this;
         }
 

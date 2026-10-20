@@ -633,10 +633,12 @@ TYPE public final enum zone.rong.formatj.api.rules.ModifierOrder
 TYPE public final class zone.rong.formatj.api.rules.ModifierRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ModifierRules.REMOVE_REDUNDANT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.ModifierOrder> zone.rong.formatj.api.rules.ModifierRules.ORDER
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.VisibilityPosition> zone.rong.formatj.api.rules.ModifierRules.VISIBILITY_POSITION
 TYPE public static final class zone.rong.formatj.api.rules.ModifierRules$Builder
   CTOR public zone.rong.formatj.api.rules.ModifierRules$Builder(zone.rong.formatj.api.StyleBuilder)
   METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.order(zone.rong.formatj.api.rules.ModifierOrder)
   METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.removeRedundant(boolean)
+  METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.visibilityPosition(zone.rong.formatj.api.rules.VisibilityPosition)
 TYPE public final class zone.rong.formatj.api.rules.ModuleRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<java.lang.Integer>> zone.rong.formatj.api.rules.ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE
@@ -862,6 +864,14 @@ TYPE public static final class zone.rong.formatj.api.rules.TextBlockRules$Builde
   METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.closingDelimiterOnOwnLine(boolean)
   METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.escapeTrailingSpaces(boolean)
   METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.indentPolicy(zone.rong.formatj.api.rules.TextBlockIndentPolicy)
+TYPE public final enum zone.rong.formatj.api.rules.VisibilityPosition
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.VisibilityPosition>
+  ENUM FIRST
+  ENUM LAST
+  FIELD public static final zone.rong.formatj.api.rules.VisibilityPosition zone.rong.formatj.api.rules.VisibilityPosition.FIRST
+  FIELD public static final zone.rong.formatj.api.rules.VisibilityPosition zone.rong.formatj.api.rules.VisibilityPosition.LAST
+  METHOD public static zone.rong.formatj.api.rules.VisibilityPosition zone.rong.formatj.api.rules.VisibilityPosition.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.VisibilityPosition[] zone.rong.formatj.api.rules.VisibilityPosition.values()
 TYPE public final enum zone.rong.formatj.api.rules.WrapPolicy
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.WrapPolicy>
   ENUM PRESERVE
