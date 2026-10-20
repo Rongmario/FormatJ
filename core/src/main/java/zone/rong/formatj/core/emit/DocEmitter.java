@@ -123,6 +123,7 @@ public final class DocEmitter extends StatementEmitter {
 
     /** Emits a document for the given tree. */
     public Doc emit(SyntaxNode node) {
+        findClosersBeforeBraces(node.green());
         return emit(node.green());
     }
 

@@ -9,7 +9,6 @@ import zone.rong.formatj.api.rules.AssignmentBreak;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
-import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.LambdaRules;
@@ -302,8 +301,7 @@ abstract class ExpressionEmitter extends EmitSupport {
         boolean hugOpen = is(open, "(") && !rule(WrappingRules.BREAK_AFTER_OPEN_PAREN) && !keepOpenBreak;
         Doc edge = hugOpen ? spaceIf(spaceInside) : spaceInside ? Doc.line() : Doc.softLine();
         // Braces of an initializer carry their own answer; a parenthesis follows the file-wide rule.
-        boolean ownLine = is(close, "}") ||
-            is(close, ")") && rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE;
+        boolean ownLine = is(close, "}") || is(close, ")") && closesOnOwnLine(close);
         Doc closingEdge = !ownLine ? spaceIf(spaceInside) : spaceInside ? Doc.line() : Doc.softLine();
         // An inline comment in front of the closing delimiter stays with the last element, even when the
         // delimiter takes a line of its own.

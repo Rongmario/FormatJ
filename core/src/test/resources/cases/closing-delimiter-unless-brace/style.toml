@@ -1,0 +1,8 @@
+preset = "formatj"
+
+[wrapping]
+max-line-length = 80
+closing-delimiter = "own-line-unless-brace"
+break-after-open-paren = true
+method-parameters = "wrap-if-long"
+method-arguments = "wrap-if-long"

@@ -1,6 +1,8 @@
 package zone.rong.formatj.core.emit;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -19,8 +21,10 @@ import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.TextBlockIndentPolicy;
 import zone.rong.formatj.api.rules.TextBlockRules;
+import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.comment.CommentFormatter;
 import zone.rong.formatj.core.cst.GreenNode;
+import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
 import zone.rong.formatj.core.cst.SyntaxToken;
 import zone.rong.formatj.core.ir.AlignmentSite;
@@ -44,6 +48,8 @@ abstract class EmitSupport {
 
     protected final Style style;
     private final CommentFormatter comments;
+    /** Closing parentheses whose next token is an opening brace, by identity. */
+    private final Set<GreenNode> beforeBrace = Collections.newSetFromMap(new IdentityHashMap<>());
 
     EmitSupport(Style style) {
         this.style = style;
@@ -247,6 +253,25 @@ abstract class EmitSupport {
             }
         }
         return lastBreak < 0 ? whitespace : whitespace.substring(lastBreak + 1);
+    }
+
+    /** Records which closing parentheses in {@code root} a brace follows. */
+    protected void findClosersBeforeBraces(GreenNode root) {
+        List<GreenNode.Leaf> leaves = ProgramTokens.leaves(root);
+        for (int i = 1; i < leaves.size(); i++) {
+            if (is(leaves.get(i), "{") && is(leaves.get(i - 1), ")")) {
+                beforeBrace.add(leaves.get(i - 1));
+            }
+        }
+    }
+
+    /** Whether the closing parenthesis of a wrapped list takes a line of its own. */
+    protected boolean closesOnOwnLine(GreenNode close) {
+        return switch (rule(WrappingRules.CLOSING_DELIMITER)) {
+            case ATTACHED -> false;
+            case OWN_LINE -> true;
+            case OWN_LINE_UNLESS_BRACE -> !beforeBrace.contains(close);
+        };
     }
 
     protected abstract Doc emit(GreenNode node);

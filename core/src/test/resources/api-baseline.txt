@@ -402,8 +402,10 @@ TYPE public final enum zone.rong.formatj.api.rules.ClosingDelimiter
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ClosingDelimiter>
   ENUM ATTACHED
   ENUM OWN_LINE
+  ENUM OWN_LINE_UNLESS_BRACE
   FIELD public static final zone.rong.formatj.api.rules.ClosingDelimiter zone.rong.formatj.api.rules.ClosingDelimiter.ATTACHED
   FIELD public static final zone.rong.formatj.api.rules.ClosingDelimiter zone.rong.formatj.api.rules.ClosingDelimiter.OWN_LINE
+  FIELD public static final zone.rong.formatj.api.rules.ClosingDelimiter zone.rong.formatj.api.rules.ClosingDelimiter.OWN_LINE_UNLESS_BRACE
   METHOD public static zone.rong.formatj.api.rules.ClosingDelimiter zone.rong.formatj.api.rules.ClosingDelimiter.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.ClosingDelimiter[] zone.rong.formatj.api.rules.ClosingDelimiter.values()
 TYPE public final enum zone.rong.formatj.api.rules.CommentReflow

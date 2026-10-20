@@ -8,7 +8,6 @@ import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
-import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
@@ -468,7 +467,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             return Doc.concat(emit(open), spaceIf(inside), resources, spaceIf(inside), emit(close));
         }
         Doc edge = inside ? Doc.line() : Doc.softLine();
-        Doc closingEdge = rule(WrappingRules.CLOSING_DELIMITER) == ClosingDelimiter.OWN_LINE ? edge : spaceIf(inside);
+        Doc closingEdge = closesOnOwnLine(close) ? edge : spaceIf(inside);
         Doc body = Doc.concat(
             emit(open),
             Doc.indentIfBreak(continuation(), Doc.concat(edge, resources)),

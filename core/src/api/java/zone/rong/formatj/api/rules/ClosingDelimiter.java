@@ -29,6 +29,21 @@ public enum ClosingDelimiter {
      * );
      * }</pre>
      */
-    OWN_LINE
+    OWN_LINE,
+    /**
+     * Give the parenthesis a line of its own, unless a brace follows it, where it stays against the
+     * last element so the brace opens on the line that ends the list.
+     *
+     * <pre>{@code
+     * this.callIsLong(
+     *         arg1,
+     *         arg2
+     * );
+     * void declarationIsLong(
+     *         int arg1,
+     *         int arg2) {
+     * }</pre>
+     */
+    OWN_LINE_UNLESS_BRACE
 
 }
