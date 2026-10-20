@@ -4,8 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
+import zone.rong.formatj.api.Option;
+import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.DeclarationRules;
+import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
+import zone.rong.formatj.api.rules.VisibilityPosition;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -36,27 +43,80 @@ import zone.rong.formatj.core.lexer.TokenKind;
  */
 public final class SplitVariablesRewrite implements Rewrite {
 
+    private static final Set<String> INTERFACE_FIELD = Set.of("public", "static", "final");
+
     /**
      * Every edit the split could declare for {@code tree}, whichever declarations qualify.
      *
      * <p>Derived from the tokens alone, so the verifier can compare each declared edit against them
      * without trusting the rewrite's own bookkeeping.
      */
-    public static List<TokenEdit> expectedEdits(GreenNode tree) {
+    public static List<TokenEdit> expectedEdits(GreenNode tree, Style style) {
         Map<GreenNode.Leaf, Integer> positions = ProgramTokens.positions(tree);
         List<TokenEdit> edits = new ArrayList<>();
-        collect(tree, positions, edits);
+        collect(tree, false, false, positions, style::get, edits);
         return List.copyOf(edits);
     }
 
-    private static void collect(GreenNode node, Map<GreenNode.Leaf, Integer> positions, List<TokenEdit> edits) {
+    /**
+     * @param interfaceOwner whether {@code node}, when it is a type body, belongs to an interface
+     * @param inInterfaceBody whether {@code node} is a member of an interface's body
+     */
+    private static void collect(
+        GreenNode node,
+        boolean interfaceOwner,
+        boolean inInterfaceBody,
+        Map<GreenNode.Leaf, Integer> positions,
+        Function<Option<?>, Object> rule,
+        List<TokenEdit> edits
+    ) {
         if (node instanceof GreenNode.Leaf) {
             return;
         }
         for (GreenNode child : node.children()) {
-            collect(child, positions, edits);
+            boolean body = node.kind() == SyntaxKind.CLASS_BODY;
+            collect(child, interfaceLike(node.kind()), body && interfaceOwner, positions, rule, edits);
         }
-        split(node, candidate -> firstPosition(candidate, positions), edits);
+        split(node, candidate -> firstPosition(candidate, positions), copiedHead(rule, inInterfaceBody), edits);
+    }
+
+    private static boolean interfaceLike(SyntaxKind kind) {
+        return kind == SyntaxKind.INTERFACE_DECLARATION || kind == SyntaxKind.ANNOTATION_TYPE_DECLARATION;
+    }
+
+    /**
+     * How the later declarations' copies of the head are made. A copy has no source position for the
+     * modifier rules to record an edit at, and whatever they would change in it would only change on
+     * the next pass, so the copy is written the way they leave the original head: in canonical order,
+     * and inside an interface without the public, static and final it implies.
+     */
+    private static HeadCopier copiedHead(Function<Option<?>, Object> rule, boolean inInterfaceBody) {
+        boolean sort = rule.apply(ModifierRules.ORDER) == ModifierOrder.CANONICAL;
+        VisibilityPosition position = (VisibilityPosition) rule.apply(ModifierRules.VISIBILITY_POSITION);
+        boolean strip = inInterfaceBody && Boolean.TRUE.equals(rule.apply(ModifierRules.REMOVE_REDUNDANT));
+        return (kind, head) -> {
+            List<GreenNode> copy = syntheticCopy(head);
+            if (sort) {
+                copy = ModifierRewrite.sortedHead(kind, copy, position);
+            }
+            return strip && kind == SyntaxKind.FIELD_DECLARATION ? withoutImplied(copy) : copy;
+        };
+    }
+
+    private static List<GreenNode> withoutImplied(List<GreenNode> head) {
+        if (head.getFirst().kind() != SyntaxKind.MODIFIERS) {
+            return head;
+        }
+        List<GreenNode> kept = head.getFirst()
+            .children()
+            .stream()
+            .filter(child -> !(child instanceof GreenNode.Leaf leaf && INTERFACE_FIELD.contains(leaf.decodedLexeme())))
+            .toList();
+        List<GreenNode> stripped = new ArrayList<>(head.subList(1, head.size()));
+        if (!kept.isEmpty()) {
+            stripped.addFirst(GreenNode.branch(SyntaxKind.MODIFIERS, kept));
+        }
+        return stripped;
     }
 
     /** The position of a node's first token that was in the original source. */
@@ -74,7 +134,12 @@ public final class SplitVariablesRewrite implements Rewrite {
      * The declarations one declaration splits into, with the edits it needs appended to {@code edits};
      * null when it does not qualify.
      */
-    private static List<GreenNode> split(GreenNode declaration, PositionLookup positions, List<TokenEdit> edits) {
+    private static List<GreenNode> split(
+        GreenNode declaration,
+        PositionLookup positions,
+        HeadCopier copier,
+        List<TokenEdit> edits
+    ) {
         if (declaration.kind() != SyntaxKind.FIELD_DECLARATION &&
                 declaration.kind() != SyntaxKind.LOCAL_VARIABLE_DECLARATION ||
             positions.of(declaration) < 0) {
@@ -122,7 +187,7 @@ public final class SplitVariablesRewrite implements Rewrite {
             int index = declarators.get(position);
             GreenNode declarator = children.get(index);
             List<GreenNode> own = brackets.get(position);
-            List<GreenNode> type = new ArrayList<>(position == 0 ? head : syntheticCopy(head));
+            List<GreenNode> type = new ArrayList<>(position == 0 ? head : copier.copy(declaration.kind(), head));
             if (!own.isEmpty()) {
                 type.set(type.size() - 1, wrap(type.getLast(), own));
             }
@@ -294,6 +359,28 @@ public final class SplitVariablesRewrite implements Rewrite {
         return all;
     }
 
+    /** The children of {@code parent} with each declaration of several variables split, or the same list. */
+    private static List<GreenNode> splitChildren(GreenNode parent, HeadCopier copier, RewriteContext context) {
+        List<GreenNode> children = parent.children();
+        List<GreenNode> rewritten = null;
+        int offset = 0;
+        for (int i = 0; i < children.size(); i++) {
+            List<TokenEdit> edits = new ArrayList<>();
+            List<GreenNode> split = split(children.get(i), context::firstPosition, copier, edits);
+            if (split == null) {
+                continue;
+            }
+            edits.forEach(context::record);
+            if (rewritten == null) {
+                rewritten = new ArrayList<>(children);
+            }
+            rewritten.remove(i + offset);
+            rewritten.addAll(i + offset, split);
+            offset += split.size() - 1;
+        }
+        return rewritten == null ? children : rewritten;
+    }
+
     @Override
     public String name() {
         return DeclarationRules.SPLIT_VARIABLES.key();
@@ -306,30 +393,34 @@ public final class SplitVariablesRewrite implements Rewrite {
 
     @Override
     public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        List<GreenNode> children = node.children();
-        List<GreenNode> rewritten = null;
-        int offset = 0;
-        for (int i = 0; i < children.size(); i++) {
-            List<TokenEdit> edits = new ArrayList<>();
-            List<GreenNode> split = split(children.get(i), context::firstPosition, edits);
-            if (split == null) {
-                continue;
-            }
-            edits.forEach(context::record);
-            if (rewritten == null) {
-                rewritten = new ArrayList<>(children);
-            }
-            rewritten.remove(i + offset);
-            rewritten.addAll(i + offset, split);
-            offset += split.size() - 1;
+        // A type body is split from its owner, which knows whether the body belongs to an interface.
+        if (node.kind() == SyntaxKind.CLASS_BODY) {
+            return node;
         }
-        return rewritten == null ? node : GreenNode.branch(node.kind(), rewritten);
+        List<GreenNode> children = new ArrayList<>(splitChildren(node, copiedHead(context::rule, false), context));
+        HeadCopier inBody = copiedHead(context::rule, interfaceLike(node.kind()));
+        for (int i = 0; i < children.size(); i++) {
+            GreenNode child = children.get(i);
+            if (child.kind() == SyntaxKind.CLASS_BODY) {
+                List<GreenNode> members = splitChildren(child, inBody, context);
+                if (members != child.children()) {
+                    children.set(i, GreenNode.branch(child.kind(), members));
+                }
+            }
+        }
+        return children.equals(node.children()) ? node : GreenNode.branch(node.kind(), children);
     }
 
     /** Where a node's tokens sat in the original stream: the rewrite's context, or the verifier's map. */
     interface PositionLookup {
 
         int of(GreenNode node);
+
+    }
+
+    private interface HeadCopier {
+
+        List<GreenNode> copy(SyntaxKind kind, List<GreenNode> head);
 
     }
 

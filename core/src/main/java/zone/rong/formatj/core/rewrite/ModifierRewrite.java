@@ -81,6 +81,20 @@ public final class ModifierRewrite implements Rewrite {
     private static final List<String> CONSTRUCTOR_ORDER = List.of("public", "protected", "private");
     private static final List<String> VISIBILITY = List.of("public", "protected", "private");
 
+    /**
+     * A declaration head with its modifiers in canonical order, for a copy of the head that has no
+     * source position of its own to record an edit at.
+     */
+    static List<GreenNode> sortedHead(SyntaxKind kind, List<GreenNode> head, VisibilityPosition position) {
+        List<String> order = order(kind, position);
+        if (order == null || head.isEmpty() || head.getFirst().kind() != SyntaxKind.MODIFIERS) {
+            return head;
+        }
+        List<GreenNode> sorted = new ArrayList<>(head);
+        sorted.set(0, sorted(head.getFirst(), order));
+        return sorted;
+    }
+
     private static List<Part> parts(GreenNode modifiers) {
         List<GreenNode> children = modifiers.children();
         List<Part> parts = new ArrayList<>();
@@ -176,36 +190,16 @@ public final class ModifierRewrite implements Rewrite {
         return moved;
     }
 
-    @Override
-    public String name() {
-        return "modifiers";
+    private static List<String> order(SyntaxKind kind, VisibilityPosition position) {
+        List<String> canonical = order(kind);
+        return canonical != null && position == VisibilityPosition.LAST ? visibilityLast(canonical) : canonical;
     }
 
-    @Override
-    public boolean enabled(RewriteContext context) {
-        return context.rule(ModifierRules.ORDER) == ModifierOrder.CANONICAL;
-    }
-
-    @Override
-    public GreenNode rewrite(GreenNode node, RewriteContext context) {
-        List<String> canonical = order(node.kind());
-        if (canonical == null || node.children().isEmpty()) {
-            return node;
-        }
-        List<String> order = context.rule(ModifierRules.VISIBILITY_POSITION) == VisibilityPosition.LAST
-            ? visibilityLast(canonical)
-            : canonical;
-
-        GreenNode modifiers = node.children().getFirst();
-        if (modifiers.kind() != SyntaxKind.MODIFIERS ||
-            hasInnerComments(modifiers) ||
-            marksFormatting(modifiers, context)) {
-            return node;
-        }
-
+    /** The modifiers in {@code order}, or the same node when they already are or cannot be sorted. */
+    private static GreenNode sorted(GreenNode modifiers, List<String> order) {
         List<Part> parts = parts(modifiers);
         if (parts == null) {
-            return node;
+            return modifiers;
         }
 
         List<Part> sortable = new ArrayList<>();
@@ -215,18 +209,18 @@ public final class ModifierRewrite implements Rewrite {
                 continue;
             }
             if (!order.contains(part.modifier()) || !seen.add(part.modifier())) {
-                return node;
+                return modifiers;
             }
             sortable.add(part);
         }
         if (sortable.size() < 2) {
-            return node;
+            return modifiers;
         }
 
         List<Part> sorted = new ArrayList<>(sortable);
         sorted.sort(Comparator.comparingInt(part -> order.indexOf(part.modifier())));
         if (sortable.equals(sorted)) {
-            return node;
+            return modifiers;
         }
 
         List<Part> placed = new ArrayList<>();
@@ -242,10 +236,34 @@ public final class ModifierRewrite implements Rewrite {
         for (Part part : placed) {
             modifierChildren.addAll(part.nodes());
         }
-        GreenNode rewrittenModifiers = GreenNode.branch(SyntaxKind.MODIFIERS, modifierChildren);
+        return GreenNode.branch(SyntaxKind.MODIFIERS, modifierChildren);
+    }
 
+    @Override
+    public String name() {
+        return "modifiers";
+    }
+
+    @Override
+    public boolean enabled(RewriteContext context) {
+        return context.rule(ModifierRules.ORDER) == ModifierOrder.CANONICAL;
+    }
+
+    @Override
+    public GreenNode rewrite(GreenNode node, RewriteContext context) {
+        List<String> order = order(node.kind(), context.rule(ModifierRules.VISIBILITY_POSITION));
+        if (order == null || node.children().isEmpty()) {
+            return node;
+        }
+        GreenNode modifiers = node.children().getFirst();
+        if (modifiers.kind() != SyntaxKind.MODIFIERS ||
+            hasInnerComments(modifiers) ||
+            marksFormatting(modifiers, context)) {
+            return node;
+        }
+        GreenNode rewrittenModifiers = sorted(modifiers, order);
         int position = context.firstPosition(modifiers);
-        if (position < 0) {
+        if (rewrittenModifiers == modifiers || position < 0) {
             return node;
         }
         context.record(new TokenEdit(

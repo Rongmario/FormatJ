@@ -42,23 +42,38 @@ public final class MemberOrderRewrite implements Rewrite {
             return body;
         }
 
-        List<Integer> groups = new ArrayList<>(members.size());
+        // The declarations a split made from one stay together and sort as that one declaration was.
+        List<List<GreenNode>> units = new ArrayList<>();
+        for (GreenNode member : members) {
+            boolean splitCopy = context.firstPosition(ProgramTokens.leaves(member).getFirst()) < 0;
+            if (splitCopy && !units.isEmpty()) {
+                units.getLast().add(member);
+            } else {
+                units.add(new ArrayList<>(List.of(member)));
+            }
+        }
+        List<GreenNode> declarations = new ArrayList<>(units.size());
+        for (List<GreenNode> unit : units) {
+            declarations.add(unit.size() == 1 ? unit.getFirst() : joined(unit));
+        }
+
+        List<Integer> groups = new ArrayList<>(declarations.size());
         MemberGroup.Order rank = new MemberGroup.Order(
             context.rule(MemberRules.FIELD_ORDER),
             context.rule(MemberRules.VISIBILITY_ORDER),
             context.rule(MemberRules.FIELD_VISIBILITY_ORDER),
             context.rule(MemberRules.METHOD_VISIBILITY_ORDER)
         );
-        for (GreenNode member : members) {
-            int group = MemberGroup.of(member, interfaceBody, rank);
-            if (group == MemberGroup.NONE || context.firstPosition(member) < 0) {
+        for (GreenNode declaration : declarations) {
+            int group = MemberGroup.of(declaration, interfaceBody, rank);
+            if (group == MemberGroup.NONE || context.firstPosition(declaration) < 0) {
                 return body;
             }
             groups.add(group);
         }
 
-        List<Integer> order = new ArrayList<>(members.size());
-        for (int i = 0; i < members.size(); i++) {
+        List<Integer> order = new ArrayList<>(declarations.size());
+        for (int i = 0; i < declarations.size(); i++) {
             order.add(i);
         }
         order.sort(Comparator.comparingInt(groups::get));
@@ -66,7 +81,7 @@ public final class MemberOrderRewrite implements Rewrite {
             return body;
         }
 
-        String conflict = initializationConflict(members, order, interfaceBody);
+        String conflict = initializationConflict(declarations, order, interfaceBody);
         if (conflict != null) {
             GreenNode.Leaf open = (GreenNode.Leaf) children.getFirst();
             Token token = open.token().token();
@@ -74,16 +89,25 @@ public final class MemberOrderRewrite implements Rewrite {
             return body;
         }
 
-        List<TokenEdit.Span> spans = new ArrayList<>(members.size());
+        List<TokenEdit.Span> spans = new ArrayList<>(declarations.size());
         List<GreenNode> rebuilt = new ArrayList<>(children.subList(0, first));
         for (int index : order) {
-            GreenNode member = members.get(index);
-            spans.add(new TokenEdit.Span(context.firstPosition(member), context.endPosition(member)));
-            rebuilt.add(member);
+            List<GreenNode> unit = units.get(index);
+            spans.add(new TokenEdit.Span(context.firstPosition(unit.getFirst()), context.endPosition(unit.getLast())));
+            rebuilt.addAll(unit);
         }
         rebuilt.add(children.getLast());
         context.record(TokenEdit.reorder(MemberRules.ORDER, "members sorted by kind", spans));
         return GreenNode.branch(body.kind(), rebuilt);
+    }
+
+    /** One field declaration holding the head and every declarator of a split's declarations. */
+    private static GreenNode joined(List<GreenNode> unit) {
+        List<GreenNode> children = new ArrayList<>(unit.getFirst().children());
+        for (GreenNode member : unit.subList(1, unit.size())) {
+            children.addAll(member.children());
+        }
+        return GreenNode.branch(unit.getFirst().kind(), children);
     }
 
     private static boolean turnsFormattingOff(List<GreenNode> members, GreenNode close, RewriteContext context) {

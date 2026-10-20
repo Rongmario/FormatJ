@@ -307,7 +307,7 @@ public final class RewriteVerification {
             return checkMemberOrderLaw(edit, before, style);
         }
         if (authority == DeclarationRules.SPLIT_VARIABLES) {
-            return checkSplitVariablesLaw(edit, before);
+            return checkSplitVariablesLaw(edit, before, style);
         }
         return null;
     }
@@ -321,8 +321,8 @@ public final class RewriteVerification {
      * derivation would not declare — a comma that is not a split point, a head that says more than
      * the declaration did, brackets that moved somewhere else — fails.
      */
-    private static String checkSplitVariablesLaw(TokenEdit edit, GreenNode before) {
-        for (TokenEdit expected : SplitVariablesRewrite.expectedEdits(before)) {
+    private static String checkSplitVariablesLaw(TokenEdit edit, GreenNode before, Style style) {
+        for (TokenEdit expected : SplitVariablesRewrite.expectedEdits(before, style)) {
             if (expected.equals(edit)) {
                 return null;
             }

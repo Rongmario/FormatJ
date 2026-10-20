@@ -1,0 +1,4 @@
+preset = "formatj"
+
+[declarations]
+split-variables = true
