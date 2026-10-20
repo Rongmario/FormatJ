@@ -268,7 +268,8 @@ public final class DocPrinter {
         // it. A delimiter that may take its own line does not excuse it either — the list has to fit
         // the way it would with the delimiter attached — so the measurement goes on past soft lines.
         boolean lastPart = parts.size() <= 2;
-        boolean contentFits = !multiline && fits(content, Mode.FLAT, remaining, afterContent, true, lastPart);
+        boolean contentFits = !multiline &&
+            fitsWithDelimiter(content, content, remaining, indent, afterContent, true, lastPart);
         if (parts.size() == 1) {
             commands.push(new Command(indent, contentFits ? Mode.FLAT : Mode.BREAK, content));
             return;
@@ -285,7 +286,8 @@ public final class DocPrinter {
         // The next part joins this line only if all of it fits. One that spans lines starts its own,
         // as it would have before it was first broken. A pair that reaches the closing delimiter with
         // no remaining element to break before it is measured the way the last part is.
-        boolean pairFits = !multiline && fits(pair, Mode.FLAT, remaining, afterPair, false, parts.size() <= 3);
+        boolean pairFits = !multiline &&
+            fitsWithDelimiter(pair, parts.get(2), remaining, indent, afterPair, false, parts.size() <= 3);
 
         commands.push(new Command(indent, mode, Doc.fill(rest)));
         if (pairFits) {
@@ -298,6 +300,33 @@ public final class DocPrinter {
             commands.push(new Command(indent, Mode.BREAK, separator));
             commands.push(new Command(indent, Mode.BREAK, content));
         }
+    }
+
+    /**
+     * Whether a fill part fits, measured together with the closing delimiter when it reaches one.
+     *
+     * <p>Breaking before the last part only helps when that part then fits on a continuation line
+     * with the delimiter and what follows it. When even that line overflows, the overflow lies past
+     * the delimiter and is not the list's to make room for, so the part is measured on its own.
+     *
+     * @param last the part a break would move to a continuation line
+     * @param indent the column a continuation line starts at
+     */
+    private boolean fitsWithDelimiter(
+        Doc doc,
+        Doc last,
+        int remaining,
+        int indent,
+        Deque<Command> rest,
+        boolean stopAtHardBreak,
+        boolean withDelimiter
+    ) {
+        if (fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak, withDelimiter)) {
+            return true;
+        }
+        return withDelimiter &&
+            !fits(last, Mode.FLAT, maxWidth - indent, rest, true, true) &&
+            fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak, false);
     }
 
     /**
