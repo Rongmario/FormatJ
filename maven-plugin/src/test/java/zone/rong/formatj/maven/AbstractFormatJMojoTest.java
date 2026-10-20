@@ -22,8 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AbstractFormatJMojoTest {
 
     @Test
-    void discoversTheNearestStyleFileWhenNeitherPresetNorStyleFileIsSet(@TempDir Path root)
-        throws IOException,
+    void discoversTheNearestStyleFileWhenNeitherPresetNorStyleFileIsSet(@TempDir Path root) throws IOException,
         MojoExecutionException {
         Files.writeString(root.resolve("formatj.toml"), "[indent]\nsize = 6\n");
         FormatMojo mojo = new FormatMojo();
@@ -75,8 +74,7 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root)
-        throws IOException,
+    void includesAreRelativeToTheSourceRootNotTheAbsolutePath(@TempDir Path root) throws IOException,
         MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Path kept = Files.createDirectories(sourceRoot.resolve("kept"));
@@ -94,8 +92,7 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root)
-        throws IOException,
+    void fileSelectionFromTheStyleFileAppliesAcrossEverySourceRoot(@TempDir Path root) throws IOException,
         MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");
@@ -112,8 +109,7 @@ class AbstractFormatJMojoTest {
     }
 
     @Test
-    void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root)
-        throws IOException,
+    void generatedSourceRootsUnderTheBuildDirectoryAreSkipped(@TempDir Path root) throws IOException,
         MojoExecutionException {
         Path sourceRoot = Files.createDirectories(root.resolve("src/main/java"));
         Files.writeString(sourceRoot.resolve("Kept.java"), "");

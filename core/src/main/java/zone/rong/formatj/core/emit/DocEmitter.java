@@ -709,6 +709,13 @@ public final class DocEmitter extends StatementEmitter {
                 Doc.concat(pinned, keyword, space(), Doc.join(afterComma ? space() : Doc.EMPTY, elements))
             );
         }
+        if (policy == WrapPolicy.WRAP_IF_LONG && !ownLine) {
+            // The keyword moves down only when it cannot start the list on this line, and the list
+            // then fills each line, so a long header breaks between two types rather than before
+            // the keyword.
+            Doc list = Doc.fill(withSeparators(elements, separator));
+            return Doc.fluid(continuation(), true, Doc.indent(continuation(), Doc.concat(keyword, space(), list)));
+        }
         Doc joined = Doc.join(separator, elements);
         Doc list;
         if (policy == WrapPolicy.WRAP_IF_LONG) {
@@ -753,6 +760,24 @@ public final class DocEmitter extends StatementEmitter {
         Doc separator = policy == WrapPolicy.NEVER
             ? spaceIf(rule(SpacingRules.AFTER_COMMA))
             : rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
+        if (policy == WrapPolicy.WRAP_IF_LONG) {
+            // Like an extends or implements list: throws stays put while it can start the list, and
+            // the exceptions fill each line.
+            List<Doc> elements = new ArrayList<>();
+            List<Doc> current = new ArrayList<>();
+            for (GreenNode child : children.subList(1, children.size())) {
+                current.add(emit(child));
+                if (is(child, ",")) {
+                    elements.add(Doc.concat(current));
+                    current = new ArrayList<>();
+                }
+            }
+            if (!current.isEmpty()) {
+                elements.add(Doc.concat(current));
+            }
+            Doc list = Doc.fill(withSeparators(elements, separator));
+            return Doc.fluid(indent, true, Doc.indent(indent, Doc.concat(keyword, space(), list)));
+        }
         List<Doc> parts = new ArrayList<>();
         for (int i = 1; i < children.size(); i++) {
             GreenNode child = children.get(i);

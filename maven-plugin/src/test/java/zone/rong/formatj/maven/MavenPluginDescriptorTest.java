@@ -226,13 +226,8 @@ class MavenPluginDescriptorTest {
         assertEquals("verify", text(mojoElement(document, "check"), "phase"));
     }
 
-    private record MojoSource(
-        String goal,
-        String phase,
-        String resolution,
-        String threadSafe,
-        String implementation
-    ) { }
+    private record MojoSource(String goal, String phase, String resolution, String threadSafe, String implementation)
+    { }
 
     private record ParameterSource(String name, String property, String defaultValue) { }
 

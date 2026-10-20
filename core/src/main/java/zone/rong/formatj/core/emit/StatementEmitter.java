@@ -173,9 +173,11 @@ abstract class StatementEmitter extends ExpressionEmitter {
         List<GreenNode> body = children.subList(1, children.size() - 1);
 
         if (body.isEmpty() && !hasLeadingComments(close)) {
+            // An empty body on one line moves down whole when it would overflow, so the header in
+            // front of it keeps its own layout. The space the caller put before it is trimmed then.
             return switch (emptyStyle) {
-                case COMPACT -> Doc.concat(emit(open), emit(close));
-                case SPACED -> Doc.concat(emit(open), space(), emit(close));
+                case COMPACT -> Doc.group(Doc.concat(Doc.softLine(), emit(open), emit(close)));
+                case SPACED -> Doc.group(Doc.concat(Doc.softLine(), emit(open), space(), emit(close)));
                 case EXPANDED -> Doc.concat(emit(open), Doc.hardLine(), closeBrace(close));
             };
         }

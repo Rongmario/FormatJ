@@ -1037,9 +1037,8 @@ abstract class ExpressionEmitter extends EmitSupport {
      *
      * <p>The brackets belong to the types they wrap, so the whole thing is one unit rather than a
      * list between two delimiters: {@code <} never ends a line and {@code >} never starts one, and
-     * the section is never offered a break of its own. A section that does not fit where it stands
-     * moves, whole, to an indented continuation line; one that still does not fit there overflows
-     * rather than coming apart at its brackets. There is no rule behind that: a {@code Map<A, B>}
+     * the section is never offered a break of its own, in front of it or inside it. It moves only
+     * with the type it belongs to, and overflows rather than coming apart from it. There is no rule behind that: a {@code Map<A, B>}
      * that a reader could mistake for two tokens is not something a style should be able to ask for.
      *
      * <p>A comment can still force a break inside a section: it ends the line it is written on, and a
@@ -1075,8 +1074,7 @@ abstract class ExpressionEmitter extends EmitSupport {
         // Both brackets take the section's indent with the body. A comment can force a break in
         // front of either, and that break belongs on a continuation line of the section rather than
         // on the line of the declaration the section stands in.
-        Doc section = Doc.flatGroup(Doc.concat(emit(open), body));
-        return Doc.group(Doc.indent(indentColumns, Doc.concat(Doc.softLine(), section)));
+        return Doc.indent(indentColumns, Doc.flatGroup(Doc.concat(emit(open), body)));
     }
 
     private boolean needsSpaceInType(GreenNode previous, GreenNode next) {

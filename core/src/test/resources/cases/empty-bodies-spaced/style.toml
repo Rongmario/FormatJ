@@ -1,0 +1,7 @@
+preset = "formatj"
+
+[wrapping]
+max-line-length = 80
+
+[braces]
+empty-control-body = "spaced"
