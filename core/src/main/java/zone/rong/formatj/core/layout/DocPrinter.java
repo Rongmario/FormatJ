@@ -130,7 +130,8 @@ public final class DocPrinter {
                         break;
                     }
                     out.append(text.value());
-                    column += text.value().length();
+                    int newline = text.value().lastIndexOf('\n');
+                    column = newline < 0 ? column + text.value().length() : text.value().length() - newline - 1;
                     if (!text.value().isEmpty()) {
                         preserveTrailingWhitespace = text.preserveTrailingWhitespace() &&
                             endsWithHorizontalWhitespace(text.value());
@@ -356,6 +357,16 @@ public final class DocPrinter {
                     // After it, the line simply ends there.
                     if (lineEnded && !text.value().isEmpty()) {
                         return measuringRest;
+                    }
+                    // Text written as it stands, such as a preserved text block, can span lines. Only
+                    // its first line shares this one, and the line ends where that does.
+                    int newline = text.value().indexOf('\n');
+                    if (newline >= 0) {
+                        left -= newline;
+                        if (left < 0) {
+                            return false;
+                        }
+                        return measuringRest || stopAtHardBreak;
                     }
                     left -= text.value().length();
                 }

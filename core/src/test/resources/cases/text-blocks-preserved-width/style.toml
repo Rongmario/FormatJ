@@ -1,0 +1,7 @@
+preset = "formatj"
+
+[text-blocks]
+indent-policy = "preserve"
+
+[wrapping]
+break-after-open-paren = false

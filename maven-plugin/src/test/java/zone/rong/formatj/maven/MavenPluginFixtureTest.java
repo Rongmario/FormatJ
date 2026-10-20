@@ -116,9 +116,7 @@ class MavenPluginFixtureTest {
                   <artifactId>formatj</artifactId>
                   <version>%s</version>
                 </project>
-                """.formatted(
-            version
-        );
+                """.formatted(version);
     }
 
     private static String pluginPom(String version) {
@@ -138,10 +136,7 @@ class MavenPluginFixtureTest {
                     </dependency>
                   </dependencies>
                 </project>
-                """.formatted(
-            version,
-            version
-        );
+                """.formatted(version, version);
     }
 
     private static String metadata(String group, String artifact, String version) {
@@ -155,12 +150,7 @@ class MavenPluginFixtureTest {
                     <versions><version>%s</version></versions>
                   </versioning>
                 </metadata>
-                """.formatted(
-            group,
-            artifact,
-            version,
-            version
-        );
+                """.formatted(group, artifact, version, version);
     }
 
     private static void copyFixture(Path destination) throws IOException {
