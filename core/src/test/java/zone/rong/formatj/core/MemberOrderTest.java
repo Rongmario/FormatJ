@@ -231,6 +231,29 @@ class MemberOrderTest {
     }
 
     @Test
+    void anArrayInitializerOfConstantsMayMove() {
+        String source = """
+                class Foo {
+
+                    private int count = 0;
+                    int[] values = { 1, 2, 3 };
+
+                }
+                """;
+        String expected = """
+                class Foo {
+
+                    int[] values = { 1, 2, 3 };
+
+                    private int count = 0;
+
+                }
+                """;
+
+        assertEquals(expected, sorted(source));
+    }
+
+    @Test
     void aFieldThatReadsAnotherStaysAfterIt() {
         String source = """
                 class Foo {

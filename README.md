@@ -768,7 +768,7 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
 - In both lists, kinds written as one inner list rank equal and keep their source order, and a kind left out ranks after every listed one.
 - A member moves with its comments and annotations, and enum constants stay first.
 - A body is left alone when it holds a formatter-off region or a stray semicolon.
-- A body is left alone, with a warning, when the sort would swap two field initializers or initializer blocks whose order matters. Two fields may swap only when their initializers are built from literals, operators, casts and names, and neither names the other.
+- A body is left alone, with a warning, when the sort would swap two field initializers or initializer blocks whose order matters. Two fields may swap only when their initializers are built from literals, operators, casts, array initializers and names, and neither names the other.
 
 ## Design
 

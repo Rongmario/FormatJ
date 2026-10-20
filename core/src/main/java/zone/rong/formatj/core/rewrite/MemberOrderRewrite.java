@@ -232,7 +232,7 @@ public final class MemberOrderRewrite implements Rewrite {
         return String.join(", ", declaredNames(member).stream().sorted().toList());
     }
 
-    /** Whether the initializers can only produce a value, from literals and operators and names. */
+    /** Whether the initializers can only produce a value, from literals, operators, array initializers and names. */
     private static boolean constantLike(List<GreenNode> initializers, Set<String> forbidden) {
         return initializers.stream().allMatch(node -> constantLike(node, forbidden));
     }
@@ -254,7 +254,7 @@ public final class MemberOrderRewrite implements Rewrite {
         }
         return switch (node.kind()) {
             case LITERAL, NAME, QUALIFIED_NAME, MEMBER_ACCESS, BINARY_EXPRESSION, UNARY_EXPRESSION,
-                PARENTHESIZED_EXPRESSION, TERNARY_EXPRESSION, PRIMITIVE_TYPE ->
+                PARENTHESIZED_EXPRESSION, TERNARY_EXPRESSION, PRIMITIVE_TYPE, ARRAY_INITIALIZER ->
                 node.children().stream().allMatch(child -> constantLike(child, forbidden));
             case CAST_EXPRESSION ->
                 node.children().size() == 4 &&
