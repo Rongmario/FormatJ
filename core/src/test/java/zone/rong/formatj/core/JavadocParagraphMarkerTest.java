@@ -60,7 +60,8 @@ class JavadocParagraphMarkerTest {
     void closingFormSlashFirstConvertsSelfClosingButLeavesOpeners() {
         String formatted = format(
             style -> style.set(JavadocRules.CLOSING_TAG_FORM, JavadocClosingTagForm.SLASH_FIRST),
-            "    /**\n     * First.\n     * <p/>\n     * Second.\n     * <p>\n     * Third.\n     */\n    void f() { }\n"
+            "    /**\n     * First.\n     * <p/>\n     * Second.\n     * <p>\n     * Third.\n     */\n" +
+                "    void f() { }\n"
         );
         assertTrue(formatted.contains("     * </p>\n"), formatted);
         assertTrue(formatted.contains("     * <p>\n"), formatted);

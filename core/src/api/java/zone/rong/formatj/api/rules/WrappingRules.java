@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Line length and how each kind of list or expression is broken across lines. */
 public final class WrappingRules {
@@ -23,6 +22,12 @@ public final class WrappingRules {
         "wrapping.method-arguments",
         WrapPolicy.CHOP_DOWN_IF_LONG,
         "Wrapping of an argument list at a call site"
+    );
+
+    public static final Option<WrapPolicy> RECORD_COMPONENTS = Option.ofEnum(
+        "wrapping.record-components",
+        WrapPolicy.CHOP_DOWN_IF_LONG,
+        "Wrapping of a record header's components"
     );
 
     public static final Option<ChainPolicy> CHAINED_CALLS = Option.ofEnum(
@@ -97,10 +102,22 @@ public final class WrappingRules {
         "Which line & lands on when intersection types wrap"
     );
 
+    public static final Option<WrapPolicy> DECONSTRUCTION_PATTERNS = Option.ofEnum(
+        "wrapping.deconstruction-patterns",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a record deconstruction pattern"
+    );
+
     public static final Option<WrapPolicy> TERNARY = Option.ofEnum(
         "wrapping.ternary",
         WrapPolicy.WRAP_IF_LONG,
         "Wrapping of a conditional expression"
+    );
+
+    public static final Option<Boolean> LAMBDA_EXPRESSION_ON_ARROW_LINE = Option.ofBoolean(
+        "wrapping.lambda-expression-on-arrow-line",
+        true,
+        "Keep a single-expression body on the arrow's line"
     );
 
     public static final Option<WrapPolicy> ASSIGNMENT = Option.ofEnum(
@@ -119,6 +136,18 @@ public final class WrappingRules {
         "wrapping.extends-implements",
         WrapPolicy.NEVER,
         "Wrapping of extends and implements clauses"
+    );
+
+    public static final Option<WrapPolicy> PERMITS_CLAUSE = Option.ofEnum(
+        "wrapping.permits-clause",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a permits clause"
+    );
+
+    public static final Option<Boolean> PERMITS_ON_NEW_LINE = Option.ofBoolean(
+        "wrapping.permits-on-new-line",
+        false,
+        "Start the permits clause on its own line"
     );
 
     public static final Option<WrapPolicy> THROWS_CLAUSE = Option.ofEnum(
@@ -175,19 +204,6 @@ public final class WrappingRules {
         "Wrapping of the constant list of an enum"
     );
 
-    /**
-     * Whether a no-argument enum must end its constant list with {@code ;}.
-     *
-     * <p>The language already requires the semicolon when any constant has arguments, or when
-     * fields, methods or nested types follow. This option only governs the optional case: a
-     * no-argument constant list with nothing after it.
-     */
-    public static final Option<Boolean> REQUIRE_ENUM_CONSTANT_SEMICOLON = Option.ofBoolean(
-        "wrapping.require-enum-constant-semicolon",
-        false,
-        "Always write a semicolon after the last no-argument enum constant"
-    );
-
     public static final Option<WrapPolicy> FOR_STATEMENT = Option.ofEnum(
         "wrapping.for-statement",
         WrapPolicy.CHOP_DOWN_IF_LONG,
@@ -200,195 +216,55 @@ public final class WrappingRules {
         "Wrapping of a try-with-resources resource list"
     );
 
-    public static final Option<Boolean> KEEP_SIMPLE_METHODS_ON_ONE_LINE = Option.ofBoolean(
-        "wrapping.keep-simple-methods-on-one-line",
-        false,
-        "Allow a whole short method to stay on one line"
+    public static final Option<WrapPolicy> CASE_LABELS = Option.ofEnum(
+        "wrapping.case-labels",
+        WrapPolicy.WRAP_IF_LONG,
+        "Wrapping of a case label listing several constants"
     );
 
-    public static final Option<Boolean> KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE = Option.ofBoolean(
-        "wrapping.keep-simple-lambdas-on-one-line",
-        false,
-        "Allow a short lambda body to stay on one line"
+    public static final Option<Boolean> CASE_GUARD_ON_SAME_LINE = Option.ofBoolean(
+        "wrapping.case-guard-on-same-line",
+        true,
+        "Keep a when guard on the line of its pattern"
     );
 
-    public static final Option<Boolean> KEEP_SIMPLE_CLASSES_ON_ONE_LINE = Option.ofBoolean(
-        "wrapping.keep-simple-classes-on-one-line",
-        false,
-        "Allow a short class body to stay on one line"
+    public static final Option<Boolean> ARROW_CASE_BODY_ON_NEW_LINE_WHEN_LONG = Option.ofBoolean(
+        "wrapping.arrow-case-body-on-new-line-when-long",
+        true,
+        "Move a long arrow case body to the next line"
+    );
+
+    public static final Option<RecordWithStyle> WITH_BLOCK = Option.ofEnum(
+        "wrapping.with-block",
+        RecordWithStyle.INLINE_WHEN_SHORT,
+        "Layout of a derived record creation with-block"
+    );
+
+    /**
+     * Whether a string literal that runs past the line length is split into a concatenation.
+     *
+     * <p>The literal splits after a space or a {@code \n} escape. The pieces denote
+     * the same string and the concatenation is still a constant expression. Text blocks, literals with
+     * Unicode escapes and literals in a position where {@code +} would bind differently stay whole.
+     */
+    public static final Option<Boolean> SPLIT_LONG_STRINGS = Option.ofBoolean(
+        "wrapping.split-long-strings",
+        true,
+        "Split a string literal that runs past the line length into a concatenation"
+    );
+
+    public static final Option<WrapPolicy> EXPORTS_OPENS_TARGETS = Option.ofEnum(
+        "wrapping.exports-opens-targets",
+        WrapPolicy.NEVER,
+        "Wrapping of target module lists in exports and opens directives"
+    );
+
+    public static final Option<WrapPolicy> PROVIDES_IMPLEMENTATIONS = Option.ofEnum(
+        "wrapping.provides-implementations",
+        WrapPolicy.NEVER,
+        "Wrapping of implementation lists in provides directives"
     );
 
     private WrappingRules() { }
-
-    /** Fluent view of the {@code wrapping.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder maxLineLength(int value) {
-            style.set(MAX_LINE_LENGTH, value);
-            return this;
-        }
-
-        public Builder methodParameters(WrapPolicy value) {
-            style.set(METHOD_PARAMETERS, value);
-            return this;
-        }
-
-        public Builder methodArguments(WrapPolicy value) {
-            style.set(METHOD_ARGUMENTS, value);
-            return this;
-        }
-
-        public Builder chainedCalls(ChainPolicy value) {
-            style.set(CHAINED_CALLS, value);
-            return this;
-        }
-
-        public Builder chainThreshold(int value) {
-            style.set(CHAIN_THRESHOLD, value);
-            return this;
-        }
-
-        public Builder binaryOperators(WrapPolicy value) {
-            style.set(BINARY_OPERATORS, value);
-            return this;
-        }
-
-        public Builder operatorPosition(OperatorWrap value) {
-            style.set(OPERATOR_POSITION, value);
-            return this;
-        }
-
-        public Builder methodReference(WrapPolicy value) {
-            style.set(METHOD_REFERENCE, value);
-            return this;
-        }
-
-        public Builder methodReferenceOperatorPosition(OperatorWrap value) {
-            style.set(METHOD_REFERENCE_OPERATOR_POSITION, value);
-            return this;
-        }
-
-        public Builder instanceofExpression(WrapPolicy value) {
-            style.set(INSTANCEOF, value);
-            return this;
-        }
-
-        public Builder instanceofOperatorPosition(OperatorWrap value) {
-            style.set(INSTANCEOF_OPERATOR_POSITION, value);
-            return this;
-        }
-
-        public Builder multicatch(WrapPolicy value) {
-            style.set(MULTICATCH, value);
-            return this;
-        }
-
-        public Builder multicatchSeparatorPosition(OperatorWrap value) {
-            style.set(MULTICATCH_SEPARATOR_POSITION, value);
-            return this;
-        }
-
-        public Builder intersectionTypes(WrapPolicy value) {
-            style.set(INTERSECTION_TYPES, value);
-            return this;
-        }
-
-        public Builder intersectionSeparatorPosition(OperatorWrap value) {
-            style.set(INTERSECTION_SEPARATOR_POSITION, value);
-            return this;
-        }
-
-        public Builder ternary(WrapPolicy value) {
-            style.set(TERNARY, value);
-            return this;
-        }
-
-        public Builder assignment(WrapPolicy value) {
-            style.set(ASSIGNMENT, value);
-            return this;
-        }
-
-        public Builder arrayInitializers(WrapPolicy value) {
-            style.set(ARRAY_INITIALIZERS, value);
-            return this;
-        }
-
-        public Builder extendsImplements(WrapPolicy value) {
-            style.set(EXTENDS_IMPLEMENTS, value);
-            return this;
-        }
-
-        public Builder throwsClause(WrapPolicy value) {
-            style.set(THROWS_CLAUSE, value);
-            return this;
-        }
-
-        public Builder closingDelimiter(ClosingDelimiter value) {
-            style.set(CLOSING_DELIMITER, value);
-            return this;
-        }
-
-        public Builder assignmentBreak(AssignmentBreak value) {
-            style.set(ASSIGNMENT_BREAK, value);
-            return this;
-        }
-
-        public Builder hugSoleArgument(boolean value) {
-            style.set(HUG_SOLE_ARGUMENT, value);
-            return this;
-        }
-
-        public Builder breakAfterOpenParen(boolean value) {
-            style.set(BREAK_AFTER_OPEN_PAREN, value);
-            return this;
-        }
-
-        public Builder annotationArguments(WrapPolicy value) {
-            style.set(ANNOTATION_ARGUMENTS, value);
-            return this;
-        }
-
-        public Builder enumConstants(WrapPolicy value) {
-            style.set(ENUM_CONSTANTS, value);
-            return this;
-        }
-
-        public Builder requireEnumConstantSemicolon(boolean value) {
-            style.set(REQUIRE_ENUM_CONSTANT_SEMICOLON, value);
-            return this;
-        }
-
-        public Builder forStatement(WrapPolicy value) {
-            style.set(FOR_STATEMENT, value);
-            return this;
-        }
-
-        public Builder tryResources(WrapPolicy value) {
-            style.set(TRY_RESOURCES, value);
-            return this;
-        }
-
-        public Builder keepSimpleMethodsOnOneLine(boolean value) {
-            style.set(KEEP_SIMPLE_METHODS_ON_ONE_LINE, value);
-            return this;
-        }
-
-        public Builder keepSimpleLambdasOnOneLine(boolean value) {
-            style.set(KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE, value);
-            return this;
-        }
-
-        public Builder keepSimpleClassesOnOneLine(boolean value) {
-            style.set(KEEP_SIMPLE_CLASSES_ON_ONE_LINE, value);
-            return this;
-        }
-
-    }
 
 }

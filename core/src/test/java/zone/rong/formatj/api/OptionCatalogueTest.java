@@ -13,7 +13,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.IndentRules;
+import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.config.StyleFiles;
 import zone.rong.formatj.core.config.TomlWriter;
@@ -66,7 +68,7 @@ class OptionCatalogueTest {
     }
 
     private static <T> String renderedDefault(Option<T> option) {
-        return option.render(option.defaultValue());
+        return option.parent().isPresent() ? Option.INHERIT : option.render(option.defaultValue());
     }
 
     private static boolean defaultsMatch(String documented, String rendered) {
@@ -77,14 +79,19 @@ class OptionCatalogueTest {
     }
 
     private static List<String> documentedEnumValues(Option<?> option, ReadmeRow row, String readme) {
-        List<String> values = codeTokens(row.values);
         String typeName = option.type().getSimpleName();
-        if (!values.isEmpty() && !values.equals(List.of(typeName))) {
-            return values;
-        }
         Matcher glossary = Pattern.compile("(?m)^\\| `" + Pattern.quote(typeName) + "`\\s*\\| (.*?)\\|$")
             .matcher(readme);
-        return glossary.find() ? codeTokens(glossary.group(1)) : List.of();
+        List<String> shared = glossary.find() ? codeTokens(glossary.group(1)) : List.of();
+        List<String> values = new ArrayList<>();
+        for (String token : codeTokens(row.values)) {
+            if (token.equals(typeName)) {
+                values.addAll(shared);
+            } else {
+                values.add(token);
+            }
+        }
+        return values.isEmpty() ? shared : values;
     }
 
     private static List<String> codeTokens(String text) {
@@ -253,9 +260,9 @@ class OptionCatalogueTest {
     @Test
     void enumValuesFromAnotherGlossaryDoNotSatisfyARow() {
         String readme = readmeText();
-        String corrupted = readme.replace(
-            "| `wrapping.method-parameters`                  | `WrapPolicy`",
-            "| `wrapping.method-parameters`                  | `BracePolicy`"
+        String corrupted = readme.replaceFirst(
+            "(\\| `wrapping\\.method-parameters` +\\| )`WrapPolicy`",
+            "$1`BracePolicy`"
         );
         assertFalse(corrupted.equals(readme), "fixture row was not replaced");
 
@@ -301,12 +308,12 @@ class OptionCatalogueTest {
             List.of("file", "indent", "wrapping", "braces", "spacing", "blank-lines", "alignment"),
             OptionRegistry.groups().subList(0, 7)
         );
-        assertTrue(OptionRegistry.groups().containsAll(List.of("module", "modifiers")));
+        assertTrue(OptionRegistry.groups().containsAll(List.of("preservation", "modifiers")));
         assertTrue(
-            OptionRegistry.groups().indexOf("module") < OptionRegistry.groups().indexOf("modifiers"),
-            "module must precede modifiers in the public catalogue"
+            OptionRegistry.groups().indexOf("preservation") < OptionRegistry.groups().indexOf("modifiers"),
+            "layout groups must precede rewrite groups in the public catalogue"
         );
-        assertTrue(OptionRegistry.find("module.brace-placement").isPresent());
+        assertTrue(OptionRegistry.find("braces.module-placement").isPresent());
         assertTrue(OptionRegistry.find("modifiers.order").isPresent());
         assertEquals(OptionRegistry.groups(), List.copyOf(OptionRegistry.groups()));
         List<String> keys = OptionRegistry.all().stream().map(Option::key).toList();
@@ -328,7 +335,7 @@ class OptionCatalogueTest {
 
     @Test
     void aDumpedStyleParsesBackToTheSameEffectiveValues() {
-        Style style = Style.preset(Preset.GOOGLE).indent(indent -> indent.size(3)).build();
+        Style style = Style.preset(Preset.GOOGLE).set(IndentRules.SIZE, 3).build();
         Style reloaded = StyleFiles.parse(TomlWriter.write(style));
         assertEquals(style.resolvedValues(), reloaded.resolvedValues());
         assertEquals(3, reloaded.get(IndentRules.SIZE));

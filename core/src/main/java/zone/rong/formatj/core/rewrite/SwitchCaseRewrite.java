@@ -336,6 +336,11 @@ public final class SwitchCaseRewrite implements Rewrite {
             if (Synthetic.carriesComments(separator)) {
                 return null;
             }
+
+            // The `case` keyword of a case below an empty one is deleted by the merge.
+            if (!pending.isEmpty() && Synthetic.carriesComments(labelsOf(switchCase).getFirst())) {
+                return null;
+            }
             if (switchCase.children().size() == 2) {
                 if (isDefault(switchCase) || isGuarded(switchCase)) {
                     return null;

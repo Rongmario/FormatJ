@@ -378,13 +378,9 @@ abstract class EmitSupport {
 
     /** Blank lines to leave before {@code node}, honouring the author within the configured cap. */
     protected int blankLinesBefore(GreenNode node, int minimum) {
-        if (!rule(PreservationRules.KEEP_AUTHOR_BLANK_LINES)) {
-            return minimum;
-        }
         SyntaxToken token = firstToken(node);
         int author = token == null ? 0 : token.blankLinesBefore();
-        int cap = Math.min(rule(PreservationRules.MAX_PRESERVED_BLANK_LINES), rule(BlankLineRules.MAX_CONSECUTIVE));
-        return Math.max(minimum, Math.min(author, cap));
+        return Math.max(minimum, Math.min(author, rule(BlankLineRules.MAX_CONSECUTIVE)));
     }
 
     /** A separator before {@code node} of at least {@code minimum} blank lines. */
@@ -674,11 +670,7 @@ abstract class EmitSupport {
                     parts.add(Doc.freshLine());
                 }
                 parts.add(placedOwnLine(run, leading, i));
-                int cap = Math.min(
-                    rule(PreservationRules.MAX_PRESERVED_BLANK_LINES),
-                    rule(BlankLineRules.MAX_CONSECUTIVE)
-                );
-                parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), cap)));
+                parts.add(lineBreaks(Math.min(Math.max(0, newlines - 1), rule(BlankLineRules.MAX_CONSECUTIVE))));
             }
             first = false;
             i = last;
@@ -781,10 +773,11 @@ abstract class EmitSupport {
     /**
      * Same line while the annotated declaration fits the line, otherwise the annotation takes its own.
      * {@code same-line} and {@code same-line-when-short} therefore meet here: neither can hold a line
-     * that will not fit, and a forced space cannot wrap.
+     * that will not fit, and a forced space cannot wrap. An annotation whose arguments broke onto lines
+     * of their own leaves its closing parenthesis alone on a line, and the declaration starts the next.
      */
     private Doc sameLineWhenFits() {
-        return Doc.group(Doc.line());
+        return Doc.group(Doc.line(), Doc.GroupKind.NOT_AFTER_CLOSERS);
     }
 
     /** A node paired with the leading trivia lifted out of its first token. */

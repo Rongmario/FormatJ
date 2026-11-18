@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Brace placement, and which bodies are required to have braces at all. */
 public final class BraceRules {
@@ -30,6 +29,12 @@ public final class BraceRules {
         "Opening brace position for a lambda block body"
     );
 
+    public static final Option<BracePlacement> MODULE_PLACEMENT = Option.ofEnum(
+        "braces.module-placement",
+        CLASS_PLACEMENT,
+        "Opening brace position for a module declaration"
+    );
+
     public static final Option<BracePolicy> IF_ELSE = Option.ofEnum(
         "braces.if-else",
         BracePolicy.ALWAYS,
@@ -46,6 +51,18 @@ public final class BraceRules {
         "braces.while-loop",
         BracePolicy.ALWAYS,
         "Braces around while and do-while bodies"
+    );
+
+    public static final Option<BracePolicy> LAMBDA_BODY = Option.ofEnum(
+        "braces.lambda-body",
+        BracePolicy.WHEN_MULTI_STATEMENT,
+        "Braces around a lambda body"
+    );
+
+    public static final Option<BracePolicy> ARROW_CASE_BODY = Option.ofEnum(
+        "braces.arrow-case-body",
+        BracePolicy.WHEN_MULTI_STATEMENT,
+        "Braces around the body of an arrow case"
     );
 
     public static final Option<Boolean> ELSE_ON_NEW_LINE = Option.ofBoolean(
@@ -72,6 +89,18 @@ public final class BraceRules {
         "Rendering of an empty type body"
     );
 
+    public static final Option<EmptyBodyStyle> EMPTY_RECORD_BODY = Option.ofEnum(
+        "braces.empty-record-body",
+        EMPTY_CLASS_BODY,
+        "Rendering of an empty record body"
+    );
+
+    public static final Option<EmptyBodyStyle> EMPTY_MODULE_BODY = Option.ofEnum(
+        "braces.empty-module-body",
+        EMPTY_CLASS_BODY,
+        "Rendering of an empty module body"
+    );
+
     public static final Option<EmptyBodyStyle> EMPTY_METHOD_BODY = Option.ofEnum(
         "braces.empty-method-body",
         EmptyBodyStyle.SPACED,
@@ -85,81 +114,5 @@ public final class BraceRules {
     );
 
     private BraceRules() { }
-
-    /** Fluent view of the {@code braces.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder classPlacement(BracePlacement value) {
-            style.set(CLASS_PLACEMENT, value);
-            return this;
-        }
-
-        public Builder methodPlacement(BracePlacement value) {
-            style.set(METHOD_PLACEMENT, value);
-            return this;
-        }
-
-        public Builder controlPlacement(BracePlacement value) {
-            style.set(CONTROL_PLACEMENT, value);
-            return this;
-        }
-
-        public Builder lambdaPlacement(BracePlacement value) {
-            style.set(LAMBDA_PLACEMENT, value);
-            return this;
-        }
-
-        public Builder ifElse(BracePolicy value) {
-            style.set(IF_ELSE, value);
-            return this;
-        }
-
-        public Builder forLoop(BracePolicy value) {
-            style.set(FOR_LOOP, value);
-            return this;
-        }
-
-        public Builder whileLoop(BracePolicy value) {
-            style.set(WHILE_LOOP, value);
-            return this;
-        }
-
-        public Builder elseOnNewLine(boolean value) {
-            style.set(ELSE_ON_NEW_LINE, value);
-            return this;
-        }
-
-        public Builder catchOnNewLine(boolean value) {
-            style.set(CATCH_ON_NEW_LINE, value);
-            return this;
-        }
-
-        public Builder finallyOnNewLine(boolean value) {
-            style.set(FINALLY_ON_NEW_LINE, value);
-            return this;
-        }
-
-        public Builder emptyClassBody(EmptyBodyStyle value) {
-            style.set(EMPTY_CLASS_BODY, value);
-            return this;
-        }
-
-        public Builder emptyMethodBody(EmptyBodyStyle value) {
-            style.set(EMPTY_METHOD_BODY, value);
-            return this;
-        }
-
-        public Builder emptyControlBody(EmptyBodyStyle value) {
-            style.set(EMPTY_CONTROL_BODY, value);
-            return this;
-        }
-
-    }
 
 }

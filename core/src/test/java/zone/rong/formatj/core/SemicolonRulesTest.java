@@ -2,13 +2,14 @@ package zone.rong.formatj.core;
 
 import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.DeclarationRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SemicolonRulesTest {
 
-    private static final Style ON = Style.builder().semicolons(semicolons -> semicolons.removeRedundant(true)).build();
+    private static final Style ON = Style.builder().set(DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS, true).build();
 
     private static String format(String source, Style style) {
         return FormatJ.newFormatter().style(style).build().format(source);
@@ -20,7 +21,8 @@ class SemicolonRulesTest {
 
     @Test
     void strayTypeAndMemberSemicolonsAreRemoved() {
-        String source = "class T {\n\n    int a;;\n\n    ;\n    void f() {\n    }\n    ;\n\n    interface I {\n        ;\n    }\n\n}\n;;\n";
+        String source = "class T {\n\n    int a;;\n\n    ;\n    void f() {\n    }\n    ;\n\n    interface I {\n" +
+            "        ;\n    }\n\n}\n;;\n";
         String formatted = format(source);
         assertEquals(-1, formatted.indexOf(";;"), formatted);
         assertEquals(formatted, format(formatted));

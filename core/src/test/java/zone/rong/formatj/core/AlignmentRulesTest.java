@@ -9,6 +9,8 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AlignmentRules;
+import zone.rong.formatj.api.rules.WrappingRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,7 +46,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveFields(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private int    x;"), aligned);
@@ -58,7 +60,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveFields(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private A o;"), aligned);
@@ -70,7 +72,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveVariables(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("int    x = 1;"), aligned);
@@ -84,7 +86,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("x      = 1;"), aligned);
@@ -98,7 +100,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private int x       = 1;"), aligned);
@@ -113,8 +115,8 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.annotationValues(AlignmentPolicy.ALIGN_ON_COLUMN))
-                .wrapping(w -> w.maxLineLength(60))
+            style -> style.set(AlignmentRules.ANNOTATION_VALUES, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(WrappingRules.MAX_LINE_LENGTH, 60)
         );
 
         assertTrue(aligned.contains("name  = "), aligned);
@@ -127,7 +129,10 @@ class AlignmentRulesTest {
         String source = "class A {\n\n    int f(int i) {\n        return switch (i) {\n            case 1 -> 1;\n" +
             "            case 22 -> 2;\n            default -> 3;\n        };\n    }\n\n}\n";
 
-        String aligned = format(source, style -> style.alignment(a -> a.switchArrows(AlignmentPolicy.ALIGN_ON_COLUMN)));
+        String aligned = format(
+            source,
+            style -> style.set(AlignmentRules.SWITCH_ARROWS, AlignmentPolicy.ALIGN_ON_COLUMN)
+        );
 
         assertTrue(aligned.contains("case 1  -> 1;"), aligned);
         assertTrue(aligned.contains("case 22 -> 2;"), aligned);
@@ -140,7 +145,7 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.trailingComments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private int x;       // one"), aligned);
@@ -154,8 +159,8 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.methodChains(AlignmentPolicy.ALIGN_ON_COLUMN))
-                .wrapping(w -> w.maxLineLength(40))
+            style -> style.set(AlignmentRules.METHOD_CHAINS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(WrappingRules.MAX_LINE_LENGTH, 40)
         );
 
         assertTrue(aligned.contains("people.stream()\n              .filter"), aligned);
@@ -168,12 +173,13 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.ternaryBranches(AlignmentPolicy.ALIGN_WHEN_MULTILINE))
-                .wrapping(w -> w.maxLineLength(60))
+            style -> style.set(AlignmentRules.TERNARY_BRANCHES, AlignmentPolicy.ALIGN_WHEN_MULTILINE)
+                .set(WrappingRules.MAX_LINE_LENGTH, 60)
         );
         String plain = format(
             source,
-            style -> style.alignment(a -> a.ternaryBranches(AlignmentPolicy.NONE)).wrapping(w -> w.maxLineLength(60))
+            style -> style.set(AlignmentRules.TERNARY_BRANCHES, AlignmentPolicy.NONE)
+                .set(WrappingRules.MAX_LINE_LENGTH, 60)
         );
 
         // Aligned, the branches hang under the condition; unaligned, at indent.ternary past the
@@ -187,12 +193,13 @@ class AlignmentRulesTest {
         String source = "class A {\n\n    private int x = 1; // one\n    private String name = \"a\"; // two\n\n" +
             "    void f() {\n        int i = 1;\n        String s = \"a\";\n        i = 2;\n        s = \"b\";\n" +
             "    }\n\n}\n";
-        Consumer<StyleBuilder> everything = style -> style.alignment(a -> a.consecutiveFields(
+        Consumer<StyleBuilder> everything = style -> style.set(
+            AlignmentRules.CONSECUTIVE_FIELDS,
             AlignmentPolicy.ALIGN_ON_COLUMN
         )
-            .consecutiveVariables(AlignmentPolicy.ALIGN_ON_COLUMN)
-            .consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN)
-            .trailingComments(AlignmentPolicy.ALIGN_ON_COLUMN));
+            .set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+            .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN);
 
         String once = format(source, everything);
 
@@ -209,10 +216,10 @@ class AlignmentRulesTest {
         String off = format(source, style -> { });
         String on = format(
             source,
-            style -> style.alignment(a -> a.consecutiveFields(AlignmentPolicy.ALIGN_ON_COLUMN)
-                .consecutiveVariables(AlignmentPolicy.ALIGN_ON_COLUMN)
-                .consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN)
-                .trailingComments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_VARIABLES, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertEquals(squeeze(off), squeeze(on));
@@ -228,8 +235,8 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveFields(AlignmentPolicy.ALIGN_ON_COLUMN)
-                .consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private int    x    = 1;"), aligned);
@@ -243,8 +250,8 @@ class AlignmentRulesTest {
 
         String aligned = format(
             source,
-            style -> style.alignment(a -> a.consecutiveFields(AlignmentPolicy.ALIGN_ON_COLUMN)
-                .consecutiveAssignments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(AlignmentRules.CONSECUTIVE_FIELDS, AlignmentPolicy.ALIGN_ON_COLUMN)
+                .set(AlignmentRules.CONSECUTIVE_ASSIGNMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         assertTrue(aligned.contains("private int x = 1;\n    private String name = \"a\";"), aligned);

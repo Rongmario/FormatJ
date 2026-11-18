@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -56,7 +57,7 @@ public final class LambdaRewrite implements Rewrite {
     @Override
     public boolean enabled(RewriteContext context) {
         return context.rule(LambdaRules.PARAMETER_STYLE) != LambdaParameterStyle.PRESERVE ||
-            context.rule(LambdaRules.BODY_BRACES) != BracePolicy.PRESERVE;
+            context.rule(BraceRules.LAMBDA_BODY) != BracePolicy.PRESERVE;
     }
 
     @Override
@@ -171,7 +172,7 @@ public final class LambdaRewrite implements Rewrite {
     // ---------------------------------------------------------------- braces
 
     private GreenNode rewriteBody(GreenNode body, RewriteContext context) {
-        BracePolicy policy = context.rule(LambdaRules.BODY_BRACES);
+        BracePolicy policy = context.rule(BraceRules.LAMBDA_BODY);
         if (policy == BracePolicy.PRESERVE || policy == BracePolicy.ALWAYS) {
             // ALWAYS would have to choose between { return e; } and { e; }, which the target type
             // decides and the tokens do not say. See the class comment.
@@ -218,14 +219,14 @@ public final class LambdaRewrite implements Rewrite {
             return body;
         }
         context.record(new TokenEdit(
-            LambdaRules.BODY_BRACES,
+            BraceRules.LAMBDA_BODY,
             reason,
             openPosition,
             only.kind() == SyntaxKind.RETURN_STATEMENT ? List.of("{", "return") : List.of("{"),
             List.of(),
             TokenEdit.Bias.INNERMOST_FIRST
         ));
-        context.record(TokenEdit.delete(LambdaRules.BODY_BRACES, reason, semicolonPosition, ";", "}"));
+        context.record(TokenEdit.delete(BraceRules.LAMBDA_BODY, reason, semicolonPosition, ";", "}"));
         return expression;
     }
 

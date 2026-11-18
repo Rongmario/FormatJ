@@ -4,7 +4,6 @@ import java.nio.charset.Charset;
 
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Whole-file concerns: encoding, line terminators and the last line. */
 public final class FileRules {
@@ -50,42 +49,6 @@ public final class FileRules {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(CHARSET.key() + " names an unknown charset '" + name + "'", e);
         }
-    }
-
-    /** Fluent view of the {@code file.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder lineEnding(LineEnding value) {
-            style.set(LINE_ENDING, value);
-            return this;
-        }
-
-        public Builder finalNewline(boolean value) {
-            style.set(FINAL_NEWLINE, value);
-            return this;
-        }
-
-        public Builder trimTrailingWhitespace(boolean value) {
-            style.set(TRIM_TRAILING_WHITESPACE, value);
-            return this;
-        }
-
-        public Builder charset(String value) {
-            style.set(CHARSET, value);
-            return this;
-        }
-
-        public Builder tabWidth(int value) {
-            style.set(TAB_WIDTH, value);
-            return this;
-        }
-
     }
 
 }

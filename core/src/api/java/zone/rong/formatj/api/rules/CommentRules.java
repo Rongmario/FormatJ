@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Comment placement, re-wrapping and the formatter-off escape hatch. */
 public final class CommentRules {
@@ -10,6 +9,19 @@ public final class CommentRules {
         "comments.reflow",
         CommentReflow.PRESERVE,
         "Whether line and block comment prose may be re-wrapped"
+    );
+
+    /**
+     * Whether a {@code //} comment gets a space after its slashes.
+     *
+     * <p>Only prose qualifies, meaning text that starts with a letter or digit and does not end like
+     * a statement or block. Commented-out code, divider lines and tool markers such as
+     * {@code //noinspection} or {@code //$NON-NLS-1$} keep their form.
+     */
+    public static final Option<Boolean> SPACE_AFTER_LINE_COMMENT = Option.ofBoolean(
+        "comments.space-after-line-comment",
+        false,
+        "Put a space between the slashes of a line comment and its prose"
     );
 
     public static final Option<Boolean> BLOCK_COMMENT_STAR_ALIGNMENT = Option.ofBoolean(
@@ -61,61 +73,5 @@ public final class CommentRules {
     );
 
     private CommentRules() { }
-
-    /** Fluent view of the {@code comments.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder reflow(CommentReflow value) {
-            style.set(REFLOW, value);
-            return this;
-        }
-
-        public Builder blockCommentStarAlignment(boolean value) {
-            style.set(BLOCK_COMMENT_STAR_ALIGNMENT, value);
-            return this;
-        }
-
-        public Builder trailingCommentMinSpaces(int value) {
-            style.set(TRAILING_COMMENT_MIN_SPACES, value);
-            return this;
-        }
-
-        public Builder trailingCommentColumn(int value) {
-            style.set(TRAILING_COMMENT_COLUMN, value);
-            return this;
-        }
-
-        public Builder keepFirstColumnComments(boolean value) {
-            style.set(KEEP_FIRST_COLUMN_COMMENTS, value);
-            return this;
-        }
-
-        public Builder indentWithCode(boolean value) {
-            style.set(INDENT_WITH_CODE, value);
-            return this;
-        }
-
-        public Builder honourFormatterOff(boolean value) {
-            style.set(HONOUR_FORMATTER_OFF, value);
-            return this;
-        }
-
-        public Builder offMarker(String value) {
-            style.set(OFF_MARKER, value);
-            return this;
-        }
-
-        public Builder onMarker(String value) {
-            style.set(ON_MARKER, value);
-            return this;
-        }
-
-    }
 
 }

@@ -68,7 +68,9 @@ public final class DocBreaks {
                 // fit check, which measures only as far as that break.
                 Doc.GroupKind kind = group.kind() == Doc.GroupKind.FIRST_LINE
                     ? Doc.GroupKind.FIRST_LINE
-                    : inside ? Doc.GroupKind.ALWAYS : Doc.GroupKind.IF_NEEDED;
+                    : inside
+                        ? Doc.GroupKind.ALWAYS
+                        : group.kind() == Doc.GroupKind.NOT_AFTER_CLOSERS ? group.kind() : Doc.GroupKind.IF_NEEDED;
                 yield new Rewritten(Doc.group(content.doc(), kind), inside);
             }
             case Doc.Indent indent -> {

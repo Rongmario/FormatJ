@@ -104,15 +104,19 @@ class ParserTest {
             "class A { void f() { for (String s : list) { g(s); } } }\n",
             "class A { void f() { while (true) { break; } } }\n",
             "class A { void f() { do { x++; } while (x < 3); } }\n",
-            "class A { void f() { try (var in = open(); var out = create()) { copy(); } catch (IOException | RuntimeException e) { log(e); } finally { close(); } } }\n",
+            "class A { void f() { try (var in = open(); var out = create()) { copy(); } catch (IOException | " +
+                "RuntimeException e) { log(e); } finally { close(); } } }\n",
             "class A { void f() { synchronized (lock) { g(); } } }\n",
             "class A { void f() { assert x > 0 : \"positive\"; } }\n",
             "class A { void f() { label: for (;;) { continue label; } } }\n",
             "class A { void f() { if (a) { b(); } else if (c) { d(); } else { e(); } } }\n",
             "class A { void f() { switch (x) { case 1: g(); break; default: h(); } } }\n",
-            "class A { String f(Object o) { return switch (o) { case Integer i when i > 2 -> \"big\"; case String s -> s; case null, default -> \"other\"; }; } }\n",
-            "class A { int f(int t) { return switch (t) { case 1 -> { yield (t); } default -> { yield (int) (t - 1); } }; } }\n",
-            "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new IllegalStateException(); } } }\n",
+            "class A { String f(Object o) { return switch (o) { case Integer i when i > 2 -> \"big\"; case String s " +
+                "-> s; case null, default -> \"other\"; }; } }\n",
+            "class A { int f(int t) { return switch (t) { case 1 -> { yield (t); } default -> { yield (int) (t - 1); " +
+                "} }; } }\n",
+            "class A { void f() { switch (x) { case A -> g(); case B -> { h(); } case C -> throw new " +
+                "IllegalStateException(); } } }\n",
             "class A { boolean f(Object o) { return o instanceof Point(int x, int y) && x > y; } }\n",
             "class A { void f() { list.stream().map(x -> x + 1).filter(x -> x > 2).forEach(System.out::println); } }\n",
             "class A { String[] f(List<String> l) { return l.toArray(String[]::new); } }\n",
@@ -130,11 +134,15 @@ class ParserTest {
             "class A { void f() { for (int _ : orderIDs) { total++; } } }\n",
             "class A { void f() { for (final char _ : s.toCharArray()) { len++; } } }\n",
             "class A { void f() { try (var _ = open(); var _ = create()) { work(); } } }\n",
-            "class A { void f() { try { parse(); } catch (NumberFormatException _) { log(); } catch (IOException | RuntimeException _) { log(); } } }\n",
-            "class A { String f(Object o) { return switch (o) { case Freelancer _, Intern _ -> \"other\"; case Salaried r -> r.name(); }; } }\n",
-            "class A { String f(Object o) { return switch (o) { case _ -> \"none\"; case Integer _ -> \"int\"; }; } }\n",
+            "class A { void f() { try { parse(); } catch (NumberFormatException _) { log(); } catch (IOException | " +
+                "RuntimeException _) { log(); } } }\n",
+            "class A { String f(Object o) { return switch (o) { case Freelancer _, Intern _ -> \"other\"; case " +
+                "Salaried r -> r.name(); }; } }\n",
+            "class A { String f(Object o) { return switch (o) { case _ -> \"none\"; case Integer _ -> \"int\"; }; } " +
+                "}\n",
             "class A { boolean f(Object o) { return o instanceof Point(_, int y) && y > 0; } }\n",
-            "class A { boolean f(Object o) { return o instanceof ColoredPoint(Point p, Color _) || o instanceof ColoredPoint(Point p, _); } }\n",
+            "class A { boolean f(Object o) { return o instanceof ColoredPoint(Point p, Color _) || o instanceof " +
+                "ColoredPoint(Point p, _); } }\n",
             "class A { Runnable r = () -> {}; Function<Integer, Integer> g = (Integer x) -> x * 2; }\n",
             "class A { Object o = new Object() { public String toString() { return \"anon\"; } }; }\n",
             "class A { int x = (int) 3.5; Object y = (Runnable & Serializable) r; }\n",

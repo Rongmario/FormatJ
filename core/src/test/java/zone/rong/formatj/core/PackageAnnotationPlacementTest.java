@@ -25,7 +25,7 @@ class PackageAnnotationPlacementTest {
     private static final String PLAIN_SOURCE = "@NullMarked\npackage repro.pkg;\n";
 
     private static String format(String source, AnnotationPlacement placement) {
-        Style style = Style.builder().annotations(annotations -> annotations.packagePlacement(placement)).build();
+        Style style = Style.builder().set(AnnotationRules.PACKAGE_PLACEMENT, placement).build();
         return FormatJ.newFormatter().style(style).build().format(source);
     }
 

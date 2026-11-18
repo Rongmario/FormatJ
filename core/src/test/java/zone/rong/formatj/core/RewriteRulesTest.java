@@ -4,14 +4,14 @@ import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.BracketStyle;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.LambdaParameterStyle;
 import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.YieldStyle;
@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RewriteRulesTest {
 
-    // ----------------------------------------------------- sealed.permits-order
+    // ----------------------------------------------------- declarations.permits-order
 
     private static final String SEALED = "sealed interface I permits C, A, B {\n}\n";
 
@@ -99,7 +99,7 @@ class RewriteRulesTest {
         return "class T {\n\n    void run() {\n" + body + "\n    }\n\n}\n";
     }
 
-    // ------------------------------------------------ switch.arrow-case-braces
+    // ------------------------------------------------ braces.arrow-case-body
 
     private static String statementSwitch(String cases) {
         return method("        switch (n) {\n" + cases + "\n        }");
@@ -117,10 +117,10 @@ class RewriteRulesTest {
         return format(source, ModifierRules.REMOVE_REDUNDANT, true);
     }
 
-    // ------------------------------------------------- arrays.c-style-brackets
+    // ------------------------------------------------- declarations.array-brackets
 
     private static String javaBrackets(String source) {
-        return format(source, ArrayRules.C_STYLE_BRACKETS, BracketStyle.JAVA);
+        return format(source, DeclarationRules.ARRAY_BRACKETS, BracketStyle.JAVA);
     }
 
     private static <T> void assertSettles(String source, Option<T> option, T value) {
@@ -209,18 +209,18 @@ class RewriteRulesTest {
         );
     }
 
-    // ----------------------------------------------------- lambdas.body-braces
+    // ----------------------------------------------------- braces.lambda-body
 
     @Test
     void aLambdaBlockReturningAValueCollapsesToTheExpression() {
         String source = method("        run(x -> { return x + 1; });");
-        assertTrue(format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> x + 1);"));
+        assertTrue(format(source, BraceRules.LAMBDA_BODY, BracePolicy.NEVER).contains("run(x -> x + 1);"));
     }
 
     @Test
     void aLambdaBlockHoldingOneCallCollapsesToTheCall() {
         String source = method("        run(x -> { log(x); });");
-        assertTrue(format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> log(x));"));
+        assertTrue(format(source, BraceRules.LAMBDA_BODY, BracePolicy.NEVER).contains("run(x -> log(x));"));
     }
 
     @Test
@@ -228,7 +228,7 @@ class RewriteRulesTest {
         for (String expression : new String[] { "log(x)", "x = 1", "x++", "++x", "new Object()" }) {
             String source = method("        run(x -> { return " + expression + "; });");
             assertTrue(
-                format(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).contains("run(x -> " + expression + ");"),
+                format(source, BraceRules.LAMBDA_BODY, BracePolicy.NEVER).contains("run(x -> " + expression + ");"),
                 expression
             );
         }
@@ -239,7 +239,7 @@ class RewriteRulesTest {
         String[] bodies = { "{ }", "{ log(x); log(x); }", "{ return; }", "{ int y = x; }", "{ if (x) f(); }" };
         for (String body : bodies) {
             String source = method("        run(x -> " + body + ");");
-            assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged(), body);
+            assertTrue(rewrite(source, BraceRules.LAMBDA_BODY, BracePolicy.NEVER).unchanged(), body);
         }
     }
 
@@ -248,14 +248,14 @@ class RewriteRulesTest {
         assertTrue(
             format(
                 method("        run(x -> { return x; });"),
-                LambdaRules.BODY_BRACES,
+                BraceRules.LAMBDA_BODY,
                 BracePolicy.WHEN_MULTI_STATEMENT
             ).contains("run(x -> x);")
         );
         assertTrue(
             rewrite(
                 method("        run(x -> { f(); g(); });"),
-                LambdaRules.BODY_BRACES,
+                BraceRules.LAMBDA_BODY,
                 BracePolicy.WHEN_MULTI_STATEMENT
             ).unchanged()
         );
@@ -263,37 +263,35 @@ class RewriteRulesTest {
 
     @Test
     void alwaysDeclinesBecauseTheTargetTypeDecidesWhatTheBlockWouldSay() {
-        assertTrue(
-            rewrite(method("        run(x -> x + 1);"), LambdaRules.BODY_BRACES, BracePolicy.ALWAYS).unchanged()
-        );
+        assertTrue(rewrite(method("        run(x -> x + 1);"), BraceRules.LAMBDA_BODY, BracePolicy.ALWAYS).unchanged());
     }
 
     @Test
     void aBraceCarryingACommentKeepsTheBody() {
         String source = method("        run(x -> { // note\n            return x;\n        });");
-        assertTrue(rewrite(source, LambdaRules.BODY_BRACES, BracePolicy.NEVER).unchanged());
+        assertTrue(rewrite(source, BraceRules.LAMBDA_BODY, BracePolicy.NEVER).unchanged());
     }
 
     @Test
     void permittedTypesSortAscending() {
         assertTrue(
-            format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits A, B, C"),
-            format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING)
+            format(SEALED, DeclarationRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits A, B, C"),
+            format(SEALED, DeclarationRules.PERMITS_ORDER, SortOrder.ASCENDING)
         );
     }
 
     @Test
     void permittedTypesSortDescending() {
-        assertTrue(format(SEALED, SealedRules.PERMITS_ORDER, SortOrder.DESCENDING).contains("permits C, B, A"));
+        assertTrue(format(SEALED, DeclarationRules.PERMITS_ORDER, SortOrder.DESCENDING).contains("permits C, B, A"));
     }
 
     @Test
     void permitsPreserveAndAnAlreadySortedClauseTouchNothing() {
-        assertTrue(rewrite(SEALED, SealedRules.PERMITS_ORDER, SortOrder.PRESERVE).unchanged());
+        assertTrue(rewrite(SEALED, DeclarationRules.PERMITS_ORDER, SortOrder.PRESERVE).unchanged());
         assertTrue(
             rewrite(
                 "sealed interface I permits A, B {\n}\n",
-                SealedRules.PERMITS_ORDER,
+                DeclarationRules.PERMITS_ORDER,
                 SortOrder.ASCENDING
             ).unchanged()
         );
@@ -302,14 +300,18 @@ class RewriteRulesTest {
     @Test
     void aSinglePermittedTypeIsAlreadyInOrder() {
         assertTrue(
-            rewrite("sealed interface I permits A {\n}\n", SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).unchanged()
+            rewrite(
+                "sealed interface I permits A {\n}\n",
+                DeclarationRules.PERMITS_ORDER,
+                SortOrder.ASCENDING
+            ).unchanged()
         );
     }
 
     @Test
     void aQualifiedNameSortsOnItsWholeText() {
         String source = "sealed interface I permits b.B, a.A {\n}\n";
-        assertTrue(format(source, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits a.A, b.B"));
+        assertTrue(format(source, DeclarationRules.PERMITS_ORDER, SortOrder.ASCENDING).contains("permits a.A, b.B"));
     }
 
     @Test
@@ -380,9 +382,10 @@ class RewriteRulesTest {
                 }
                 """;
         Style style = Style.builder()
-            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL).removeRedundant(false))
-            .sealedTypes(sealed -> sealed.permitsOrder(SortOrder.ASCENDING))
-            .braces(braces -> braces.ifElse(BracePolicy.ALWAYS))
+            .set(ModifierRules.ORDER, ModifierOrder.CANONICAL)
+            .set(ModifierRules.REMOVE_REDUNDANT, false)
+            .set(DeclarationRules.PERMITS_ORDER, SortOrder.ASCENDING)
+            .set(BraceRules.IF_ELSE, BracePolicy.ALWAYS)
             .build();
         String formatted = FormatJ.newFormatter().style(style).build().format(source);
         assertTrue(formatted.contains("public sealed interface I permits A, B, C"), formatted);
@@ -394,7 +397,7 @@ class RewriteRulesTest {
     void bracesAreAddedRoundAStatementArrowBody() {
         String formatted = format(
             statementSwitch("            case 1 -> f();"),
-            SwitchRules.ARROW_CASE_BRACES,
+            BraceRules.ARROW_CASE_BODY,
             BracePolicy.ALWAYS
         );
         assertTrue(formatted.contains("case 1 -> {"), formatted);
@@ -403,9 +406,9 @@ class RewriteRulesTest {
     @Test
     void bracesComeOffAOneStatementArrowBody() {
         String source = statementSwitch("            case 1 -> { f(); }");
-        assertTrue(format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).contains("case 1 -> f();"));
+        assertTrue(format(source, BraceRules.ARROW_CASE_BODY, BracePolicy.NEVER).contains("case 1 -> f();"));
         assertTrue(
-            format(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.WHEN_MULTI_STATEMENT).contains("case 1 -> f();")
+            format(source, BraceRules.ARROW_CASE_BODY, BracePolicy.WHEN_MULTI_STATEMENT).contains("case 1 -> f();")
         );
     }
 
@@ -413,15 +416,15 @@ class RewriteRulesTest {
     void aBodyWithNoUnbracedFormKeepsItsBraces() {
         for (String body : new String[] { "{ f(); g(); }", "{ int x = 1; }", "{ if (n > 0) f(); }", "{ }" }) {
             String source = statementSwitch("            case 1 -> " + body);
-            assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).unchanged(), body);
+            assertTrue(rewrite(source, BraceRules.ARROW_CASE_BODY, BracePolicy.NEVER).unchanged(), body);
         }
     }
 
     @Test
     void anExpressionSwitchIsNotTheBraceRulesBusiness() {
         String source = method("        int v = switch (n) {\n            case 1 -> { yield 2; }\n        };");
-        assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.NEVER).unchanged());
-        assertTrue(rewrite(source, SwitchRules.ARROW_CASE_BRACES, BracePolicy.ALWAYS).unchanged());
+        assertTrue(rewrite(source, BraceRules.ARROW_CASE_BODY, BracePolicy.NEVER).unchanged());
+        assertTrue(rewrite(source, BraceRules.ARROW_CASE_BODY, BracePolicy.ALWAYS).unchanged());
     }
 
     @Test
@@ -677,19 +680,15 @@ class RewriteRulesTest {
 
     @Test
     void everyRuleSettlesAfterOnePass() {
-        assertSettles(method("        run((x) -> { return x + 1; });"), LambdaRules.BODY_BRACES, BracePolicy.NEVER);
+        assertSettles(method("        run((x) -> { return x + 1; });"), BraceRules.LAMBDA_BODY, BracePolicy.NEVER);
         assertSettles(
             method("        run((x) -> 1);"),
             LambdaRules.PARAMETER_STYLE,
             LambdaParameterStyle.OMIT_WHEN_POSSIBLE
         );
-        assertSettles(SEALED, SealedRules.PERMITS_ORDER, SortOrder.ASCENDING);
+        assertSettles(SEALED, DeclarationRules.PERMITS_ORDER, SortOrder.ASCENDING);
         assertSettles(MODIFIERS, ModifierRules.ORDER, ModifierOrder.CANONICAL);
-        assertSettles(
-            statementSwitch("            case 1 -> { f(); }"),
-            SwitchRules.ARROW_CASE_BRACES,
-            BracePolicy.NEVER
-        );
+        assertSettles(statementSwitch("            case 1 -> { f(); }"), BraceRules.ARROW_CASE_BODY, BracePolicy.NEVER);
         assertSettles(
             expressionSwitch("            case 1 -> { yield 2; }"),
             SwitchRules.YIELD_STYLE,

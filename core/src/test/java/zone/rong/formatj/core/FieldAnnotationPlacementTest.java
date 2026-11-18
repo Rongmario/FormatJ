@@ -3,6 +3,7 @@ package zone.rong.formatj.core;
 import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
+import zone.rong.formatj.api.rules.AnnotationRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,14 +15,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class FieldAnnotationPlacementTest {
 
-    private static final String LONG = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when they hit final or inaccessible fields.\")\n" +
-        "public static boolean reflectFields = true;\n";
+    private static final String LONG = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when " +
+        "they hit final or inaccessible fields.\")\n" + "public static boolean reflectFields = true;\n";
 
     private static final String SHORT = "@Config.Comment(\"Short comment.\")\n" +
         "public static boolean shortField = true;\n";
 
     private static String format(String source, AnnotationPlacement placement) {
-        Style style = Style.builder().annotations(annotations -> annotations.fieldPlacement(placement)).build();
+        Style style = Style.builder().set(AnnotationRules.FIELD_PLACEMENT, placement).build();
         return FormatJ.newFormatter().style(style).build().format(source);
     }
 
@@ -53,6 +54,18 @@ class FieldAnnotationPlacementTest {
     void sameLineWhenShortMovesALongAnnotationToItsOwnLine() {
         String formatted = format(LONG, AnnotationPlacement.SAME_LINE_WHEN_SHORT);
         assertEquals(LONG, formatted);
+    }
+
+    @Test
+    void anAnnotationWhoseArgumentsBreakLeavesItsClosingParenthesisAlone() {
+        String value = "\"A value long enough that the annotation alone runs past the line, so its arguments " +
+            "must break apart\"";
+        String source = "class A {\n\n    @SuppressWarnings(" + value + ") String s;\n\n}\n";
+
+        assertEquals(
+            "class A {\n\n    @SuppressWarnings(\n        " + value + "\n    )\n    String s;\n\n}\n",
+            format(source, AnnotationPlacement.SAME_LINE)
+        );
     }
 
 }

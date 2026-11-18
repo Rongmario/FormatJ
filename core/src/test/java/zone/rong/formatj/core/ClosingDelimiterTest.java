@@ -5,6 +5,7 @@ import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.ClosingDelimiter;
 import zone.rong.formatj.api.rules.WrapPolicy;
+import zone.rong.formatj.api.rules.WrappingRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,10 +31,10 @@ class ClosingDelimiterTest {
     private static String format(String source, ClosingDelimiter delimiter) {
         return format(
             source,
-            style -> style.wrapping(wrapping -> wrapping.maxLineLength(117)
-                .closingDelimiter(delimiter)
-                .methodParameters(WrapPolicy.WRAP_IF_LONG)
-                .breakAfterOpenParen(false))
+            style -> style.set(WrappingRules.MAX_LINE_LENGTH, 117)
+                .set(WrappingRules.CLOSING_DELIMITER, delimiter)
+                .set(WrappingRules.METHOD_PARAMETERS, WrapPolicy.WRAP_IF_LONG)
+                .set(WrappingRules.BREAK_AFTER_OPEN_PAREN, false)
         );
     }
 
@@ -86,7 +87,8 @@ class ClosingDelimiterTest {
     @Test
     void aListThatFitsTogetherWithTheDelimiterIsNotBroken() {
         String formatted = format(
-            "class A {\n    public void visit(int version, String[] interfaces) {\n        super.visit(version, interfaces);\n    }\n}\n",
+            "class A {\n    public void visit(int version, String[] interfaces) {\n" +
+                "        super.visit(version, interfaces);\n    }\n}\n",
             ClosingDelimiter.OWN_LINE
         );
         assertFalse(formatted.contains("visit(int version, String[] interfaces\n"), formatted);
@@ -107,7 +109,8 @@ class ClosingDelimiterTest {
         // The last argument belongs with the ) below it, so the list breaks as a whole.
         assertFalse(
             formatted.contains(
-                "someCall(version, access, name, signature, superName, interfaces, interfaces, version, version, more, args, here, a, b, c\n"
+                "someCall(version, access, name, signature, superName, interfaces, interfaces, version, version, " +
+                    "more, args, here, a, b, c\n"
             ),
             formatted
         );

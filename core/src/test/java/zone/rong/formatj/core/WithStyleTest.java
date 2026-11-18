@@ -2,14 +2,14 @@ package zone.rong.formatj.core;
 
 import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.RecordWithStyle;
+import zone.rong.formatj.api.rules.WrappingRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * {@code records.with-style}, which is layout rather than a rewrite.
+ * {@code wrapping.with-block}, which is layout rather than a rewrite.
  *
  * <p>The three values choose between a with-block on one line and the same block spread over
  * several. Those are the same tokens either way, so the rule has nothing to declare to the rewrite
@@ -26,7 +26,7 @@ class WithStyleTest {
 
     private static String format(String source, RecordWithStyle style) {
         return FormatJ.newFormatter()
-            .style(Style.builder().set(RecordRules.WITH_STYLE, style).build())
+            .style(Style.builder().set(WrappingRules.WITH_BLOCK, style).build())
             .previewFeatures(true)
             .build()
             .format(source);

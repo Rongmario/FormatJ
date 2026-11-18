@@ -8,7 +8,7 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
-import zone.rong.formatj.api.rules.LambdaRules;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.TextBlockIndentPolicy;
 import zone.rong.formatj.api.rules.TextBlockRules;
 import zone.rong.formatj.core.text.TextBlocks;
@@ -141,7 +141,7 @@ class FormatterPropertyTest {
                 }
                 """;
 
-        Style style = Style.builder().set(LambdaRules.BODY_BRACES, BracePolicy.NEVER).build();
+        Style style = Style.builder().set(BraceRules.LAMBDA_BODY, BracePolicy.NEVER).build();
         Formatter formatter = FormatJ.newFormatter().style(style).build();
         FormatResult result = formatter.format(FormatRequest.of(source).withName("T.java"));
         assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
@@ -248,7 +248,7 @@ class FormatterPropertyTest {
         String messy = "package a;class A{void run(){if(x){g();}else{h();}list.stream().map(v->v+1).toList();}}\n";
         assertFixedPoint(FormatJ.defaultFormatter(), messy);
 
-        Style bracing = Style.builder().set(LambdaRules.BODY_BRACES, BracePolicy.NEVER).build();
+        Style bracing = Style.builder().set(BraceRules.LAMBDA_BODY, BracePolicy.NEVER).build();
         assertFixedPoint(FormatJ.newFormatter().style(bracing).build(), messy);
 
         String withPreview = "class T { Point moved(Point p) { return p with { x = 1; }; } }\n";

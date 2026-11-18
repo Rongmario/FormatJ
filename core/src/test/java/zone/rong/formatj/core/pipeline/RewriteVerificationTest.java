@@ -11,12 +11,12 @@ import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.ImportRules;
-import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.api.rules.SealedRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
+import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -120,7 +120,7 @@ class RewriteVerificationTest {
     /** An edit replacing the run of permitted types with the given tokens. */
     private static TokenEdit permitsEdit(List<String> inserted) {
         return new TokenEdit(
-            SealedRules.PERMITS_ORDER,
+            DeclarationRules.PERMITS_ORDER,
             "reordered",
             4,
             List.of("C", ",", "A", ",", "B"),
@@ -133,6 +133,17 @@ class RewriteVerificationTest {
 
     private static TokenEdit modifierEdit(List<String> removed, List<String> inserted) {
         return new TokenEdit(ModifierRules.ORDER, "reordered", 0, removed, inserted, TokenEdit.Bias.INNERMOST_FIRST);
+    }
+
+    private static TokenEdit splitEdit(int position, String first, String second) {
+        return new TokenEdit(
+            WrappingRules.SPLIT_LONG_STRINGS,
+            "split",
+            position,
+            List.of("\"one two\""),
+            List.of(first, "+", second),
+            TokenEdit.Bias.INNERMOST_FIRST
+        );
     }
 
     // ------------------------------------------------------------ the replay
@@ -184,6 +195,30 @@ class RewriteVerificationTest {
         );
         assertNotNull(problem);
         assertTrue(problem.contains("may only insert braces"), problem);
+    }
+
+    @Test
+    void aStringSplitMustKeepTheValueAndItsPrecedence() {
+        GreenNode before = parse("class A {\n    String a = \"one two\";\n    int n = \"one two\".length();\n}\n");
+        List<String> tokens = ProgramTokens.lexemes(before);
+        int initializer = tokens.indexOf("\"one two\"");
+        int receiver = tokens.lastIndexOf("\"one two\"");
+
+        String changed = RewriteVerification.verifyOutput(
+            before,
+            before,
+            List.of(splitEdit(initializer, "\"one \"", "\"too\""))
+        );
+        String rebound = RewriteVerification.verifyOutput(
+            before,
+            before,
+            List.of(splitEdit(receiver, "\"one \"", "\"two\""))
+        );
+
+        assertNotNull(changed);
+        assertTrue(changed.contains("changed what"), changed);
+        assertNotNull(rebound);
+        assertTrue(rebound.contains("bind differently"), rebound);
     }
 
     @Test
@@ -429,7 +464,7 @@ class RewriteVerificationTest {
             parse(SOURCE),
             parse(SOURCE),
             List.of(TokenEdit.insert(
-                LambdaRules.BODY_BRACES,
+                BraceRules.LAMBDA_BODY,
                 "guessing at the target type",
                 0,
                 TokenEdit.Bias.OUTERMOST_FIRST,
@@ -446,7 +481,7 @@ class RewriteVerificationTest {
         String problem = RewriteVerification.verifyOutput(
             parse(SOURCE),
             parse(SOURCE),
-            List.of(TokenEdit.delete(LambdaRules.BODY_BRACES, "too much", 0, "{", "log"))
+            List.of(TokenEdit.delete(BraceRules.LAMBDA_BODY, "too much", 0, "{", "log"))
         );
         assertNotNull(problem);
         assertTrue(problem.contains("not a lambda body's braces"), problem);
@@ -475,7 +510,7 @@ class RewriteVerificationTest {
             parse(SOURCE),
             parse(SOURCE),
             List.of(TokenEdit.insert(
-                SwitchRules.ARROW_CASE_BRACES,
+                BraceRules.ARROW_CASE_BODY,
                 "sneaking a yield in",
                 0,
                 TokenEdit.Bias.OUTERMOST_FIRST,

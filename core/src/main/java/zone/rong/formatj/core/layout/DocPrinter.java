@@ -159,8 +159,10 @@ public final class DocPrinter {
                 case Doc.Group group -> {
                     boolean always = group.kind() == Doc.GroupKind.ALWAYS;
                     boolean forcedFlat = group.kind() == Doc.GroupKind.FORCED_FLAT;
+                    boolean afterClosers = group.kind() == Doc.GroupKind.NOT_AFTER_CLOSERS && holdsOnlyClosers(out);
                     boolean flat = forcedFlat ||
                         !always &&
+                            !afterClosers &&
                             mode == Mode.BREAK &&
                             fits(
                                 group.content(),
@@ -345,11 +347,6 @@ public final class DocPrinter {
         return fits(doc, Mode.FLAT, remaining, rest, stopAtHardBreak, false);
     }
 
-    /** Whether {@code doc} fits up to the first place it could break. */
-    private boolean startFits(Doc doc, int remaining, Deque<Command> rest) {
-        return fits(doc, Mode.BREAK, remaining, rest, true, false);
-    }
-
     private boolean fits(
         Doc doc,
         Mode start,
@@ -454,7 +451,26 @@ public final class DocPrinter {
         return false;
     }
 
+    /** Whether {@code doc} fits up to the first place it could break. */
+    private boolean startFits(Doc doc, int remaining, Deque<Command> rest) {
+        return fits(doc, Mode.BREAK, remaining, rest, true, false);
+    }
+
     /** Whether nothing but whitespace has been written since the last line separator. */
+    private boolean holdsOnlyClosers(StringBuilder out) {
+        int start = out.lastIndexOf(lineSeparator);
+        boolean closer = false;
+        for (int i = start < 0 ? 0 : start + lineSeparator.length(); i < out.length(); i++) {
+            char current = out.charAt(i);
+            if (current == ')' || current == ']' || current == '}') {
+                closer = true;
+            } else if (current != ' ' && current != '\t') {
+                return false;
+            }
+        }
+        return closer;
+    }
+
     private boolean lineIsAllWhitespace(StringBuilder out) {
         int start = out.lastIndexOf(lineSeparator);
         for (int i = start < 0 ? 0 : start + lineSeparator.length(); i < out.length(); i++) {

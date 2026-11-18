@@ -3,8 +3,8 @@ package zone.rong.formatj.core.rewrite;
 import java.util.ArrayList;
 import java.util.List;
 
-import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BracketStyle;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -122,7 +122,7 @@ public final class ArrayBracketRewrite implements Rewrite {
             lexemes.add(((GreenNode.Leaf) brackets.get(i)).lexeme());
         }
         return new TokenEdit(
-            ArrayRules.C_STYLE_BRACKETS,
+            DeclarationRules.ARRAY_BRACKETS,
             "array brackets moved to the type",
             position,
             lexemes,
@@ -141,7 +141,7 @@ public final class ArrayBracketRewrite implements Rewrite {
             brackets.addAll(List.of("[", "]"));
         }
         return new TokenEdit(
-            ArrayRules.C_STYLE_BRACKETS,
+            DeclarationRules.ARRAY_BRACKETS,
             "array brackets moved to the type",
             position,
             List.of(),
@@ -178,12 +178,12 @@ public final class ArrayBracketRewrite implements Rewrite {
 
     @Override
     public String name() {
-        return ArrayRules.C_STYLE_BRACKETS.key();
+        return DeclarationRules.ARRAY_BRACKETS.key();
     }
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(ArrayRules.C_STYLE_BRACKETS) == BracketStyle.JAVA;
+        return context.rule(DeclarationRules.ARRAY_BRACKETS) == BracketStyle.JAVA;
     }
 
     @Override

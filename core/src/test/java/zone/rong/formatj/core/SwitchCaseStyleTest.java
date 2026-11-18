@@ -78,6 +78,32 @@ class SwitchCaseStyleTest {
     }
 
     @Test
+    void aCommentOnACaseThatWouldMergeIsRefused() {
+        String source = """
+            class T {
+
+                void f(int n) {
+                    switch (n) {
+                        case 1:
+                            // why 2 shares the body
+                        case 2:
+                            g(n);
+                            break;
+                    }
+                }
+
+            }
+            """;
+        FormatResult result = FormatJ.newFormatter()
+            .style(Style.builder().set(SwitchRules.CASE_STYLE, SwitchCaseStyle.ARROW).build())
+            .build()
+            .format(FormatRequest.of(source).withName("T.java"));
+
+        assertTrue(result.diagnostics().isEmpty(), () -> result.diagnostics().toString());
+        assertTrue(result.text().contains("// why 2 shares the body\n            case 2:"), result.text());
+    }
+
+    @Test
     void aGroupWithSeveralStatementsGetsABlock() {
         String formatted = format(
             SwitchCaseStyle.ARROW,

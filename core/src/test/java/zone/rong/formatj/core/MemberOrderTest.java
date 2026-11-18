@@ -17,9 +17,12 @@ import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.DeclarationRules;
+import zone.rong.formatj.api.rules.ImportRules;
 import zone.rong.formatj.api.rules.MemberOrder;
 import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
+import zone.rong.formatj.api.rules.ModifierRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.pipeline.RewriteVerification;
@@ -31,9 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MemberOrderTest {
 
-    private static final Style INTELLIJ = Style.builder()
-        .members(members -> members.order(MemberOrder.INTELLIJ))
-        .build();
+    private static final Style INTELLIJ = Style.builder().set(MemberRules.ORDER, MemberOrder.INTELLIJ).build();
 
     private static FormatResult format(String source, Style style) {
         return FormatJ.newFormatter().style(style).build().format(FormatRequest.of(source).withName("T.java"));
@@ -300,10 +301,11 @@ class MemberOrderTest {
                 }
                 """;
         Style style = Style.builder()
-            .members(members -> members.order(MemberOrder.INTELLIJ))
-            .modifiers(modifiers -> modifiers.order(ModifierOrder.CANONICAL).removeRedundant(true))
-            .imports(imports -> imports.removeUnused(true))
-            .semicolons(semicolons -> semicolons.removeRedundant(true))
+            .set(MemberRules.ORDER, MemberOrder.INTELLIJ)
+            .set(ModifierRules.ORDER, ModifierOrder.CANONICAL)
+            .set(ModifierRules.REMOVE_REDUNDANT, true)
+            .set(ImportRules.REMOVE_UNUSED, true)
+            .set(DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS, true)
             .build();
 
         FormatResult once = format(source, style);
@@ -399,7 +401,10 @@ class MemberOrderTest {
                 """;
         String formatted = format(
             source,
-            Style.builder().members(members -> members.order(MemberOrder.INTELLIJ).fieldVisibilityOrder(false)).build()
+            Style.builder()
+                .set(MemberRules.ORDER, MemberOrder.INTELLIJ)
+                .set(MemberRules.FIELD_VISIBILITY_ORDER, false)
+                .build()
         ).text();
         assertTrue(formatted.indexOf("PRIVATE_STATIC") < formatted.indexOf("PUBLIC_STATIC"), formatted);
         assertTrue(formatted.indexOf("publicStatic") < formatted.indexOf("privateStatic"), formatted);
@@ -419,10 +424,40 @@ class MemberOrderTest {
                 """;
         String formatted = format(
             source,
-            Style.builder().members(members -> members.order(MemberOrder.INTELLIJ).methodVisibilityOrder(false)).build()
+            Style.builder()
+                .set(MemberRules.ORDER, MemberOrder.INTELLIJ)
+                .set(MemberRules.METHOD_VISIBILITY_ORDER, false)
+                .build()
         ).text();
         assertTrue(formatted.indexOf("PUBLIC_STATIC") < formatted.indexOf("PRIVATE_STATIC"), formatted);
         assertTrue(formatted.indexOf("privateStatic") < formatted.indexOf("publicStatic"), formatted);
+    }
+
+    @Test
+    void overloadsStayWithTheirBestRankedSibling() {
+        String source = """
+                class T {
+
+                    public void run() { }
+
+                    private void run(int times) { }
+
+                    public void stop() { }
+
+                    static void run(String name) { }
+
+                }
+                """;
+        String together = sorted(source);
+        assertTrue(
+            together.indexOf("static void run(String name)") < together.indexOf("public void run()") &&
+                together.indexOf("private void run(int times)") < together.indexOf("public void stop()"),
+            together
+        );
+
+        Style apart = INTELLIJ.toBuilder().set(MemberRules.KEEP_OVERLOADS_TOGETHER, false).build();
+        String split = format(source, apart).text();
+        assertTrue(split.indexOf("public void stop()") < split.indexOf("private void run(int times)"), split);
     }
 
 }

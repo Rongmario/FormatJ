@@ -12,7 +12,3 @@ chained-calls = "break-all-when-too-long"
 [imports]
 groups = ["java", "javax", "*"]
 static-placement = "last"
-
-[preservation]
-keep-author-blank-lines = true
-max-preserved-blank-lines = 1

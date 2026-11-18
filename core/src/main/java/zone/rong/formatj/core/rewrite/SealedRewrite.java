@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.SortOrder;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
@@ -81,7 +81,7 @@ public final class SealedRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(SealedRules.PERMITS_ORDER) != SortOrder.PRESERVE;
+        return context.rule(DeclarationRules.PERMITS_ORDER) != SortOrder.PRESERVE;
     }
 
     @Override
@@ -100,7 +100,7 @@ public final class SealedRewrite implements Rewrite {
             types.add(children.get(slot));
         }
         List<GreenNode> sorted = new ArrayList<>(types);
-        sorted.sort(order(context.rule(SealedRules.PERMITS_ORDER)));
+        sorted.sort(order(context.rule(DeclarationRules.PERMITS_ORDER)));
 
         List<String> before = lexemes(types);
         List<String> after = lexemes(sorted);
@@ -113,7 +113,7 @@ public final class SealedRewrite implements Rewrite {
             return node;
         }
         context.record(new TokenEdit(
-            SealedRules.PERMITS_ORDER,
+            DeclarationRules.PERMITS_ORDER,
             "permitted types reordered",
             position,
             run(children, slots, types),

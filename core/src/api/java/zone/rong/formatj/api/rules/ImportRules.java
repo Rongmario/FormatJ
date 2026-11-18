@@ -3,7 +3,6 @@ package zone.rong.formatj.api.rules;
 import java.util.List;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Import ordering, grouping and wildcard policy. */
 public final class ImportRules {
@@ -47,46 +46,5 @@ public final class ImportRules {
     );
 
     private ImportRules() { }
-
-    /** Fluent view of the {@code imports.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder groups(List<List<String>> value) {
-            style.set(GROUPS, value);
-            return this;
-        }
-
-        public Builder order(SortOrder value) {
-            style.set(ORDER, value);
-            return this;
-        }
-
-        public Builder staticPlacement(StaticImportPlacement value) {
-            style.set(STATIC_PLACEMENT, value);
-            return this;
-        }
-
-        public Builder blankLineBetweenGroups(boolean value) {
-            style.set(BLANK_LINE_BETWEEN_GROUPS, value);
-            return this;
-        }
-
-        public Builder removeUnused(boolean value) {
-            style.set(REMOVE_UNUSED, value);
-            return this;
-        }
-
-        public Builder moduleImportsFirst(boolean value) {
-            style.set(MODULE_IMPORTS_FIRST, value);
-            return this;
-        }
-
-    }
 
 }

@@ -2,40 +2,13 @@ package zone.rong.formatj.api;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
-
-import zone.rong.formatj.api.rules.AlignmentRules;
-import zone.rong.formatj.api.rules.AnnotationRules;
-import zone.rong.formatj.api.rules.ArrayRules;
-import zone.rong.formatj.api.rules.BlankLineRules;
-import zone.rong.formatj.api.rules.BraceRules;
-import zone.rong.formatj.api.rules.CommentRules;
-import zone.rong.formatj.api.rules.DeclarationRules;
-import zone.rong.formatj.api.rules.FileRules;
-import zone.rong.formatj.api.rules.ImportRules;
-import zone.rong.formatj.api.rules.IndentRules;
-import zone.rong.formatj.api.rules.JavadocRules;
-import zone.rong.formatj.api.rules.LambdaRules;
-import zone.rong.formatj.api.rules.LiteralRules;
-import zone.rong.formatj.api.rules.MemberRules;
-import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.api.rules.ModuleRules;
-import zone.rong.formatj.api.rules.PatternRules;
-import zone.rong.formatj.api.rules.PreservationRules;
-import zone.rong.formatj.api.rules.RecordRules;
-import zone.rong.formatj.api.rules.SealedRules;
-import zone.rong.formatj.api.rules.SemicolonRules;
-import zone.rong.formatj.api.rules.SpacingRules;
-import zone.rong.formatj.api.rules.SwitchRules;
-import zone.rong.formatj.api.rules.TextBlockRules;
-import zone.rong.formatj.api.rules.WrappingRules;
 
 /**
  * Mutable builder for a {@link Style}.
  *
- * <p>Rules are reachable two ways: through the typed group methods below, which is what most callers
- * want, or through {@link #set(Option, Object)} and {@link #setRaw(String, String)} for tools that
- * carry rules as untyped key-value pairs, such as the CLI's {@code --set} flag.
+ * <p>Typed callers use {@link #set(Option, Object)} with a constant from one of the
+ * {@code zone.rong.formatj.api.rules} classes. Tools that carry rules as untyped key-value pairs,
+ * such as the CLI's {@code --set} flag, use {@link #setRaw(String, String)}.
  */
 public final class StyleBuilder {
 
@@ -61,141 +34,25 @@ public final class StyleBuilder {
         return this;
     }
 
-    /** Sets one option from its dotted key and textual value, as used by config files and CLIs. */
+    /**
+     * Sets one option from its dotted key and textual value, as used by config files and CLIs.
+     *
+     * <p>{@code inherit} clears an option with a parent, so it follows that parent again.
+     */
     public StyleBuilder setRaw(String key, String value) {
         Option<?> option = OptionRegistry.require(key);
-        values.put(option.key(), option.parse(value));
+        Object parsed = option.parse(value);
+        if (parsed == null) {
+            values.remove(option.key());
+        } else {
+            values.put(option.key(), parsed);
+        }
         return this;
     }
 
     /** Applies every explicit setting of {@code other} on top of this builder. */
     public StyleBuilder apply(Style other) {
         values.putAll(other.explicitValues());
-        return this;
-    }
-
-    public StyleBuilder file(Consumer<FileRules.Builder> rules) {
-        rules.accept(new FileRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder indent(Consumer<IndentRules.Builder> rules) {
-        rules.accept(new IndentRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder wrapping(Consumer<WrappingRules.Builder> rules) {
-        rules.accept(new WrappingRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder braces(Consumer<BraceRules.Builder> rules) {
-        rules.accept(new BraceRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder spacing(Consumer<SpacingRules.Builder> rules) {
-        rules.accept(new SpacingRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder blankLines(Consumer<BlankLineRules.Builder> rules) {
-        rules.accept(new BlankLineRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder alignment(Consumer<AlignmentRules.Builder> rules) {
-        rules.accept(new AlignmentRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder annotations(Consumer<AnnotationRules.Builder> rules) {
-        rules.accept(new AnnotationRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder imports(Consumer<ImportRules.Builder> rules) {
-        rules.accept(new ImportRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder comments(Consumer<CommentRules.Builder> rules) {
-        rules.accept(new CommentRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder javadoc(Consumer<JavadocRules.Builder> rules) {
-        rules.accept(new JavadocRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder switches(Consumer<SwitchRules.Builder> rules) {
-        rules.accept(new SwitchRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder records(Consumer<RecordRules.Builder> rules) {
-        rules.accept(new RecordRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder modules(Consumer<ModuleRules.Builder> rules) {
-        rules.accept(new ModuleRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder modifiers(Consumer<ModifierRules.Builder> rules) {
-        rules.accept(new ModifierRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder patterns(Consumer<PatternRules.Builder> rules) {
-        rules.accept(new PatternRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder sealedTypes(Consumer<SealedRules.Builder> rules) {
-        rules.accept(new SealedRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder lambdas(Consumer<LambdaRules.Builder> rules) {
-        rules.accept(new LambdaRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder textBlocks(Consumer<TextBlockRules.Builder> rules) {
-        rules.accept(new TextBlockRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder literals(Consumer<LiteralRules.Builder> rules) {
-        rules.accept(new LiteralRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder semicolons(Consumer<SemicolonRules.Builder> rules) {
-        rules.accept(new SemicolonRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder preservation(Consumer<PreservationRules.Builder> rules) {
-        rules.accept(new PreservationRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder arrays(Consumer<ArrayRules.Builder> rules) {
-        rules.accept(new ArrayRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder members(Consumer<MemberRules.Builder> rules) {
-        rules.accept(new MemberRules.Builder(this));
-        return this;
-    }
-
-    public StyleBuilder declarations(Consumer<DeclarationRules.Builder> rules) {
-        rules.accept(new DeclarationRules.Builder(this));
         return this;
     }
 

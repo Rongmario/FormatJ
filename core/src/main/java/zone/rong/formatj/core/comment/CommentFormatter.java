@@ -418,9 +418,15 @@ public final class CommentFormatter {
     /** A comment re-indented but never re-worded, which is what every rule here defaults to. */
     public Doc verbatim(Token comment) {
         if (comment.kind() == TokenKind.LINE_COMMENT) {
-            return Prose.isMarkdownComment(comment)
-                ? Doc.textPreservingTrailingWhitespace(comment.text())
-                : Doc.text(stripTrailing(comment.text()));
+            if (Prose.isMarkdownComment(comment)) {
+                return Doc.textPreservingTrailingWhitespace(comment.text());
+            }
+            String text = comment.text();
+            if (addsSpace(comment)) {
+                String marker = slashes(text);
+                text = marker + " " + text.substring(marker.length());
+            }
+            return Doc.text(stripTrailing(text));
         }
         String[] lines = comment.text().split("\r\n|\r|\n", -1);
         if (lines.length == 1) {
@@ -861,13 +867,29 @@ public final class CommentFormatter {
             }
             if (comment.kind() == TokenKind.LINE_COMMENT) {
                 String content = Prose.content(comment);
-                if (!content.isBlank() && !content.startsWith(" ")) {
+                if (!content.isBlank() && !content.startsWith(" ") && !addsSpace(comment)) {
                     // No space after the slashes: commented-out code, not a sentence.
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    /** Whether {@code comments.space-after-line-comment} spaces this comment's prose from its slashes. */
+    private boolean addsSpace(Token comment) {
+        if (!rule(CommentRules.SPACE_AFTER_LINE_COMMENT) ||
+            comment.kind() != TokenKind.LINE_COMMENT ||
+            comment.hasUnicodeEscape() ||
+            Prose.isMarkdownComment(comment) ||
+            holdsMarker(comment.text())) {
+            return false;
+        }
+        String content = Prose.content(comment).strip();
+        return !content.isEmpty() &&
+            Character.isLetterOrDigit(Prose.content(comment).charAt(0)) &&
+            !content.startsWith("noinspection") &&
+            ";{}()".indexOf(content.charAt(content.length() - 1)) < 0;
     }
 
     private boolean reflowableLines(List<String> lines) {

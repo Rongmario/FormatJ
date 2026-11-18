@@ -48,6 +48,19 @@ public final class TokenEquivalence {
         return firstDifference(programTokens(before), programTokens(after));
     }
 
+    private static String firstDifference(List<String> left, List<String> right) {
+        int shared = Math.min(left.size(), right.size());
+        for (int i = 0; i < shared; i++) {
+            if (!sameToken(left.get(i), right.get(i))) {
+                return "token " + (i + 1) + " changed from '" + left.get(i) + "' to '" + right.get(i) + "'";
+            }
+        }
+        if (left.size() != right.size()) {
+            return "token count changed from " + left.size() + " to " + right.size();
+        }
+        return null;
+    }
+
     /**
      * Whether two lexemes are the same token.
      *
@@ -76,19 +89,6 @@ public final class TokenEquivalence {
 
     static List<String> programTokens(GreenNode node) {
         return ProgramTokens.lexemes(node);
-    }
-
-    private static String firstDifference(List<String> left, List<String> right) {
-        int shared = Math.min(left.size(), right.size());
-        for (int i = 0; i < shared; i++) {
-            if (!sameToken(left.get(i), right.get(i))) {
-                return "token " + (i + 1) + " changed from '" + left.get(i) + "' to '" + right.get(i) + "'";
-            }
-        }
-        if (left.size() != right.size()) {
-            return "token count changed from " + left.size() + " to " + right.size();
-        }
-        return null;
     }
 
     private static List<String> lexemes(List<Token> tokens) {

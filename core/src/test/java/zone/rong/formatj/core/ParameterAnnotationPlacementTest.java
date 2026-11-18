@@ -3,6 +3,7 @@ package zone.rong.formatj.core;
 import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.rules.AnnotationPlacement;
+import zone.rong.formatj.api.rules.AnnotationRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,13 +27,15 @@ class ParameterAnnotationPlacementTest {
             """;
 
     /** 110 characters: fits its own line at column 8, but not beside the declaration inline. */
-    private static final String MOVABLE = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when they hit final or inaccessiblexxx\")";
+    private static final String MOVABLE = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access " +
+        "when they hit final or inaccessiblexxx\")";
 
     /** 115 characters: cannot fit any line this indentation offers, so its arguments break. */
-    private static final String UNMOVABLE = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access when they hit final or inaccessible fields.\")";
+    private static final String UNMOVABLE = "@Config.Comment(\"Field.get/set calls fall back to unrestricted access " +
+        "when they hit final or inaccessible fields.\")";
 
     private static String format(String source, AnnotationPlacement placement) {
-        Style style = Style.builder().annotations(annotations -> annotations.parameterPlacement(placement)).build();
+        Style style = Style.builder().set(AnnotationRules.PARAMETER_PLACEMENT, placement).build();
         return FormatJ.newFormatter().style(style).build().format(source);
     }
 
@@ -62,7 +65,9 @@ class ParameterAnnotationPlacementTest {
         String formatted = format(String.format(METHOD, UNMOVABLE), AnnotationPlacement.SAME_LINE);
         assertTrue(
             formatted.contains(
-                "@Config.Comment(\n            \"Field.get/set calls fall back to unrestricted access when they hit final or inaccessible fields.\"\n        ) int first,"
+                "@Config.Comment(\n" +
+                    "            \"Field.get/set calls fall back to unrestricted access when they hit final or " +
+                    "inaccessible fields.\"\n        )\n        int first,"
             ),
             formatted
         );

@@ -88,7 +88,7 @@ class ExternalCorpusInvariantTest {
                 assertEquals(source, once.text(), "a failed recovery must leave the file unchanged");
                 return;
             }
-            assertFalse(EXPECTED_SAFE_FAILURES.contains(relative), () -> relative + " now formats successfully; remove it from EXPECTED_SAFE_FAILURES");
+            assertFalse(EXPECTED_SAFE_FAILURES.contains(relative), () -> relative + " now formats successfully; remove it " + "from EXPECTED_SAFE_FAILURES");
             ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
             assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, () -> "formatting changed the program: " + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
 

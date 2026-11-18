@@ -11,11 +11,8 @@ import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
-import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.OperatorWrap;
-import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
-import zone.rong.formatj.api.rules.RecordRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
@@ -605,14 +602,11 @@ abstract class ExpressionEmitter extends EmitSupport {
     /**
      * An {@code instanceof} test and the pattern it binds.
      *
-     * <p>{@code patterns.keep-simple-pattern-inline} decides whether the pattern is tied to the line
-     * of the test it belongs to. Tied, the whole thing is one unbreakable run, and a long condition
-     * has to wrap somewhere else; untied, the pattern may take a line of its own when the test does
-     * not fit, indented under it. A pattern the author had already put on its own line is untied
-     * whatever the rule says, because there is no single line left to keep.
-     *
-     * <p>{@code wrapping.instanceof=preserve} leaves that choice to the pattern rule. Every other
-     * wrapping policy controls the expression directly.
+     * <p>{@code wrapping.instanceof = preserve} ties the pattern to the line of its test unless the
+     * author broke around the operator. Tied, the whole thing is one unbreakable run, and a long
+     * condition has to wrap somewhere else. Untied, the pattern may take a line of its own when the
+     * test does not fit, indented under it. Every other wrapping policy controls the expression
+     * directly.
      */
     protected Doc emitInstanceof(GreenNode node) {
         List<GreenNode> children = node.children();
@@ -627,9 +621,7 @@ abstract class ExpressionEmitter extends EmitSupport {
         if (policy == WrapPolicy.PRESERVE) {
             // Only a break around the operator unties the pattern. One inside the tested expression
             // says nothing about it, and may be the formatter's own.
-            boolean tied = rule(PatternRules.KEEP_SIMPLE_PATTERN_INLINE) &&
-                !authorBrokeBefore(children.get(1)) &&
-                !authorBrokeBefore(children.get(2));
+            boolean tied = !authorBrokeBefore(children.get(1)) && !authorBrokeBefore(children.get(2));
             policy = tied ? WrapPolicy.NEVER : WrapPolicy.WRAP_IF_LONG;
         }
         return emitOperatorSeparated(
@@ -865,7 +857,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             );
         }
         Doc body = emit(bodyNode);
-        if (rule(LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE)) {
+        if (rule(WrappingRules.LAMBDA_EXPRESSION_ON_ARROW_LINE)) {
             return Doc.concat(parameters, spaceIf(spaced), arrow, spaceIf(spaced), body);
         }
         return Doc.group(Doc.concat(
@@ -907,7 +899,7 @@ abstract class ExpressionEmitter extends EmitSupport {
     /**
      * Derived record creation, {@code point with { x = 1; }}.
      *
-     * <p>{@code records.with-style} is the one rule in this area that changes no tokens, so it is
+     * <p>{@code wrapping.with-block} is the one rule in this area that changes no tokens, so it is
      * decided here rather than in the rewrite stage: a with-block on one line and the same block
      * spread over several are the same program. The single line is only ever offered — the block is
      * one group, and the layout engine still breaks it when it does not fit or when something inside
@@ -917,7 +909,7 @@ abstract class ExpressionEmitter extends EmitSupport {
     protected Doc emitWithExpression(GreenNode node) {
         List<GreenNode> children = node.children();
         GreenNode block = children.get(2);
-        boolean mayInline = switch (rule(RecordRules.WITH_STYLE)) {
+        boolean mayInline = switch (rule(WrappingRules.WITH_BLOCK)) {
             case ALWAYS_BLOCK -> false;
             case INLINE_WHEN_SHORT -> true;
             case PRESERVE -> AuthorLines.onOneLine(block);
@@ -926,7 +918,7 @@ abstract class ExpressionEmitter extends EmitSupport {
             emit(children.get(0)),
             space(),
             emit(children.get(1)),
-            spaceIf(rule(RecordRules.SPACE_BEFORE_WITH_BLOCK)),
+            spaceIf(rule(SpacingRules.BEFORE_WITH_BLOCK)),
             emitBlockLike(block, mayInline)
         );
     }
@@ -961,8 +953,8 @@ abstract class ExpressionEmitter extends EmitSupport {
     protected Doc emitPatternComponents(GreenNode node) {
         return delimitedList(
             node,
-            rule(PatternRules.DECONSTRUCTION_WRAPPING),
-            rule(PatternRules.NESTED_INDENT),
+            rule(WrappingRules.DECONSTRUCTION_PATTERNS),
+            rule(IndentRules.NESTED_PATTERN),
             rule(SpacingRules.WITHIN_PARENTHESES)
         );
     }

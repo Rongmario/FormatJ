@@ -46,35 +46,6 @@ public final class StageTimer {
         return measure(source, new DefaultFormatter(Style.defaults(), LanguageLevel.LATEST, false, true));
     }
 
-    public static void writeReport(Times times, PrintStream out) {
-        out.print(times.report());
-    }
-
-    public static void main(String[] arguments) throws IOException {
-        Path root = Path.of(arguments.length == 0 ? "." : arguments[0]).toAbsolutePath().normalize();
-        List<String> excludes = new ArrayList<>();
-        for (int i = 1; i < arguments.length; i++) {
-            excludes.add(arguments[i]);
-        }
-        if (excludes.isEmpty()) {
-            excludes.add("**/build/**");
-            excludes.add("**/src/test/resources/**");
-        }
-        List<String> sources = load(root, excludes);
-        writeReport(benchmark(sources), System.out);
-    }
-
-    static Times benchmark(List<String> sources) {
-        for (int i = 0; i < 2; i++) {
-            measure(sources);
-        }
-        Times total = empty();
-        for (int i = 0; i < 5; i++) {
-            total = total.plus(measure(sources));
-        }
-        return total.dividedBy(5);
-    }
-
     static Times measure(String source, DefaultFormatter formatter) {
         long t0 = System.nanoTime();
         List<Token> tokens = JavaLexer.tokenize(source);
@@ -135,6 +106,35 @@ public final class StageTimer {
             throw new IllegalStateException("formatting was not stable");
         }
         return new Times(t1 - t0, t2 - t1, t3 - t2, t4 - layoutStart, t5 - t4, verifyNanos, t6 - secondLayoutStart, 1);
+    }
+
+    public static void writeReport(Times times, PrintStream out) {
+        out.print(times.report());
+    }
+
+    public static void main(String[] arguments) throws IOException {
+        Path root = Path.of(arguments.length == 0 ? "." : arguments[0]).toAbsolutePath().normalize();
+        List<String> excludes = new ArrayList<>();
+        for (int i = 1; i < arguments.length; i++) {
+            excludes.add(arguments[i]);
+        }
+        if (excludes.isEmpty()) {
+            excludes.add("**/build/**");
+            excludes.add("**/src/test/resources/**");
+        }
+        List<String> sources = load(root, excludes);
+        writeReport(benchmark(sources), System.out);
+    }
+
+    static Times benchmark(List<String> sources) {
+        for (int i = 0; i < 2; i++) {
+            measure(sources);
+        }
+        Times total = empty();
+        for (int i = 0; i < 5; i++) {
+            total = total.plus(measure(sources));
+        }
+        return total.dividedBy(5);
     }
 
     private static List<String> load(Path root, List<String> excludes) throws IOException {

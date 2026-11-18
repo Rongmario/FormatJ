@@ -3,7 +3,7 @@ package zone.rong.formatj.core.rewrite;
 import java.util.ArrayList;
 import java.util.List;
 
-import zone.rong.formatj.api.rules.SemicolonRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.ProgramTokens;
 import zone.rong.formatj.core.cst.SyntaxKind;
@@ -46,7 +46,7 @@ public final class SemicolonRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(SemicolonRules.REMOVE_REDUNDANT);
+        return context.rule(DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class SemicolonRewrite implements Rewrite {
                 !hasComments(child) &&
                 context.firstPosition(child) >= 0) {
                 context.record(TokenEdit.delete(
-                    SemicolonRules.REMOVE_REDUNDANT,
+                    DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS,
                     "a stray semicolon",
                     context.firstPosition(child),
                     ";"

@@ -95,7 +95,9 @@ class FormatJPluginFunctionalTest {
             );
             Files.writeString(
                 source,
-                "package sample;\n\nclass Sample {\n\n    void run(int n) {\n        switch (n) {\n            case 1:\n                run(n);\n                break;\n        }\n    }\n\n}\n"
+                "package sample;\n\nclass Sample {\n" +
+                    "\n    void run(int n) {\n        switch (n) {\n            case 1:\n                " +
+                    "run(n);\n                break;\n        }\n    }\n\n}\n"
             );
 
             run("formatJavaApply");

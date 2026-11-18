@@ -41,6 +41,9 @@ public final class TomlWriter {
     }
 
     private static <T> String render(Style style, Option<T> option) {
+        if (!style.isSet(option) && option.parent().isPresent()) {
+            return Option.INHERIT;
+        }
         return option.render(style.get(option));
     }
 

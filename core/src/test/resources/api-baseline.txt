@@ -57,18 +57,6 @@ TYPE public abstract interface zone.rong.formatj.api.FormatterBuilder
   METHOD public abstract zone.rong.formatj.api.FormatterBuilder zone.rong.formatj.api.FormatterBuilder.rewrites(boolean)
   METHOD public abstract zone.rong.formatj.api.FormatterBuilder zone.rong.formatj.api.FormatterBuilder.style(zone.rong.formatj.api.Style)
   METHOD public abstract zone.rong.formatj.api.FormatterBuilder zone.rong.formatj.api.FormatterBuilder.verify(boolean)
-TYPE public final record zone.rong.formatj.api.Inheritable<T>
-  SUPER java.lang.Record
-  RECORD T override
-  CTOR public zone.rong.formatj.api.Inheritable(T)
-  METHOD public T zone.rong.formatj.api.Inheritable.orElse(T)
-  METHOD public T zone.rong.formatj.api.Inheritable.override()
-  METHOD public boolean zone.rong.formatj.api.Inheritable.inherits()
-  METHOD public final boolean zone.rong.formatj.api.Inheritable.equals(java.lang.Object)
-  METHOD public final int zone.rong.formatj.api.Inheritable.hashCode()
-  METHOD public final java.lang.String zone.rong.formatj.api.Inheritable.toString()
-  METHOD public static <T> zone.rong.formatj.api.Inheritable<T> zone.rong.formatj.api.Inheritable.inherit()
-  METHOD public static <T> zone.rong.formatj.api.Inheritable<T> zone.rong.formatj.api.Inheritable.of(T)
 TYPE public final enum zone.rong.formatj.api.LanguageLevel
   SUPER java.lang.Enum<zone.rong.formatj.api.LanguageLevel>
   ENUM JAVA_8
@@ -114,6 +102,7 @@ TYPE public final enum zone.rong.formatj.api.LanguageLevel
   METHOD public static zone.rong.formatj.api.LanguageLevel zone.rong.formatj.api.LanguageLevel.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.LanguageLevel[] zone.rong.formatj.api.LanguageLevel.values()
 TYPE public final class zone.rong.formatj.api.Option<T>
+  FIELD public static final java.lang.String zone.rong.formatj.api.Option.INHERIT = inherit
   METHOD public T zone.rong.formatj.api.Option.cast(java.lang.Object)
   METHOD public T zone.rong.formatj.api.Option.defaultValue()
   METHOD public T zone.rong.formatj.api.Option.parse(java.lang.String)
@@ -123,14 +112,15 @@ TYPE public final class zone.rong.formatj.api.Option<T>
   METHOD public java.lang.String zone.rong.formatj.api.Option.render(T)
   METHOD public java.lang.String zone.rong.formatj.api.Option.toString()
   METHOD public java.util.List<java.lang.String> zone.rong.formatj.api.Option.allowedValues()
+  METHOD public java.util.Optional<zone.rong.formatj.api.Option<T>> zone.rong.formatj.api.Option.parent()
   METHOD public static <E extends java.lang.Enum<E>> zone.rong.formatj.api.Option<E> zone.rong.formatj.api.Option.ofEnum(java.lang.String,E,java.lang.String)
-  METHOD public static <E extends java.lang.Enum<E>> zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<E>> zone.rong.formatj.api.Option.ofInheritableEnum(java.lang.String,java.lang.Class<E>,java.lang.String)
+  METHOD public static <E extends java.lang.Enum<E>> zone.rong.formatj.api.Option<E> zone.rong.formatj.api.Option.ofEnum(java.lang.String,zone.rong.formatj.api.Option<E>,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.Option.ofBoolean(java.lang.String,boolean,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,int,int,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,int,java.lang.String)
+  METHOD public static zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.Option.ofInt(java.lang.String,zone.rong.formatj.api.Option<java.lang.Integer>,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.Option.ofString(java.lang.String,java.lang.String,java.lang.String)
   METHOD public static zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.Option.ofStringGroups(java.lang.String,java.util.List<java.util.List<java.lang.String>>,java.lang.String)
-  METHOD public static zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<java.lang.Integer>> zone.rong.formatj.api.Option.ofInheritableInt(java.lang.String,java.lang.String)
   METHOD public zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option.kind()
 TYPE public static final enum zone.rong.formatj.api.Option$Kind
   SUPER java.lang.Enum<zone.rong.formatj.api.Option$Kind>
@@ -139,12 +129,8 @@ TYPE public static final enum zone.rong.formatj.api.Option$Kind
   ENUM STRING
   ENUM ENUM
   ENUM STRING_GROUPS
-  ENUM INHERITABLE_INTEGER
-  ENUM INHERITABLE_ENUM
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.BOOLEAN
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.ENUM
-  FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.INHERITABLE_ENUM
-  FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.INHERITABLE_INTEGER
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.INTEGER
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.STRING
   FIELD public static final zone.rong.formatj.api.Option$Kind zone.rong.formatj.api.Option$Kind.STRING_GROUPS
@@ -197,34 +183,9 @@ TYPE public final class zone.rong.formatj.api.Style
 TYPE public final class zone.rong.formatj.api.StyleBuilder
   METHOD public <T> zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.set(zone.rong.formatj.api.Option<T>,T)
   METHOD public zone.rong.formatj.api.Style zone.rong.formatj.api.StyleBuilder.build()
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.alignment(java.util.function.Consumer<zone.rong.formatj.api.rules.AlignmentRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.annotations(java.util.function.Consumer<zone.rong.formatj.api.rules.AnnotationRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.apply(zone.rong.formatj.api.Style)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.arrays(java.util.function.Consumer<zone.rong.formatj.api.rules.ArrayRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.blankLines(java.util.function.Consumer<zone.rong.formatj.api.rules.BlankLineRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.braces(java.util.function.Consumer<zone.rong.formatj.api.rules.BraceRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.comments(java.util.function.Consumer<zone.rong.formatj.api.rules.CommentRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.declarations(java.util.function.Consumer<zone.rong.formatj.api.rules.DeclarationRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.file(java.util.function.Consumer<zone.rong.formatj.api.rules.FileRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.imports(java.util.function.Consumer<zone.rong.formatj.api.rules.ImportRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.indent(java.util.function.Consumer<zone.rong.formatj.api.rules.IndentRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.javadoc(java.util.function.Consumer<zone.rong.formatj.api.rules.JavadocRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.lambdas(java.util.function.Consumer<zone.rong.formatj.api.rules.LambdaRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.literals(java.util.function.Consumer<zone.rong.formatj.api.rules.LiteralRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.members(java.util.function.Consumer<zone.rong.formatj.api.rules.MemberRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modifiers(java.util.function.Consumer<zone.rong.formatj.api.rules.ModifierRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.modules(java.util.function.Consumer<zone.rong.formatj.api.rules.ModuleRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.patterns(java.util.function.Consumer<zone.rong.formatj.api.rules.PatternRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.preservation(java.util.function.Consumer<zone.rong.formatj.api.rules.PreservationRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.records(java.util.function.Consumer<zone.rong.formatj.api.rules.RecordRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.sealedTypes(java.util.function.Consumer<zone.rong.formatj.api.rules.SealedRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.semicolons(java.util.function.Consumer<zone.rong.formatj.api.rules.SemicolonRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.setRaw(java.lang.String,java.lang.String)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.spacing(java.util.function.Consumer<zone.rong.formatj.api.rules.SpacingRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.switches(java.util.function.Consumer<zone.rong.formatj.api.rules.SwitchRules$Builder>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.textBlocks(java.util.function.Consumer<zone.rong.formatj.api.rules.TextBlockRules$Builder>)
   METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.unset(zone.rong.formatj.api.Option<?>)
-  METHOD public zone.rong.formatj.api.StyleBuilder zone.rong.formatj.api.StyleBuilder.wrapping(java.util.function.Consumer<zone.rong.formatj.api.rules.WrappingRules$Builder>)
 TYPE public final enum zone.rong.formatj.api.rules.AlignmentPolicy
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.AlignmentPolicy>
   ENUM NONE
@@ -244,16 +205,6 @@ TYPE public final class zone.rong.formatj.api.rules.AlignmentRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AlignmentPolicy> zone.rong.formatj.api.rules.AlignmentRules.SWITCH_ARROWS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AlignmentPolicy> zone.rong.formatj.api.rules.AlignmentRules.TERNARY_BRANCHES
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AlignmentPolicy> zone.rong.formatj.api.rules.AlignmentRules.TRAILING_COMMENTS
-TYPE public static final class zone.rong.formatj.api.rules.AlignmentRules$Builder
-  CTOR public zone.rong.formatj.api.rules.AlignmentRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.annotationValues(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.consecutiveAssignments(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.consecutiveFields(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.consecutiveVariables(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.methodChains(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.switchArrows(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.ternaryBranches(zone.rong.formatj.api.rules.AlignmentPolicy)
-  METHOD public zone.rong.formatj.api.rules.AlignmentRules$Builder zone.rong.formatj.api.rules.AlignmentRules$Builder.trailingComments(zone.rong.formatj.api.rules.AlignmentPolicy)
 TYPE public final enum zone.rong.formatj.api.rules.AnnotationPlacement
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.AnnotationPlacement>
   ENUM PRESERVE
@@ -272,18 +223,6 @@ TYPE public final class zone.rong.formatj.api.rules.AnnotationRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.FIELD_PLACEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.PACKAGE_PLACEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AnnotationPlacement> zone.rong.formatj.api.rules.AnnotationRules.PARAMETER_PLACEMENT
-TYPE public static final class zone.rong.formatj.api.rules.AnnotationRules$Builder
-  CTOR public zone.rong.formatj.api.rules.AnnotationRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.declarationPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
-  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.fieldPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
-  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.packagePlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
-  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.parameterPlacement(zone.rong.formatj.api.rules.AnnotationPlacement)
-  METHOD public zone.rong.formatj.api.rules.AnnotationRules$Builder zone.rong.formatj.api.rules.AnnotationRules$Builder.singleMarkerInline(boolean)
-TYPE public final class zone.rong.formatj.api.rules.ArrayRules
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracketStyle> zone.rong.formatj.api.rules.ArrayRules.C_STYLE_BRACKETS
-TYPE public static final class zone.rong.formatj.api.rules.ArrayRules$Builder
-  CTOR public zone.rong.formatj.api.rules.ArrayRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.ArrayRules$Builder zone.rong.formatj.api.rules.ArrayRules$Builder.cStyleBrackets(zone.rong.formatj.api.rules.BracketStyle)
 TYPE public final enum zone.rong.formatj.api.rules.AssignmentBreak
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.AssignmentBreak>
   ENUM AFTER_OPERATOR
@@ -297,34 +236,21 @@ TYPE public final class zone.rong.formatj.api.rules.BlankLineRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_CLASS_OPENING_BRACE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_ENUM_CONSTANTS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_IMPORTS
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_MODULE_OPENING_BRACE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AFTER_PACKAGE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.AROUND_INITIALIZER_BLOCK
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_CLASS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_CLASS_CLOSING_BRACE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_COMPACT_CONSTRUCTOR
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_FIELD
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_FIRST_ENUM_CONSTANT
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_METHOD
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_RECORD_COMPACT_CONSTRUCTOR
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BEFORE_MODULE_CLOSING_BRACE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BETWEEN_MEMBER_GROUPS
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BETWEEN_MODULE_DIRECTIVE_GROUPS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.BETWEEN_SWITCH_CASES
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.INSIDE_COMPACT_CONSTRUCTOR
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.BlankLineRules.MAX_CONSECUTIVE
-TYPE public static final class zone.rong.formatj.api.rules.BlankLineRules$Builder
-  CTOR public zone.rong.formatj.api.rules.BlankLineRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.afterClassOpeningBrace(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.afterEnumConstants(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.afterImports(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.afterPackage(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.aroundInitializerBlock(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeClass(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeClassClosingBrace(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeField(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeFirstEnumConstant(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeMethod(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.beforeRecordCompactConstructor(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.betweenMemberGroups(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.betweenSwitchCases(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.maxConsecutive(int)
-  METHOD public zone.rong.formatj.api.rules.BlankLineRules$Builder zone.rong.formatj.api.rules.BlankLineRules$Builder.stripAtBraceEdges(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.BracePlacement
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.BracePlacement>
   ENUM END_OF_LINE
@@ -355,27 +281,17 @@ TYPE public final class zone.rong.formatj.api.rules.BraceRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePlacement> zone.rong.formatj.api.rules.BraceRules.CONTROL_PLACEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePlacement> zone.rong.formatj.api.rules.BraceRules.LAMBDA_PLACEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePlacement> zone.rong.formatj.api.rules.BraceRules.METHOD_PLACEMENT
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePlacement> zone.rong.formatj.api.rules.BraceRules.MODULE_PLACEMENT
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.BraceRules.ARROW_CASE_BODY
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.BraceRules.FOR_LOOP
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.BraceRules.IF_ELSE
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.BraceRules.LAMBDA_BODY
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.BraceRules.WHILE_LOOP
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.EmptyBodyStyle> zone.rong.formatj.api.rules.BraceRules.EMPTY_CLASS_BODY
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.EmptyBodyStyle> zone.rong.formatj.api.rules.BraceRules.EMPTY_CONTROL_BODY
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.EmptyBodyStyle> zone.rong.formatj.api.rules.BraceRules.EMPTY_METHOD_BODY
-TYPE public static final class zone.rong.formatj.api.rules.BraceRules$Builder
-  CTOR public zone.rong.formatj.api.rules.BraceRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.catchOnNewLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.classPlacement(zone.rong.formatj.api.rules.BracePlacement)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.controlPlacement(zone.rong.formatj.api.rules.BracePlacement)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.elseOnNewLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.emptyClassBody(zone.rong.formatj.api.rules.EmptyBodyStyle)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.emptyControlBody(zone.rong.formatj.api.rules.EmptyBodyStyle)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.emptyMethodBody(zone.rong.formatj.api.rules.EmptyBodyStyle)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.finallyOnNewLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.forLoop(zone.rong.formatj.api.rules.BracePolicy)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.ifElse(zone.rong.formatj.api.rules.BracePolicy)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.lambdaPlacement(zone.rong.formatj.api.rules.BracePlacement)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.methodPlacement(zone.rong.formatj.api.rules.BracePlacement)
-  METHOD public zone.rong.formatj.api.rules.BraceRules$Builder zone.rong.formatj.api.rules.BraceRules$Builder.whileLoop(zone.rong.formatj.api.rules.BracePolicy)
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.EmptyBodyStyle> zone.rong.formatj.api.rules.BraceRules.EMPTY_MODULE_BODY
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.EmptyBodyStyle> zone.rong.formatj.api.rules.BraceRules.EMPTY_RECORD_BODY
 TYPE public final enum zone.rong.formatj.api.rules.BracketStyle
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.BracketStyle>
   ENUM PRESERVE
@@ -421,27 +337,18 @@ TYPE public final class zone.rong.formatj.api.rules.CommentRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.CommentRules.HONOUR_FORMATTER_OFF
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.CommentRules.INDENT_WITH_CODE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.CommentRules.KEEP_FIRST_COLUMN_COMMENTS
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.CommentRules.SPACE_AFTER_LINE_COMMENT
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.CommentRules.TRAILING_COMMENT_COLUMN
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.CommentRules.TRAILING_COMMENT_MIN_SPACES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.rules.CommentRules.OFF_MARKER
   FIELD public static final zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.rules.CommentRules.ON_MARKER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.CommentReflow> zone.rong.formatj.api.rules.CommentRules.REFLOW
-TYPE public static final class zone.rong.formatj.api.rules.CommentRules$Builder
-  CTOR public zone.rong.formatj.api.rules.CommentRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.blockCommentStarAlignment(boolean)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.honourFormatterOff(boolean)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.indentWithCode(boolean)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.keepFirstColumnComments(boolean)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.offMarker(java.lang.String)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.onMarker(java.lang.String)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.reflow(zone.rong.formatj.api.rules.CommentReflow)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.trailingCommentColumn(int)
-  METHOD public zone.rong.formatj.api.rules.CommentRules$Builder zone.rong.formatj.api.rules.CommentRules$Builder.trailingCommentMinSpaces(int)
 TYPE public final class zone.rong.formatj.api.rules.DeclarationRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.DeclarationRules.REQUIRE_ENUM_SEMICOLON
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.DeclarationRules.SPLIT_VARIABLES
-TYPE public static final class zone.rong.formatj.api.rules.DeclarationRules$Builder
-  CTOR public zone.rong.formatj.api.rules.DeclarationRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.DeclarationRules$Builder zone.rong.formatj.api.rules.DeclarationRules$Builder.splitVariables(boolean)
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracketStyle> zone.rong.formatj.api.rules.DeclarationRules.ARRAY_BRACKETS
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.SortOrder> zone.rong.formatj.api.rules.DeclarationRules.PERMITS_ORDER
 TYPE public final enum zone.rong.formatj.api.rules.EmptyBodyStyle
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.EmptyBodyStyle>
   ENUM COMPACT
@@ -459,13 +366,16 @@ TYPE public final class zone.rong.formatj.api.rules.FileRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.String> zone.rong.formatj.api.rules.FileRules.CHARSET
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.LineEnding> zone.rong.formatj.api.rules.FileRules.LINE_ENDING
   METHOD public static java.nio.charset.Charset zone.rong.formatj.api.rules.FileRules.charset(zone.rong.formatj.api.Style)
-TYPE public static final class zone.rong.formatj.api.rules.FileRules$Builder
-  CTOR public zone.rong.formatj.api.rules.FileRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.charset(java.lang.String)
-  METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.finalNewline(boolean)
-  METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.lineEnding(zone.rong.formatj.api.rules.LineEnding)
-  METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.tabWidth(int)
-  METHOD public zone.rong.formatj.api.rules.FileRules$Builder zone.rong.formatj.api.rules.FileRules$Builder.trimTrailingWhitespace(boolean)
+TYPE public final enum zone.rong.formatj.api.rules.FloatSuffix
+  SUPER java.lang.Enum<zone.rong.formatj.api.rules.FloatSuffix>
+  ENUM PRESERVE
+  ENUM UPPER
+  ENUM LOWER
+  FIELD public static final zone.rong.formatj.api.rules.FloatSuffix zone.rong.formatj.api.rules.FloatSuffix.LOWER
+  FIELD public static final zone.rong.formatj.api.rules.FloatSuffix zone.rong.formatj.api.rules.FloatSuffix.PRESERVE
+  FIELD public static final zone.rong.formatj.api.rules.FloatSuffix zone.rong.formatj.api.rules.FloatSuffix.UPPER
+  METHOD public static zone.rong.formatj.api.rules.FloatSuffix zone.rong.formatj.api.rules.FloatSuffix.valueOf(java.lang.String)
+  METHOD public static zone.rong.formatj.api.rules.FloatSuffix[] zone.rong.formatj.api.rules.FloatSuffix.values()
 TYPE public final enum zone.rong.formatj.api.rules.HexDigitCase
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.HexDigitCase>
   ENUM PRESERVE
@@ -483,14 +393,6 @@ TYPE public final class zone.rong.formatj.api.rules.ImportRules
   FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.ImportRules.GROUPS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.SortOrder> zone.rong.formatj.api.rules.ImportRules.ORDER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.StaticImportPlacement> zone.rong.formatj.api.rules.ImportRules.STATIC_PLACEMENT
-TYPE public static final class zone.rong.formatj.api.rules.ImportRules$Builder
-  CTOR public zone.rong.formatj.api.rules.ImportRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.blankLineBetweenGroups(boolean)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.groups(java.util.List<java.util.List<java.lang.String>>)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.moduleImportsFirst(boolean)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.order(zone.rong.formatj.api.rules.SortOrder)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.removeUnused(boolean)
-  METHOD public zone.rong.formatj.api.rules.ImportRules$Builder zone.rong.formatj.api.rules.ImportRules$Builder.staticPlacement(zone.rong.formatj.api.rules.StaticImportPlacement)
 TYPE public final class zone.rong.formatj.api.rules.IndentRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.IndentRules.BLANK_LINES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.IndentRules.SWITCH_CASE_BODY
@@ -499,21 +401,10 @@ TYPE public final class zone.rong.formatj.api.rules.IndentRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.ARRAY_INITIALIZER
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.CHAINED_CALL
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.CONTINUATION
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.NESTED_PATTERN
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.SIZE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.TERNARY
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.IndentRules.THROWS_CLAUSE
-TYPE public static final class zone.rong.formatj.api.rules.IndentRules$Builder
-  CTOR public zone.rong.formatj.api.rules.IndentRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.arrayInitializer(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.blankLines(boolean)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.chainedCall(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.continuation(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.size(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.switchCaseBody(boolean)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.switchCaseLabels(boolean)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.ternary(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.throwsClause(int)
-  METHOD public zone.rong.formatj.api.rules.IndentRules$Builder zone.rong.formatj.api.rules.IndentRules$Builder.useTabs(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.JavadocClosingTagForm
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.JavadocClosingTagForm>
   ENUM PRESERVE
@@ -542,17 +433,6 @@ TYPE public final class zone.rong.formatj.api.rules.JavadocRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocClosingTagForm> zone.rong.formatj.api.rules.JavadocRules.CLOSING_TAG_FORM
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocOpeningTagPosition> zone.rong.formatj.api.rules.JavadocRules.OPENING_TAG_POSITION
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.JavadocTagOrder> zone.rong.formatj.api.rules.JavadocRules.TAG_ORDER
-TYPE public static final class zone.rong.formatj.api.rules.JavadocRules$Builder
-  CTOR public zone.rong.formatj.api.rules.JavadocRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.addParagraphTags(boolean)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.alignTagDescriptions(boolean)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.blankLineBeforeTags(boolean)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.closingTagForm(zone.rong.formatj.api.rules.JavadocClosingTagForm)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.keepSingleLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.openingTagPosition(zone.rong.formatj.api.rules.JavadocOpeningTagPosition)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.tagContinuationIndent(int)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.tagOrder(zone.rong.formatj.api.rules.JavadocTagOrder)
-  METHOD public zone.rong.formatj.api.rules.JavadocRules$Builder zone.rong.formatj.api.rules.JavadocRules$Builder.wrap(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.JavadocTagOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.JavadocTagOrder>
   ENUM PRESERVE
@@ -572,14 +452,7 @@ TYPE public final enum zone.rong.formatj.api.rules.LambdaParameterStyle
   METHOD public static zone.rong.formatj.api.rules.LambdaParameterStyle zone.rong.formatj.api.rules.LambdaParameterStyle.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.LambdaParameterStyle[] zone.rong.formatj.api.rules.LambdaParameterStyle.values()
 TYPE public final class zone.rong.formatj.api.rules.LambdaRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.LambdaRules.KEEP_SINGLE_EXPRESSION_INLINE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.LambdaRules.BODY_BRACES
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.LambdaParameterStyle> zone.rong.formatj.api.rules.LambdaRules.PARAMETER_STYLE
-TYPE public static final class zone.rong.formatj.api.rules.LambdaRules$Builder
-  CTOR public zone.rong.formatj.api.rules.LambdaRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.LambdaRules$Builder zone.rong.formatj.api.rules.LambdaRules$Builder.bodyBraces(zone.rong.formatj.api.rules.BracePolicy)
-  METHOD public zone.rong.formatj.api.rules.LambdaRules$Builder zone.rong.formatj.api.rules.LambdaRules$Builder.keepSingleExpressionInline(boolean)
-  METHOD public zone.rong.formatj.api.rules.LambdaRules$Builder zone.rong.formatj.api.rules.LambdaRules$Builder.parameterStyle(zone.rong.formatj.api.rules.LambdaParameterStyle)
 TYPE public final enum zone.rong.formatj.api.rules.LineEnding
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.LineEnding>
   ENUM PRESERVE
@@ -593,12 +466,10 @@ TYPE public final enum zone.rong.formatj.api.rules.LineEnding
   METHOD public static zone.rong.formatj.api.rules.LineEnding zone.rong.formatj.api.rules.LineEnding.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.LineEnding[] zone.rong.formatj.api.rules.LineEnding.values()
 TYPE public final class zone.rong.formatj.api.rules.LiteralRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.LiteralRules.DIGIT_GROUPING_THRESHOLD
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.FloatSuffix> zone.rong.formatj.api.rules.LiteralRules.FLOAT_SUFFIX
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.HexDigitCase> zone.rong.formatj.api.rules.LiteralRules.HEX_DIGITS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.LongSuffix> zone.rong.formatj.api.rules.LiteralRules.LONG_SUFFIX
-TYPE public static final class zone.rong.formatj.api.rules.LiteralRules$Builder
-  CTOR public zone.rong.formatj.api.rules.LiteralRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.LiteralRules$Builder zone.rong.formatj.api.rules.LiteralRules$Builder.hexDigits(zone.rong.formatj.api.rules.HexDigitCase)
-  METHOD public zone.rong.formatj.api.rules.LiteralRules$Builder zone.rong.formatj.api.rules.LiteralRules$Builder.longSuffix(zone.rong.formatj.api.rules.LongSuffix)
 TYPE public final enum zone.rong.formatj.api.rules.LongSuffix
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.LongSuffix>
   ENUM PRESERVE
@@ -617,17 +488,11 @@ TYPE public final enum zone.rong.formatj.api.rules.MemberOrder
   METHOD public static zone.rong.formatj.api.rules.MemberOrder[] zone.rong.formatj.api.rules.MemberOrder.values()
 TYPE public final class zone.rong.formatj.api.rules.MemberRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.MemberRules.FIELD_VISIBILITY_ORDER
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.MemberRules.KEEP_OVERLOADS_TOGETHER
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.MemberRules.METHOD_VISIBILITY_ORDER
   FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.MemberRules.FIELD_ORDER
   FIELD public static final zone.rong.formatj.api.Option<java.util.List<java.util.List<java.lang.String>>> zone.rong.formatj.api.rules.MemberRules.VISIBILITY_ORDER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.MemberOrder> zone.rong.formatj.api.rules.MemberRules.ORDER
-TYPE public static final class zone.rong.formatj.api.rules.MemberRules$Builder
-  CTOR public zone.rong.formatj.api.rules.MemberRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.fieldOrder(java.util.List<java.util.List<java.lang.String>>)
-  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.fieldVisibilityOrder(boolean)
-  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.methodVisibilityOrder(boolean)
-  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.order(zone.rong.formatj.api.rules.MemberOrder)
-  METHOD public zone.rong.formatj.api.rules.MemberRules$Builder zone.rong.formatj.api.rules.MemberRules$Builder.visibilityOrder(java.util.List<java.util.List<java.lang.String>>)
 TYPE public final enum zone.rong.formatj.api.rules.ModifierOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.ModifierOrder>
   ENUM PRESERVE
@@ -640,32 +505,6 @@ TYPE public final class zone.rong.formatj.api.rules.ModifierRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.ModifierRules.REMOVE_REDUNDANT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.ModifierOrder> zone.rong.formatj.api.rules.ModifierRules.ORDER
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.VisibilityPosition> zone.rong.formatj.api.rules.ModifierRules.VISIBILITY_POSITION
-TYPE public static final class zone.rong.formatj.api.rules.ModifierRules$Builder
-  CTOR public zone.rong.formatj.api.rules.ModifierRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.order(zone.rong.formatj.api.rules.ModifierOrder)
-  METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.removeRedundant(boolean)
-  METHOD public zone.rong.formatj.api.rules.ModifierRules$Builder zone.rong.formatj.api.rules.ModifierRules$Builder.visibilityPosition(zone.rong.formatj.api.rules.VisibilityPosition)
-TYPE public final class zone.rong.formatj.api.rules.ModuleRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<java.lang.Integer>> zone.rong.formatj.api.rules.ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<java.lang.Integer>> zone.rong.formatj.api.rules.ModuleRules.BLANK_LINES_BEFORE_CLOSING_BRACE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<zone.rong.formatj.api.rules.BracePlacement>> zone.rong.formatj.api.rules.ModuleRules.BRACE_PLACEMENT
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.Inheritable<zone.rong.formatj.api.rules.EmptyBodyStyle>> zone.rong.formatj.api.rules.ModuleRules.EMPTY_BODY
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.ModuleRules.EXPORTS_OPENS_TARGET_LIST_WRAPPING
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.ModuleRules.PROVIDES_IMPLEMENTATION_LIST_WRAPPING
-TYPE public static final class zone.rong.formatj.api.rules.ModuleRules$Builder
-  CTOR public zone.rong.formatj.api.rules.ModuleRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.blankLinesAfterOpeningBrace(int)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.blankLinesBeforeClosingBrace(int)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.blankLinesBetweenDirectiveGroups(int)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.bracePlacement(zone.rong.formatj.api.rules.BracePlacement)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.emptyBody(zone.rong.formatj.api.rules.EmptyBodyStyle)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.exportsOpensTargetListWrapping(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.inheritBlankLinesAfterOpeningBrace()
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.inheritBlankLinesBeforeClosingBrace()
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.inheritBracePlacement()
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.inheritEmptyBody()
-  METHOD public zone.rong.formatj.api.rules.ModuleRules$Builder zone.rong.formatj.api.rules.ModuleRules$Builder.providesImplementationListWrapping(zone.rong.formatj.api.rules.WrapPolicy)
 TYPE public final enum zone.rong.formatj.api.rules.OperatorWrap
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.OperatorWrap>
   ENUM BEFORE_OPERATOR
@@ -674,45 +513,16 @@ TYPE public final enum zone.rong.formatj.api.rules.OperatorWrap
   FIELD public static final zone.rong.formatj.api.rules.OperatorWrap zone.rong.formatj.api.rules.OperatorWrap.BEFORE_OPERATOR
   METHOD public static zone.rong.formatj.api.rules.OperatorWrap zone.rong.formatj.api.rules.OperatorWrap.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.OperatorWrap[] zone.rong.formatj.api.rules.OperatorWrap.values()
-TYPE public final class zone.rong.formatj.api.rules.PatternRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PatternRules.KEEP_SIMPLE_PATTERN_INLINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.PatternRules.NESTED_INDENT
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.PatternRules.DECONSTRUCTION_WRAPPING
-TYPE public static final class zone.rong.formatj.api.rules.PatternRules$Builder
-  CTOR public zone.rong.formatj.api.rules.PatternRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.PatternRules$Builder zone.rong.formatj.api.rules.PatternRules$Builder.deconstructionWrapping(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.PatternRules$Builder zone.rong.formatj.api.rules.PatternRules$Builder.keepSimplePatternInline(boolean)
-  METHOD public zone.rong.formatj.api.rules.PatternRules$Builder zone.rong.formatj.api.rules.PatternRules$Builder.nestedIndent(int)
 TYPE public final class zone.rong.formatj.api.rules.PreservationRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_AUTHOR_BLANK_LINES
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_CASE_NULL_DEFAULT_INLINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_LINE_BREAK_AFTER_OPEN_PAREN
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_SIMPLE_BLOCKS_INLINE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_SIMPLE_CLASSES_INLINE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_SIMPLE_LAMBDAS_INLINE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.KEEP_SIMPLE_METHODS_INLINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.NEVER_JOIN_LINES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.PreservationRules.RESPECT_EXISTING_CHAIN_BREAKS
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.PreservationRules.MAX_PRESERVED_BLANK_LINES
-TYPE public static final class zone.rong.formatj.api.rules.PreservationRules$Builder
-  CTOR public zone.rong.formatj.api.rules.PreservationRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.keepArrayInitializerLayout(boolean)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.keepAuthorBlankLines(boolean)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.keepLineBreakAfterOpenParen(boolean)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.keepSimpleBlocksInline(boolean)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.maxPreservedBlankLines(int)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.neverJoinLines(boolean)
-  METHOD public zone.rong.formatj.api.rules.PreservationRules$Builder zone.rong.formatj.api.rules.PreservationRules$Builder.respectExistingChainBreaks(boolean)
-TYPE public final class zone.rong.formatj.api.rules.RecordRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.RecordRules.COMPACT_CONSTRUCTOR_BLANK_LINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.RecordRules.SINGLE_LINE_EMPTY_BODY
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.RecordRules.SPACE_BEFORE_WITH_BLOCK
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.RecordWithStyle> zone.rong.formatj.api.rules.RecordRules.WITH_STYLE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.RecordRules.COMPONENT_WRAPPING
-TYPE public static final class zone.rong.formatj.api.rules.RecordRules$Builder
-  CTOR public zone.rong.formatj.api.rules.RecordRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.RecordRules$Builder zone.rong.formatj.api.rules.RecordRules$Builder.compactConstructorBlankLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.RecordRules$Builder zone.rong.formatj.api.rules.RecordRules$Builder.componentWrapping(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.RecordRules$Builder zone.rong.formatj.api.rules.RecordRules$Builder.singleLineEmptyBody(boolean)
-  METHOD public zone.rong.formatj.api.rules.RecordRules$Builder zone.rong.formatj.api.rules.RecordRules$Builder.spaceBeforeWithBlock(boolean)
-  METHOD public zone.rong.formatj.api.rules.RecordRules$Builder zone.rong.formatj.api.rules.RecordRules$Builder.withStyle(zone.rong.formatj.api.rules.RecordWithStyle)
 TYPE public final enum zone.rong.formatj.api.rules.RecordWithStyle
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.RecordWithStyle>
   ENUM PRESERVE
@@ -723,20 +533,6 @@ TYPE public final enum zone.rong.formatj.api.rules.RecordWithStyle
   FIELD public static final zone.rong.formatj.api.rules.RecordWithStyle zone.rong.formatj.api.rules.RecordWithStyle.PRESERVE
   METHOD public static zone.rong.formatj.api.rules.RecordWithStyle zone.rong.formatj.api.rules.RecordWithStyle.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.RecordWithStyle[] zone.rong.formatj.api.rules.RecordWithStyle.values()
-TYPE public final class zone.rong.formatj.api.rules.SealedRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SealedRules.PERMITS_ON_NEW_LINE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.SortOrder> zone.rong.formatj.api.rules.SealedRules.PERMITS_ORDER
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.SealedRules.PERMITS_WRAPPING
-TYPE public static final class zone.rong.formatj.api.rules.SealedRules$Builder
-  CTOR public zone.rong.formatj.api.rules.SealedRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsOnNewLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsOrder(zone.rong.formatj.api.rules.SortOrder)
-  METHOD public zone.rong.formatj.api.rules.SealedRules$Builder zone.rong.formatj.api.rules.SealedRules$Builder.permitsWrapping(zone.rong.formatj.api.rules.WrapPolicy)
-TYPE public final class zone.rong.formatj.api.rules.SemicolonRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SemicolonRules.REMOVE_REDUNDANT
-TYPE public static final class zone.rong.formatj.api.rules.SemicolonRules$Builder
-  CTOR public zone.rong.formatj.api.rules.SemicolonRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.SemicolonRules$Builder zone.rong.formatj.api.rules.SemicolonRules$Builder.removeRedundant(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.SortOrder
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.SortOrder>
   ENUM PRESERVE
@@ -776,44 +572,11 @@ TYPE public final class zone.rong.formatj.api.rules.SpacingRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.BEFORE_SWITCH_PARENTHESIS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.BEFORE_SYNCHRONIZED_PARENTHESIS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.BEFORE_WHILE_PARENTHESIS
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.BEFORE_WITH_BLOCK
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.WITHIN_ANGLE_BRACKETS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.WITHIN_ARRAY_INITIALIZER_BRACES
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.WITHIN_BRACKETS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SpacingRules.WITHIN_PARENTHESES
-TYPE public static final class zone.rong.formatj.api.rules.SpacingRules$Builder
-  CTOR public zone.rong.formatj.api.rules.SpacingRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.afterColonInEnhancedFor(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.afterComma(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.afterSemicolonInFor(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.afterTypeCast(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.afterVarargsEllipsis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundAssignmentOperators(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundBinaryOperators(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundCaseArrow(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundIntersectionSeparator(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundLambdaArrow(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundMethodReferenceOperator(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundMulticatchSeparator(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundTernaryOperators(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.aroundUnaryOperators(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeAnnotationParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeArrayBrackets(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeCatchParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeColonInCaseLabel(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeColonInEnhancedFor(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeComma(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeForParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeIfParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeMethodCallParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeMethodDeclarationParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeSemicolon(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeSwitchParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeSynchronizedParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.beforeWhileParenthesis(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.withinAngleBrackets(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.withinArrayInitializerBraces(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.withinBrackets(boolean)
-  METHOD public zone.rong.formatj.api.rules.SpacingRules$Builder zone.rong.formatj.api.rules.SpacingRules$Builder.withinParentheses(boolean)
 TYPE public final enum zone.rong.formatj.api.rules.StaticImportPlacement
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.StaticImportPlacement>
   ENUM FIRST
@@ -835,22 +598,8 @@ TYPE public final enum zone.rong.formatj.api.rules.SwitchCaseStyle
   METHOD public static zone.rong.formatj.api.rules.SwitchCaseStyle zone.rong.formatj.api.rules.SwitchCaseStyle.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.SwitchCaseStyle[] zone.rong.formatj.api.rules.SwitchCaseStyle.values()
 TYPE public final class zone.rong.formatj.api.rules.SwitchRules
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SwitchRules.GUARD_ON_SAME_LINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.SwitchRules.NULL_DEFAULT_ON_ONE_LINE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.BracePolicy> zone.rong.formatj.api.rules.SwitchRules.ARROW_CASE_BRACES
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.SwitchCaseStyle> zone.rong.formatj.api.rules.SwitchRules.CASE_STYLE
-  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.SwitchRules.MULTI_LABEL_WRAPPING
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.YieldStyle> zone.rong.formatj.api.rules.SwitchRules.YIELD_STYLE
-TYPE public static final class zone.rong.formatj.api.rules.SwitchRules$Builder
-  CTOR public zone.rong.formatj.api.rules.SwitchRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.arrowBodyOnNewLineWhenLong(boolean)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.arrowCaseBraces(zone.rong.formatj.api.rules.BracePolicy)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.caseStyle(zone.rong.formatj.api.rules.SwitchCaseStyle)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.guardOnSameLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.multiLabelWrapping(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.nullDefaultOnOneLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.SwitchRules$Builder zone.rong.formatj.api.rules.SwitchRules$Builder.yieldStyle(zone.rong.formatj.api.rules.YieldStyle)
 TYPE public final enum zone.rong.formatj.api.rules.TextBlockIndentPolicy
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.TextBlockIndentPolicy>
   ENUM PRESERVE
@@ -865,11 +614,6 @@ TYPE public final class zone.rong.formatj.api.rules.TextBlockRules
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.TextBlockRules.CLOSING_DELIMITER_ON_OWN_LINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.TextBlockRules.ESCAPE_TRAILING_SPACES
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.TextBlockIndentPolicy> zone.rong.formatj.api.rules.TextBlockRules.INDENT_POLICY
-TYPE public static final class zone.rong.formatj.api.rules.TextBlockRules$Builder
-  CTOR public zone.rong.formatj.api.rules.TextBlockRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.closingDelimiterOnOwnLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.escapeTrailingSpaces(boolean)
-  METHOD public zone.rong.formatj.api.rules.TextBlockRules$Builder zone.rong.formatj.api.rules.TextBlockRules$Builder.indentPolicy(zone.rong.formatj.api.rules.TextBlockIndentPolicy)
 TYPE public final enum zone.rong.formatj.api.rules.VisibilityPosition
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.VisibilityPosition>
   ENUM FIRST
@@ -893,12 +637,13 @@ TYPE public final enum zone.rong.formatj.api.rules.WrapPolicy
   METHOD public static zone.rong.formatj.api.rules.WrapPolicy zone.rong.formatj.api.rules.WrapPolicy.valueOf(java.lang.String)
   METHOD public static zone.rong.formatj.api.rules.WrapPolicy[] zone.rong.formatj.api.rules.WrapPolicy.values()
 TYPE public final class zone.rong.formatj.api.rules.WrappingRules
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.ARROW_CASE_BODY_ON_NEW_LINE_WHEN_LONG
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.BREAK_AFTER_OPEN_PAREN
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.CASE_GUARD_ON_SAME_LINE
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.HUG_SOLE_ARGUMENT
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE
-  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.LAMBDA_EXPRESSION_ON_ARROW_LINE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.PERMITS_ON_NEW_LINE
+  FIELD public static final zone.rong.formatj.api.Option<java.lang.Boolean> zone.rong.formatj.api.rules.WrappingRules.SPLIT_LONG_STRINGS
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.WrappingRules.CHAIN_THRESHOLD
   FIELD public static final zone.rong.formatj.api.Option<java.lang.Integer> zone.rong.formatj.api.rules.WrappingRules.MAX_LINE_LENGTH
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.AssignmentBreak> zone.rong.formatj.api.rules.WrappingRules.ASSIGNMENT_BREAK
@@ -909,11 +654,15 @@ TYPE public final class zone.rong.formatj.api.rules.WrappingRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.OperatorWrap> zone.rong.formatj.api.rules.WrappingRules.METHOD_REFERENCE_OPERATOR_POSITION
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.OperatorWrap> zone.rong.formatj.api.rules.WrappingRules.MULTICATCH_SEPARATOR_POSITION
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.OperatorWrap> zone.rong.formatj.api.rules.WrappingRules.OPERATOR_POSITION
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.RecordWithStyle> zone.rong.formatj.api.rules.WrappingRules.WITH_BLOCK
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.ANNOTATION_ARGUMENTS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.ARRAY_INITIALIZERS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.ASSIGNMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.BINARY_OPERATORS
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.CASE_LABELS
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.DECONSTRUCTION_PATTERNS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.ENUM_CONSTANTS
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.EXPORTS_OPENS_TARGETS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.EXTENDS_IMPLEMENTS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.FOR_STATEMENT
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.INSTANCEOF
@@ -922,43 +671,12 @@ TYPE public final class zone.rong.formatj.api.rules.WrappingRules
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.METHOD_PARAMETERS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.METHOD_REFERENCE
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.MULTICATCH
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.PERMITS_CLAUSE
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.PROVIDES_IMPLEMENTATIONS
+  FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.RECORD_COMPONENTS
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.TERNARY
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.THROWS_CLAUSE
   FIELD public static final zone.rong.formatj.api.Option<zone.rong.formatj.api.rules.WrapPolicy> zone.rong.formatj.api.rules.WrappingRules.TRY_RESOURCES
-TYPE public static final class zone.rong.formatj.api.rules.WrappingRules$Builder
-  CTOR public zone.rong.formatj.api.rules.WrappingRules$Builder(zone.rong.formatj.api.StyleBuilder)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.annotationArguments(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.arrayInitializers(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.assignment(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.assignmentBreak(zone.rong.formatj.api.rules.AssignmentBreak)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.binaryOperators(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.breakAfterOpenParen(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.chainThreshold(int)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.chainedCalls(zone.rong.formatj.api.rules.ChainPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.closingDelimiter(zone.rong.formatj.api.rules.ClosingDelimiter)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.enumConstants(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.extendsImplements(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.forStatement(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.hugSoleArgument(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.instanceofExpression(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.instanceofOperatorPosition(zone.rong.formatj.api.rules.OperatorWrap)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.intersectionSeparatorPosition(zone.rong.formatj.api.rules.OperatorWrap)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.intersectionTypes(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.keepSimpleClassesOnOneLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.keepSimpleLambdasOnOneLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.keepSimpleMethodsOnOneLine(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.maxLineLength(int)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.methodArguments(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.methodParameters(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.methodReference(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.methodReferenceOperatorPosition(zone.rong.formatj.api.rules.OperatorWrap)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.multicatch(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.multicatchSeparatorPosition(zone.rong.formatj.api.rules.OperatorWrap)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.operatorPosition(zone.rong.formatj.api.rules.OperatorWrap)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.requireEnumConstantSemicolon(boolean)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.ternary(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.throwsClause(zone.rong.formatj.api.rules.WrapPolicy)
-  METHOD public zone.rong.formatj.api.rules.WrappingRules$Builder zone.rong.formatj.api.rules.WrappingRules$Builder.tryResources(zone.rong.formatj.api.rules.WrapPolicy)
 TYPE public final enum zone.rong.formatj.api.rules.YieldStyle
   SUPER java.lang.Enum<zone.rong.formatj.api.rules.YieldStyle>
   ENUM PRESERVE

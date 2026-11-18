@@ -27,6 +27,8 @@ import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.rewrite.Rewrite;
 import zone.rong.formatj.core.rewrite.RewriteResult;
 import zone.rong.formatj.core.rewrite.RewriteStage;
+import zone.rong.formatj.core.rewrite.StringSplit;
+import zone.rong.formatj.core.rewrite.TokenEdit;
 
 /**
  * The formatting pipeline: lex, parse, rewrite, emit, lay out, verify.
@@ -51,6 +53,9 @@ import zone.rong.formatj.core.rewrite.RewriteStage;
  * its rewrites rather than all of its formatting.
  */
 public final class DefaultFormatter implements Formatter {
+
+    // A split piece only moves when the layout around it changes, which settles within a pass or two.
+    private static final int MAX_SPLIT_PASSES = 8;
 
     private final Style style;
     private final LanguageLevel languageLevel;
@@ -296,7 +301,16 @@ public final class DefaultFormatter implements Formatter {
             }
         }
 
-        String formatted = layout(SyntaxNode.root(rewritten.root()), source, allowed);
+        Laid laid = allowed
+            ? layoutSplitting(original, rewritten.root(), source)
+            : new Laid(layout(SyntaxNode.root(rewritten.root()), source, false), List.of());
+        String formatted = laid.text();
+        List<TokenEdit> edits = rewritten.edits();
+        if (!laid.edits().isEmpty()) {
+            edits = new ArrayList<>(edits);
+            edits.addAll(laid.edits());
+            rewrote = true;
+        }
         if (!verify) {
             return Attempt.success(formatted, rewrote, rewritten.warnings());
         }
@@ -312,7 +326,7 @@ public final class DefaultFormatter implements Formatter {
         }
 
         String problem = rewrote
-            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), rewritten.edits(), style)
+            ? RewriteVerification.verifyOutput(original, formattedTree.root().green(), edits, style)
             : TokenEquivalence.firstDifference(original, formattedTree.root().green());
         if (problem != null) {
             return Attempt.failure("Formatting would change the program: " + problem, rewrote);
@@ -327,13 +341,42 @@ public final class DefaultFormatter implements Formatter {
             return Attempt.failure("Formatting would change what a comment says: " + prose, rewrote);
         }
 
-        GreenNode second = allowed ? rewrite(formattedTree.root().green()).root() : formattedTree.root().green();
-        String twice = layout(SyntaxNode.root(second), source, allowed);
+        String twice = allowed
+            ? layoutSplitting(formattedTree.root().green(), rewrite(formattedTree.root().green()).root(), source).text()
+            : layout(formattedTree.root(), source, false);
         if (!twice.equals(formatted)) {
             return Attempt.failure("Formatting is not stable; file left unchanged", rewrote);
         }
 
         return Attempt.success(formatted, rewrote, rewritten.warnings());
+    }
+
+    /**
+     * Lays out a rewritten tree, then splits the string literals that came out too long and lays it
+     * out again, until a pass splits nothing.
+     *
+     * @param original the tree the split edits are stated against
+     */
+    private Laid layoutSplitting(GreenNode original, GreenNode tree, String source) {
+        String text = layout(SyntaxNode.root(tree), source, true);
+        if (!style.get(WrappingRules.SPLIT_LONG_STRINGS)) {
+            return new Laid(text, List.of());
+        }
+        StringSplit split = new StringSplit(
+            original,
+            style.get(WrappingRules.MAX_LINE_LENGTH),
+            style.get(FileRules.TAB_WIDTH)
+        );
+        GreenNode current = tree;
+        for (int pass = 0; pass < MAX_SPLIT_PASSES; pass++) {
+            GreenNode next = split.apply(current, text);
+            if (next == current) {
+                break;
+            }
+            current = next;
+            text = layout(SyntaxNode.root(current), source, true);
+        }
+        return new Laid(text, split.edits(current));
     }
 
     private boolean unsettles(GreenNode tree) {
@@ -371,6 +414,8 @@ public final class DefaultFormatter implements Formatter {
             case PRESERVE -> sourceSeparator(source);
         };
     }
+
+    private record Laid(String text, List<TokenEdit> edits) { }
 
     /**
      * The outcome of one run.

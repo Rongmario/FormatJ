@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Single-space toggles around punctuation, keywords and operators. */
 public final class SpacingRules {
@@ -198,177 +197,12 @@ public final class SpacingRules {
         "Space between a varargs ellipsis and the parameter name"
     );
 
+    public static final Option<Boolean> BEFORE_WITH_BLOCK = Option.ofBoolean(
+        "spacing.before-with-block",
+        true,
+        "Space between the with keyword and its block"
+    );
+
     private SpacingRules() { }
-
-    /** Fluent view of the {@code spacing.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder beforeMethodDeclarationParenthesis(boolean value) {
-            style.set(BEFORE_METHOD_DECLARATION_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeMethodCallParenthesis(boolean value) {
-            style.set(BEFORE_METHOD_CALL_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeIfParenthesis(boolean value) {
-            style.set(BEFORE_IF_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeForParenthesis(boolean value) {
-            style.set(BEFORE_FOR_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeWhileParenthesis(boolean value) {
-            style.set(BEFORE_WHILE_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeSwitchParenthesis(boolean value) {
-            style.set(BEFORE_SWITCH_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeCatchParenthesis(boolean value) {
-            style.set(BEFORE_CATCH_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeSynchronizedParenthesis(boolean value) {
-            style.set(BEFORE_SYNCHRONIZED_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder withinParentheses(boolean value) {
-            style.set(WITHIN_PARENTHESES, value);
-            return this;
-        }
-
-        public Builder withinBrackets(boolean value) {
-            style.set(WITHIN_BRACKETS, value);
-            return this;
-        }
-
-        public Builder withinArrayInitializerBraces(boolean value) {
-            style.set(WITHIN_ARRAY_INITIALIZER_BRACES, value);
-            return this;
-        }
-
-        public Builder withinAngleBrackets(boolean value) {
-            style.set(WITHIN_ANGLE_BRACKETS, value);
-            return this;
-        }
-
-        public Builder aroundAssignmentOperators(boolean value) {
-            style.set(AROUND_ASSIGNMENT_OPERATORS, value);
-            return this;
-        }
-
-        public Builder aroundBinaryOperators(boolean value) {
-            style.set(AROUND_BINARY_OPERATORS, value);
-            return this;
-        }
-
-        public Builder aroundUnaryOperators(boolean value) {
-            style.set(AROUND_UNARY_OPERATORS, value);
-            return this;
-        }
-
-        public Builder aroundLambdaArrow(boolean value) {
-            style.set(AROUND_LAMBDA_ARROW, value);
-            return this;
-        }
-
-        public Builder aroundTernaryOperators(boolean value) {
-            style.set(AROUND_TERNARY_OPERATORS, value);
-            return this;
-        }
-
-        public Builder aroundMethodReferenceOperator(boolean value) {
-            style.set(AROUND_METHOD_REFERENCE_OPERATOR, value);
-            return this;
-        }
-
-        public Builder aroundMulticatchSeparator(boolean value) {
-            style.set(AROUND_MULTICATCH_SEPARATOR, value);
-            return this;
-        }
-
-        public Builder aroundIntersectionSeparator(boolean value) {
-            style.set(AROUND_INTERSECTION_SEPARATOR, value);
-            return this;
-        }
-
-        public Builder afterComma(boolean value) {
-            style.set(AFTER_COMMA, value);
-            return this;
-        }
-
-        public Builder beforeComma(boolean value) {
-            style.set(BEFORE_COMMA, value);
-            return this;
-        }
-
-        public Builder afterSemicolonInFor(boolean value) {
-            style.set(AFTER_SEMICOLON_IN_FOR, value);
-            return this;
-        }
-
-        public Builder beforeSemicolon(boolean value) {
-            style.set(BEFORE_SEMICOLON, value);
-            return this;
-        }
-
-        public Builder afterTypeCast(boolean value) {
-            style.set(AFTER_TYPE_CAST, value);
-            return this;
-        }
-
-        public Builder beforeColonInEnhancedFor(boolean value) {
-            style.set(BEFORE_COLON_IN_ENHANCED_FOR, value);
-            return this;
-        }
-
-        public Builder afterColonInEnhancedFor(boolean value) {
-            style.set(AFTER_COLON_IN_ENHANCED_FOR, value);
-            return this;
-        }
-
-        public Builder beforeColonInCaseLabel(boolean value) {
-            style.set(BEFORE_COLON_IN_CASE_LABEL, value);
-            return this;
-        }
-
-        public Builder aroundCaseArrow(boolean value) {
-            style.set(AROUND_CASE_ARROW, value);
-            return this;
-        }
-
-        public Builder beforeAnnotationParenthesis(boolean value) {
-            style.set(BEFORE_ANNOTATION_PARENTHESIS, value);
-            return this;
-        }
-
-        public Builder beforeArrayBrackets(boolean value) {
-            style.set(BEFORE_ARRAY_BRACKETS, value);
-            return this;
-        }
-
-        public Builder afterVarargsEllipsis(boolean value) {
-            style.set(AFTER_VARARGS_ELLIPSIS, value);
-            return this;
-        }
-
-    }
 
 }

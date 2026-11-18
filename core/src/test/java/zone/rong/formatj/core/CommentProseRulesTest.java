@@ -124,15 +124,20 @@ class CommentProseRulesTest {
 
     @Test
     void wrappingKeepsTheWordsAfterASpacedParamName() {
-        String body = "    /**\n     * Runs.\n     *\n     * @param   s   the detail message.\n     */\n    void f(String s) { }\n";
-        String formatted = format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true)), body);
+        String body = "    /**\n     * Runs.\n     *\n     * @param   s   the detail message.\n     */\n" +
+            "    void f(String s) { }\n";
+        String formatted = format(rules -> rules.set(JavadocRules.WRAP, true), body);
         assertTrue(formatted.contains("@param   s the detail message."), formatted);
     }
 
     @Test
     void paragraphTagsStayOutOfCodeSamples() {
-        String body = "    /**\n     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n     * </pre>\n     */\n    void f() { }\n";
-        String formatted = format(rules -> rules.javadoc(javadoc -> javadoc.wrap(true).addParagraphTags(true)), body);
+        String body = "    /**\n     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n     * </pre>\n" +
+            "     */\n    void f() { }\n";
+        String formatted = format(
+            rules -> rules.set(JavadocRules.WRAP, true).set(JavadocRules.ADD_PARAGRAPH_TAGS, true),
+            body
+        );
         assertTrue(formatted.contains("     * Runs.\n     *\n     * <pre>\n     * a\n     *\n     * b\n"), formatted);
     }
 
@@ -140,7 +145,7 @@ class CommentProseRulesTest {
     void reflowKeepsTheParagraphsOfABlockComment() {
         String source = "/* One.\n *\n * Two  three. */\nclass T { }\n";
         String formatted = reformat(
-            rules -> rules.comments(comments -> comments.reflow(CommentReflow.REFLOW_TO_LINE_LENGTH)),
+            rules -> rules.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH),
             source
         );
         assertTrue(formatted.startsWith("/*\n * One.\n *\n * Two three.\n */\n"), formatted);
@@ -184,7 +189,8 @@ class CommentProseRulesTest {
         String formatted = format(
             style -> style.set(CommentRules.REFLOW, CommentReflow.REFLOW_TO_LINE_LENGTH)
                 .set(WrappingRules.MAX_LINE_LENGTH, 40),
-            "    void f() {\n        g(\n            a, // one two three four five six seven eight\n            b\n        );\n    }\n"
+            "    void f() {\n        g(\n            a, // one two three four five six seven eight\n            b\n" +
+                "        );\n    }\n"
         );
         assertTrue(formatted.contains("a, // one two three four five six seven eight"), formatted);
     }

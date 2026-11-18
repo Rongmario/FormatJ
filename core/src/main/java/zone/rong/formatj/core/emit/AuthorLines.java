@@ -9,11 +9,9 @@ import zone.rong.formatj.core.lexer.Token;
  *
  * <p>A group of rules in the catalogue are all variations on one question: the author put this on a
  * single line, so may the formatter leave it there — or, read the other way round, the author split
- * this over several lines, so may the formatter join them? {@code keep-simple-blocks-inline},
- * {@code keep-simple-methods-on-one-line}, {@code keep-simple-lambdas-on-one-line},
- * {@code keep-simple-classes-on-one-line}, {@code keep-simple-pattern-inline},
- * {@code null-default-on-one-line}, {@code keep-line-break-after-open-paren},
- * {@code never-join-lines} and {@code wrapping.throws-clause = preserve} differ only in which
+ * this over several lines, so may the formatter join them? The {@code preservation.keep-*} rules,
+ * {@code preservation.never-join-lines}, and the {@code preserve} value of
+ * {@code wrapping.instanceof} and {@code wrapping.throws-clause} differ only in which
  * construct they ask about and which option turns them on. The question itself is answered here,
  * once, so that they cannot disagree about what "on one line" means.
  *

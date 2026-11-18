@@ -10,7 +10,6 @@ import java.util.Set;
 
 import zone.rong.formatj.api.Option;
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.ImportRules;
@@ -18,10 +17,9 @@ import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.api.rules.SealedRules;
-import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
+import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
 import zone.rong.formatj.core.cst.MemberGroup;
 import zone.rong.formatj.core.cst.ProgramTokens;
@@ -31,7 +29,9 @@ import zone.rong.formatj.core.imports.ImportEntry;
 import zone.rong.formatj.core.imports.ImportUsage;
 import zone.rong.formatj.core.lexer.Token;
 import zone.rong.formatj.core.lexer.UnicodeEscapes;
+import zone.rong.formatj.core.rewrite.LiteralRewrite;
 import zone.rong.formatj.core.rewrite.SplitVariablesRewrite;
+import zone.rong.formatj.core.rewrite.StringSplit;
 import zone.rong.formatj.core.rewrite.TokenEdit;
 import zone.rong.formatj.core.text.TextBlocks;
 
@@ -263,13 +263,13 @@ public final class RewriteVerification {
         if (authority == BraceRules.IF_ELSE ||
             authority == BraceRules.FOR_LOOP ||
             authority == BraceRules.WHILE_LOOP ||
-            authority == SwitchRules.ARROW_CASE_BRACES) {
+            authority == BraceRules.ARROW_CASE_BODY) {
             return checkBraceLaw(edit);
         }
         if (authority == ImportRules.ORDER) {
             return checkImportLaw(edit, formatted);
         }
-        if (authority == SealedRules.PERMITS_ORDER) {
+        if (authority == DeclarationRules.PERMITS_ORDER) {
             return checkPermitsLaw(edit);
         }
         if (authority == ModifierRules.ORDER) {
@@ -278,13 +278,13 @@ public final class RewriteVerification {
         if (authority == ModifierRules.REMOVE_REDUNDANT) {
             return checkRedundantModifierLaw(edit);
         }
-        if (authority == ArrayRules.C_STYLE_BRACKETS) {
+        if (authority == DeclarationRules.ARRAY_BRACKETS) {
             return checkOnly(edit, "array brackets", "[", "]");
         }
         if (authority == LambdaRules.PARAMETER_STYLE) {
             return checkOnly(edit, "parentheses", "(", ")");
         }
-        if (authority == LambdaRules.BODY_BRACES) {
+        if (authority == BraceRules.LAMBDA_BODY) {
             return checkLambdaBraceLaw(edit);
         }
         if (authority == SwitchRules.YIELD_STYLE) {
@@ -297,10 +297,16 @@ public final class RewriteVerification {
             authority == TextBlockRules.ESCAPE_TRAILING_SPACES) {
             return checkTextBlockLaw(edit);
         }
-        if (authority == LiteralRules.LONG_SUFFIX || authority == LiteralRules.HEX_DIGITS) {
+        if (authority == LiteralRules.LONG_SUFFIX ||
+            authority == LiteralRules.HEX_DIGITS ||
+            authority == LiteralRules.FLOAT_SUFFIX ||
+            authority == LiteralRules.DIGIT_GROUPING_THRESHOLD) {
             return checkLiteralLaw(edit);
         }
-        if (authority == SemicolonRules.REMOVE_REDUNDANT) {
+        if (authority == WrappingRules.SPLIT_LONG_STRINGS) {
+            return checkStringSplitLaw(edit, before);
+        }
+        if (authority == DeclarationRules.REMOVE_REDUNDANT_SEMICOLONS) {
             return checkSemicolonLaw(edit, before);
         }
         if (authority == MemberRules.ORDER) {
@@ -337,7 +343,7 @@ public final class RewriteVerification {
      * <p>The edit names stretches of the original tokens, so nothing can be added or dropped by it.
      * What this checks is that the stretches are exactly the members of one body, that whatever lies
      * between them is a stray semicolon another edit deleted, and that the order they are written in
-     * is the stable sort by group, which is re-derived from the original tree.
+     * is the arrangement {@link MemberGroup#arrange} derives from the original tree.
      */
     private static String checkMemberOrderLaw(TokenEdit edit, GreenNode before, Style style) {
         String problem = MemberRules.ORDER.key() + " may only sort the members of one type body";
@@ -372,25 +378,9 @@ public final class RewriteVerification {
             }
         }
 
-        int previousGroup = 0;
-        int previousIndex = -1;
-        for (TokenEdit.Span span : edit.order()) {
-            int index = originalIndex.get(span);
-            int group = MemberGroup.of(
-                body.members().get(index),
-                body.interfaceBody(),
-                new MemberGroup.Order(
-                    style.get(MemberRules.FIELD_ORDER),
-                    style.get(MemberRules.VISIBILITY_ORDER),
-                    style.get(MemberRules.FIELD_VISIBILITY_ORDER),
-                    style.get(MemberRules.METHOD_VISIBILITY_ORDER)
-                )
-            );
-            if (group < previousGroup || group == previousGroup && index < previousIndex) {
-                return MemberRules.ORDER.key() + " did not produce the stable order by member group";
-            }
-            previousGroup = group;
-            previousIndex = index;
+        List<Integer> expected = MemberGroup.arrange(body.members(), body.interfaceBody(), MemberGroup.Order.of(style));
+        if (!edit.order().stream().map(originalIndex::get).toList().equals(expected)) {
+            return MemberRules.ORDER.key() + " did not produce the stable order by member group";
         }
         return null;
     }
@@ -447,7 +437,8 @@ public final class RewriteVerification {
 
     /**
      * A literal rule may change the case of one literal's characters, and only the ones it owns: the
-     * long suffix, and the hex digits before any {@code p} exponent.
+     * long suffix, the float or double suffix, and the hex digits before any {@code p} exponent. A
+     * decimal integer written without underscores may also be grouped in threes.
      */
     private static String checkLiteralLaw(TokenEdit edit) {
         if (edit.removed().size() != 1 || edit.inserted().size() != 1) {
@@ -455,27 +446,72 @@ public final class RewriteVerification {
         }
         String before = edit.removed().getFirst();
         String after = edit.inserted().getFirst();
+        if (before.indexOf('_') < 0 && after.indexOf('_') >= 0) {
+            if (!after.matches("[1-9][0-9]{0,2}(_[0-9]{3})+[lL]?")) {
+                return edit.authority().key() + " may only group a decimal integer's digits in threes";
+            }
+            after = after.replace("_", "");
+        }
         if (before.length() != after.length()) {
             return edit.authority().key() + " changed the length of " + before;
         }
+        boolean floating = LiteralRewrite.isFloatingSuffix(before);
         for (int i = 0; i < before.length(); i++) {
             char was = before.charAt(i);
             char now = after.charAt(i);
-            boolean suffix = edit.authority() == LiteralRules.LONG_SUFFIX &&
-                i == before.length() - 1 &&
-                was == 'l' &&
-                now == 'L';
+            boolean last = i == before.length() - 1;
+            boolean longSuffix = last && was == 'l' && now == 'L';
+            boolean floatSuffix = last && floating && Character.toLowerCase(was) == Character.toLowerCase(now);
             boolean digit = before.regionMatches(true, 0, "0x", 0, 2) &&
                 i >= 2 &&
                 before.substring(0, i).toLowerCase(Locale.ROOT).indexOf('p') < 0 &&
                 Character.toLowerCase(was) == Character.toLowerCase(now) &&
                 Character.toLowerCase(was) >= 'a' &&
                 Character.toLowerCase(was) <= 'f';
-            if (was != now && !suffix && !digit) {
+            if (was != now && !longSuffix && !floatSuffix && !digit) {
                 return edit.authority().key() + " changed '" + was + "' in " + before;
             }
         }
         return null;
+    }
+
+    /**
+     * The split rule may replace one string literal with a concatenation of literals that denote the
+     * same string, and only where {@code +} cannot bind to anything around it.
+     */
+    private static String checkStringSplitLaw(TokenEdit edit, GreenNode before) {
+        String key = edit.authority().key();
+        List<String> inserted = edit.inserted();
+        if (edit.removed().size() != 1 || inserted.size() < 3 || inserted.size() % 2 == 0) {
+            return key + " may only replace one literal with a concatenation";
+        }
+        List<GreenNode.Leaf> leaves = ProgramTokens.leaves(before);
+        if (edit.position() >= leaves.size() || !StringSplit.splittable(before).contains(leaves.get(edit.position()))) {
+            return key + " split a literal where + would bind differently";
+        }
+        StringBuilder value = new StringBuilder();
+        for (int i = 0; i < inserted.size(); i++) {
+            String token = inserted.get(i);
+            if (i % 2 == 1 ? !token.equals("+") : !isStringLiteral(token)) {
+                return key + " may only join string literals with +";
+            }
+            if (i % 2 == 0) {
+                value.append(TextBlocks.unescape(token.substring(1, token.length() - 1)));
+            }
+        }
+        String original = edit.removed().getFirst();
+        if (!isStringLiteral(original) ||
+            !TextBlocks.unescape(original.substring(1, original.length() - 1)).contentEquals(value)) {
+            return key + " changed what " + original + " says";
+        }
+        return null;
+    }
+
+    private static boolean isStringLiteral(String lexeme) {
+        return lexeme.length() >= 2 &&
+            lexeme.startsWith("\"") &&
+            lexeme.endsWith("\"") &&
+            !TextBlocks.isTextBlock(lexeme);
     }
 
     /**
@@ -616,12 +652,12 @@ public final class RewriteVerification {
         List<String> before = separated(edit.removed());
         List<String> after = separated(edit.inserted());
         if (before == null || after == null) {
-            return SealedRules.PERMITS_ORDER.key() + " may only rewrite a whole permits clause";
+            return DeclarationRules.PERMITS_ORDER.key() + " may only rewrite a whole permits clause";
         }
         String difference = sameBag(before, after);
         return difference == null
             ? null
-            : SealedRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
+            : DeclarationRules.PERMITS_ORDER.key() + " did more than reorder the clause: " + difference;
     }
 
     /** A modifier rule may permute one declaration's modifiers and nothing else. */
@@ -869,7 +905,7 @@ public final class RewriteVerification {
      */
     private static String checkLambdaBraceLaw(TokenEdit edit) {
         if (!edit.inserted().isEmpty()) {
-            return LambdaRules.BODY_BRACES.key() + " may only remove braces but inserted " + edit.inserted();
+            return BraceRules.LAMBDA_BODY.key() + " may only remove braces but inserted " + edit.inserted();
         }
         List<String> removed = edit.removed();
         if (removed.equals(List.of("{")) ||
@@ -877,7 +913,7 @@ public final class RewriteVerification {
             removed.equals(List.of(";", "}"))) {
             return null;
         }
-        return LambdaRules.BODY_BRACES.key() + " removed " + removed + ", which is not a lambda body's braces";
+        return BraceRules.LAMBDA_BODY.key() + " removed " + removed + ", which is not a lambda body's braces";
     }
 
     /**

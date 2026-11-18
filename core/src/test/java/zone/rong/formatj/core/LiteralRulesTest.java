@@ -2,7 +2,9 @@ package zone.rong.formatj.core;
 
 import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.FloatSuffix;
 import zone.rong.formatj.api.rules.HexDigitCase;
+import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.LongSuffix;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,7 +16,7 @@ class LiteralRulesTest {
     }
 
     private static String format(String source) {
-        return format(source, Style.builder().literals(literals -> literals.longSuffix(LongSuffix.UPPER)).build());
+        return format(source, Style.builder().set(LiteralRules.LONG_SUFFIX, LongSuffix.UPPER).build());
     }
 
     private static String field(String initializer) {
@@ -24,7 +26,10 @@ class LiteralRulesTest {
     private static String hex(String source, HexDigitCase digits) {
         return format(
             source,
-            Style.builder().literals(literals -> literals.hexDigits(digits).longSuffix(LongSuffix.PRESERVE)).build()
+            Style.builder()
+                .set(LiteralRules.HEX_DIGITS, digits)
+                .set(LiteralRules.LONG_SUFFIX, LongSuffix.PRESERVE)
+                .build()
         );
     }
 
@@ -38,7 +43,8 @@ class LiteralRulesTest {
 
     @Test
     void longSuffixLeavesOtherLiteralsAlone() {
-        String source = "class T {\n\n    double d = 1.5e3f + 0x1p3d;\n    String s = \"10l\";\n    Object l = x10l;\n\n}\n";
+        String source = "class T {\n\n    double d = 1.5e3f + 0x1p3d;\n    String s = \"10l\";\n" +
+            "    Object l = x10l;\n\n}\n";
         assertEquals(source, format(source));
     }
 
@@ -51,7 +57,8 @@ class LiteralRulesTest {
     @Test
     void hexDigitsAndLongSuffixCombine() {
         Style style = Style.builder()
-            .literals(literals -> literals.hexDigits(HexDigitCase.UPPER).longSuffix(LongSuffix.UPPER))
+            .set(LiteralRules.HEX_DIGITS, HexDigitCase.UPPER)
+            .set(LiteralRules.LONG_SUFFIX, LongSuffix.UPPER)
             .build();
         assertEquals(field("0xCAFEL"), format(field("0xcafel"), style));
     }
@@ -81,6 +88,36 @@ class LiteralRulesTest {
     void longSuffixSettles() {
         String once = format(field("10l"));
         assertEquals(once, format(once));
+    }
+
+    @Test
+    void floatSuffixIsRecasedOnlyWhereItIsASuffix() {
+        Style upper = Style.builder()
+            .set(LiteralRules.FLOAT_SUFFIX, FloatSuffix.UPPER)
+            .set(LiteralRules.LONG_SUFFIX, LongSuffix.PRESERVE)
+            .set(LiteralRules.HEX_DIGITS, HexDigitCase.PRESERVE)
+            .build();
+        String source = "class T {\n\n    double d = 1.5f + 2d + 1e3f + 0x1p3f + 0xFFd;\n    long l = 10l;\n\n}\n";
+        String expected = "class T {\n\n    double d = 1.5F + 2D + 1e3F + 0x1p3F + 0xFFd;\n    long l = 10l;\n\n}\n";
+        assertEquals(expected, format(source, upper));
+
+        Style lower = upper.toBuilder().set(LiteralRules.FLOAT_SUFFIX, FloatSuffix.LOWER).build();
+        assertEquals(source, format(expected, lower));
+    }
+
+    @Test
+    void decimalIntegersAreGroupedInThreesFromTheThreshold() {
+        Style style = Style.builder()
+            .set(LiteralRules.DIGIT_GROUPING_THRESHOLD, 5)
+            .set(LiteralRules.LONG_SUFFIX, LongSuffix.UPPER)
+            .build();
+        assertEquals(field("10_000"), format(field("10000"), style));
+        assertEquals(field("1_234_567L"), format(field("1234567l"), style));
+        assertEquals(field("1234"), format(field("1234"), style));
+        assertEquals(field("1234_5678"), format(field("1234_5678"), style));
+        assertEquals(field("0x12345678"), format(field("0x12345678"), style));
+        assertEquals(field("012345670"), format(field("012345670"), style));
+        assertEquals(field("12345.5"), format(field("12345.5"), style));
     }
 
 }

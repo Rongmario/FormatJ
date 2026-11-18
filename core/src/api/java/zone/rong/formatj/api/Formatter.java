@@ -11,15 +11,15 @@ public interface Formatter {
     /** Formats one request. */
     FormatResult format(FormatRequest request);
 
+    /** Convenience for formatting a string with no name and no range restriction. */
+    default String format(String source) {
+        return format(FormatRequest.of(source)).text();
+    }
+
     /** The style this formatter applies. */
     Style style();
 
     /** The syntax level this formatter parses. */
     LanguageLevel languageLevel();
-
-    /** Convenience for formatting a string with no name and no range restriction. */
-    default String format(String source) {
-        return format(FormatRequest.of(source)).text();
-    }
 
 }

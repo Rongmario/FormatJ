@@ -6,8 +6,8 @@ package zone.rong.formatj.api;
  * <pre>{@code
  * Formatter formatter = FormatJ.newFormatter()
  *         .style(Style.preset(Preset.FORMATJ)
- *                 .indent(i -> i.size(4))
- *                 .wrapping(w -> w.maxLineLength(120))
+ *                 .set(IndentRules.SIZE, 4)
+ *                 .set(WrappingRules.MAX_LINE_LENGTH, 120)
  *                 .build())
  *         .languageLevel(LanguageLevel.LATEST)
  *         .build();

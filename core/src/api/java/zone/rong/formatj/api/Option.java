@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A single typed, documented, defaulted formatting rule.
@@ -17,37 +18,44 @@ import java.util.Objects;
  */
 public final class Option<T> {
 
+    /** The textual value that clears an option with a parent, so it follows that parent again. */
+    public static final String INHERIT = "inherit";
+
     private final String key;
     private final Kind kind;
     private final Class<T> type;
-    private final Class<?> valueType;
     private final T defaultValue;
+    private final Option<T> parent;
     private final int minValue;
     private final String description;
 
     private Option(String key, Kind kind, Class<T> type, T defaultValue, String description) {
-        this(key, kind, type, type, defaultValue, Integer.MIN_VALUE, description);
+        this(
+            key,
+            kind,
+            type,
+            Objects.requireNonNull(defaultValue, "defaultValue"),
+            null,
+            Integer.MIN_VALUE,
+            description
+        );
     }
 
-    private Option(String key, Kind kind, Class<T> type, Class<?> valueType, T defaultValue, String description) {
-        this(key, kind, type, valueType, defaultValue, Integer.MIN_VALUE, description);
-    }
-
-    /** {@code minValue} only matters for {@link Kind#INTEGER} and {@link Kind#INHERITABLE_INTEGER}. */
+    /** Exactly one of {@code defaultValue} and {@code parent} is set. */
     private Option(
         String key,
         Kind kind,
         Class<T> type,
-        Class<?> valueType,
         T defaultValue,
+        Option<T> parent,
         int minValue,
         String description
     ) {
         this.key = Objects.requireNonNull(key, "key");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.type = Objects.requireNonNull(type, "type");
-        this.valueType = Objects.requireNonNull(valueType, "valueType");
-        this.defaultValue = Objects.requireNonNull(defaultValue, "defaultValue");
+        this.defaultValue = defaultValue;
+        this.parent = parent;
         this.minValue = minValue;
         this.description = Objects.requireNonNull(description, "description");
         OptionRegistry.register(this);
@@ -63,7 +71,12 @@ public final class Option<T> {
 
     /** An integer option that rejects a value below {@code minValue}. */
     public static Option<Integer> ofInt(String key, int defaultValue, int minValue, String description) {
-        return new Option<>(key, Kind.INTEGER, Integer.class, Integer.class, defaultValue, minValue, description);
+        return new Option<>(key, Kind.INTEGER, Integer.class, defaultValue, null, minValue, description);
+    }
+
+    /** An integer option that takes {@code parent}'s value until it is set itself. */
+    public static Option<Integer> ofInt(String key, Option<Integer> parent, String description) {
+        return new Option<>(key, Kind.INTEGER, Integer.class, null, parent, parent.minValue, description);
     }
 
     public static Option<String> ofString(String key, String defaultValue, String description) {
@@ -74,22 +87,9 @@ public final class Option<T> {
         return new Option<>(key, Kind.ENUM, defaultValue.getDeclaringClass(), defaultValue, description);
     }
 
-    /** An integer option whose {@code inherit} value defers to another rule. */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static Option<Inheritable<Integer>> ofInheritableInt(String key, String description) {
-        Class<Inheritable<Integer>> type = (Class) Inheritable.class;
-        return new Option<>(key, Kind.INHERITABLE_INTEGER, type, Integer.class, Inheritable.inherit(), 0, description);
-    }
-
-    /** An enum option whose {@code inherit} value defers to another rule. */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static <E extends Enum<E>> Option<Inheritable<E>> ofInheritableEnum(
-        String key,
-        Class<E> valueType,
-        String description
-    ) {
-        Class<Inheritable<E>> type = (Class) Inheritable.class;
-        return new Option<>(key, Kind.INHERITABLE_ENUM, type, valueType, Inheritable.inherit(), description);
+    /** An enum option that takes {@code parent}'s value until it is set itself. */
+    public static <E extends Enum<E>> Option<E> ofEnum(String key, Option<E> parent, String description) {
+        return new Option<>(key, Kind.ENUM, parent.type, null, parent, Integer.MIN_VALUE, description);
     }
 
     /**
@@ -107,10 +107,6 @@ public final class Option<T> {
     ) {
         Class<List<List<String>>> type = (Class) List.class;
         return new Option<>(key, Kind.STRING_GROUPS, type, copyGroups(defaultValue), description);
-    }
-
-    private static boolean isInherit(String raw) {
-        return raw.equalsIgnoreCase("inherit");
     }
 
     /** Deep copy of a groups value, promoting a bare string element to a group of one. */
@@ -182,8 +178,14 @@ public final class Option<T> {
         return type;
     }
 
+    /** The value used when nothing is set: the parent's default for an option that has one. */
     public T defaultValue() {
-        return defaultValue;
+        return parent == null ? defaultValue : parent.defaultValue();
+    }
+
+    /** The option whose value this one takes until it is set itself. */
+    public Optional<Option<T>> parent() {
+        return Optional.ofNullable(parent);
     }
 
     /** One-line human readable explanation, rendered as a comment by {@code --dump-config}. */
@@ -193,14 +195,14 @@ public final class Option<T> {
 
     /** The legal values of an enum option, in declaration order; empty for every other kind. */
     public List<String> allowedValues() {
-        if (kind != Kind.ENUM && kind != Kind.INHERITABLE_ENUM) {
+        if (kind != Kind.ENUM) {
             return List.of();
         }
         List<String> names = new ArrayList<>();
-        if (kind == Kind.INHERITABLE_ENUM) {
-            names.add("inherit");
+        if (parent != null) {
+            names.add(INHERIT);
         }
-        for (Object constant : valueType.getEnumConstants()) {
+        for (Object constant : type.getEnumConstants()) {
             names.add(renderEnum((Enum<?>) constant));
         }
         return List.copyOf(names);
@@ -217,24 +219,6 @@ public final class Option<T> {
                 key + " expects a list of string groups, got " + value.getClass().getName()
             );
         }
-        if (kind == Kind.INHERITABLE_INTEGER || kind == Kind.INHERITABLE_ENUM) {
-            if (!(value instanceof Inheritable<?> inheritable)) {
-                throw new IllegalArgumentException(
-                    key + " expects Inheritable, got " + value.getClass().getSimpleName()
-                );
-            }
-            Object override = inheritable.override();
-            if (override != null && !valueType.isInstance(override)) {
-                throw new IllegalArgumentException(
-                    key + " expects an inherited " + valueType.getSimpleName() + ", got " +
-                        override.getClass().getSimpleName()
-                );
-            }
-            if (kind == Kind.INHERITABLE_INTEGER && override != null) {
-                requireMin((Integer) override);
-            }
-            return type.cast(value);
-        }
         if (!type.isInstance(value)) {
             throw new IllegalArgumentException(
                 key + " expects " + type.getSimpleName() + ", got " + value.getClass().getSimpleName()
@@ -246,30 +230,28 @@ public final class Option<T> {
         return type.cast(value);
     }
 
-    /** Parses the textual form used by config files and {@code --set key=value}. */
+    /**
+     * Parses the textual form used by config files and {@code --set key=value}.
+     *
+     * @return the value, or {@code null} for {@code inherit} on an option with a parent
+     */
     public T parse(String raw) {
         Objects.requireNonNull(raw, "raw");
         String trimmed = raw.trim();
+        if (parent != null && unquote(trimmed).equalsIgnoreCase(INHERIT)) {
+            return null;
+        }
         return switch (kind) {
             case BOOLEAN -> cast(parseBoolean(trimmed));
             case INTEGER -> cast(parseInt(trimmed));
             case STRING -> cast(unquote(trimmed));
             case ENUM -> cast(parseEnum(trimmed));
             case STRING_GROUPS -> cast(parseGroups(trimmed));
-            case INHERITABLE_INTEGER -> cast(parseInheritableInteger(trimmed));
-            case INHERITABLE_ENUM -> cast(parseInheritableEnum(trimmed));
         };
     }
 
     /** Renders a value back to the textual form {@link #parse(String)} accepts. */
     public String render(T value) {
-        if (value instanceof Inheritable<?> inheritable) {
-            if (inheritable.inherits()) {
-                return "inherit";
-            }
-            Object override = inheritable.override();
-            return override instanceof Enum<?> constant ? renderEnum(constant) : String.valueOf(override);
-        }
         if (value instanceof Enum<?> constant) {
             return renderEnum(constant);
         }
@@ -331,25 +313,13 @@ public final class Option<T> {
     }
 
     private Object parseEnum(String raw) {
-        return parseEnum(raw, valueType);
-    }
-
-    private Object parseEnum(String raw, Class<?> enumType) {
-        String normalised = raw.trim().replace('-', '_').replace('.', '_').toUpperCase(Locale.ROOT);
-        for (Object constant : enumType.getEnumConstants()) {
+        String normalised = unquote(raw).trim().replace('-', '_').replace('.', '_').toUpperCase(Locale.ROOT);
+        for (Object constant : type.getEnumConstants()) {
             if (((Enum<?>) constant).name().equals(normalised)) {
                 return constant;
             }
         }
         throw new IllegalArgumentException(key + " expects one of " + allowedValues() + ", got '" + raw + "'");
-    }
-
-    private Inheritable<Integer> parseInheritableInteger(String raw) {
-        return isInherit(raw) ? Inheritable.inherit() : Inheritable.of(parseInt(raw));
-    }
-
-    private Inheritable<?> parseInheritableEnum(String raw) {
-        return isInherit(raw) ? Inheritable.inherit() : Inheritable.of(parseEnum(raw, valueType));
     }
 
     /** Splits the outer array, where an element is either a bare string or a nested array. */
@@ -422,9 +392,7 @@ public final class Option<T> {
         INTEGER,
         STRING,
         ENUM,
-        STRING_GROUPS,
-        INHERITABLE_INTEGER,
-        INHERITABLE_ENUM
+        STRING_GROUPS
 
     }
 

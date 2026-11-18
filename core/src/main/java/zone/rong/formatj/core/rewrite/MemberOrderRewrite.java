@@ -1,7 +1,6 @@
 package zone.rong.formatj.core.rewrite;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -57,26 +56,10 @@ public final class MemberOrderRewrite implements Rewrite {
             declarations.add(unit.size() == 1 ? unit.getFirst() : joined(unit));
         }
 
-        List<Integer> groups = new ArrayList<>(declarations.size());
-        MemberGroup.Order rank = new MemberGroup.Order(
-            context.rule(MemberRules.FIELD_ORDER),
-            context.rule(MemberRules.VISIBILITY_ORDER),
-            context.rule(MemberRules.FIELD_VISIBILITY_ORDER),
-            context.rule(MemberRules.METHOD_VISIBILITY_ORDER)
-        );
-        for (GreenNode declaration : declarations) {
-            int group = MemberGroup.of(declaration, interfaceBody, rank);
-            if (group == MemberGroup.NONE || context.firstPosition(declaration) < 0) {
-                return body;
-            }
-            groups.add(group);
+        List<Integer> order = MemberGroup.arrange(declarations, interfaceBody, MemberGroup.Order.of(context.style()));
+        if (order == null || declarations.stream().anyMatch(declaration -> context.firstPosition(declaration) < 0)) {
+            return body;
         }
-
-        List<Integer> order = new ArrayList<>(declarations.size());
-        for (int i = 0; i < declarations.size(); i++) {
-            order.add(i);
-        }
-        order.sort(Comparator.comparingInt(groups::get));
         if (order.equals(order.stream().sorted().toList())) {
             return body;
         }

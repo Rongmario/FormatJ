@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Minimum blank lines FormatJ inserts around declarations and blocks. */
 public final class BlankLineRules {
@@ -36,6 +35,18 @@ public final class BlankLineRules {
         "Blank lines before a method or constructor"
     );
 
+    public static final Option<Integer> BEFORE_COMPACT_CONSTRUCTOR = Option.ofInt(
+        "blank-lines.before-compact-constructor",
+        BEFORE_METHOD,
+        "Blank lines before a compact canonical constructor"
+    );
+
+    public static final Option<Integer> INSIDE_COMPACT_CONSTRUCTOR = Option.ofInt(
+        "blank-lines.inside-compact-constructor",
+        0,
+        "Blank lines just inside the braces of a compact canonical constructor"
+    );
+
     public static final Option<Integer> BEFORE_FIELD = Option.ofInt(
         "blank-lines.before-field",
         0,
@@ -54,6 +65,18 @@ public final class BlankLineRules {
         "Blank lines just before a type body closes"
     );
 
+    public static final Option<Integer> AFTER_MODULE_OPENING_BRACE = Option.ofInt(
+        "blank-lines.after-module-opening-brace",
+        AFTER_CLASS_OPENING_BRACE,
+        "Blank lines just inside a module body"
+    );
+
+    public static final Option<Integer> BEFORE_MODULE_CLOSING_BRACE = Option.ofInt(
+        "blank-lines.before-module-closing-brace",
+        BEFORE_CLASS_CLOSING_BRACE,
+        "Blank lines just before a module body closes"
+    );
+
     public static final Option<Boolean> STRIP_AT_BRACE_EDGES = Option.ofBoolean(
         "blank-lines.strip-at-brace-edges",
         false,
@@ -64,12 +87,6 @@ public final class BlankLineRules {
         "blank-lines.around-initializer-block",
         1,
         "Blank lines around an instance or static initializer"
-    );
-
-    public static final Option<Integer> BEFORE_RECORD_COMPACT_CONSTRUCTOR = Option.ofInt(
-        "blank-lines.before-record-compact-constructor",
-        1,
-        "Blank lines before a compact canonical constructor"
     );
 
     public static final Option<Integer> AFTER_ENUM_CONSTANTS = Option.ofInt(
@@ -90,6 +107,12 @@ public final class BlankLineRules {
         "Blank lines between neighbouring members of different kinds"
     );
 
+    public static final Option<Integer> BETWEEN_MODULE_DIRECTIVE_GROUPS = Option.ofInt(
+        "blank-lines.between-module-directive-groups",
+        0,
+        "Blank lines between adjacent groups of different module directive types"
+    );
+
     public static final Option<Integer> BETWEEN_SWITCH_CASES = Option.ofInt(
         "blank-lines.between-switch-cases",
         0,
@@ -97,91 +120,5 @@ public final class BlankLineRules {
     );
 
     private BlankLineRules() { }
-
-    /** Fluent view of the {@code blank-lines.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder maxConsecutive(int value) {
-            style.set(MAX_CONSECUTIVE, value);
-            return this;
-        }
-
-        public Builder afterPackage(int value) {
-            style.set(AFTER_PACKAGE, value);
-            return this;
-        }
-
-        public Builder afterImports(int value) {
-            style.set(AFTER_IMPORTS, value);
-            return this;
-        }
-
-        public Builder beforeClass(int value) {
-            style.set(BEFORE_CLASS, value);
-            return this;
-        }
-
-        public Builder beforeMethod(int value) {
-            style.set(BEFORE_METHOD, value);
-            return this;
-        }
-
-        public Builder beforeField(int value) {
-            style.set(BEFORE_FIELD, value);
-            return this;
-        }
-
-        public Builder afterClassOpeningBrace(int value) {
-            style.set(AFTER_CLASS_OPENING_BRACE, value);
-            return this;
-        }
-
-        public Builder beforeClassClosingBrace(int value) {
-            style.set(BEFORE_CLASS_CLOSING_BRACE, value);
-            return this;
-        }
-
-        public Builder stripAtBraceEdges(boolean value) {
-            style.set(STRIP_AT_BRACE_EDGES, value);
-            return this;
-        }
-
-        public Builder aroundInitializerBlock(int value) {
-            style.set(AROUND_INITIALIZER_BLOCK, value);
-            return this;
-        }
-
-        public Builder beforeRecordCompactConstructor(int value) {
-            style.set(BEFORE_RECORD_COMPACT_CONSTRUCTOR, value);
-            return this;
-        }
-
-        public Builder afterEnumConstants(int value) {
-            style.set(AFTER_ENUM_CONSTANTS, value);
-            return this;
-        }
-
-        public Builder beforeFirstEnumConstant(int value) {
-            style.set(BEFORE_FIRST_ENUM_CONSTANT, value);
-            return this;
-        }
-
-        public Builder betweenMemberGroups(int value) {
-            style.set(BETWEEN_MEMBER_GROUPS, value);
-            return this;
-        }
-
-        public Builder betweenSwitchCases(int value) {
-            style.set(BETWEEN_SWITCH_CASES, value);
-            return this;
-        }
-
-    }
 
 }

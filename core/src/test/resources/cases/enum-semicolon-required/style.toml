@@ -1,2 +1,4 @@
 [wrapping]
-require-enum-constant-semicolon = true
+
+[declarations]
+require-enum-semicolon = true

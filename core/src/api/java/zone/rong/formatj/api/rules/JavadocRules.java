@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /**
  * Documentation-comment layout for traditional {@code /**} comments and Markdown {@code ///}
@@ -68,61 +67,5 @@ public final class JavadocRules {
     );
 
     private JavadocRules() { }
-
-    /** Fluent view of the {@code javadoc.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder wrap(boolean value) {
-            style.set(WRAP, value);
-            return this;
-        }
-
-        public Builder tagOrder(JavadocTagOrder value) {
-            style.set(TAG_ORDER, value);
-            return this;
-        }
-
-        public Builder blankLineBeforeTags(boolean value) {
-            style.set(BLANK_LINE_BEFORE_TAGS, value);
-            return this;
-        }
-
-        public Builder alignTagDescriptions(boolean value) {
-            style.set(ALIGN_TAG_DESCRIPTIONS, value);
-            return this;
-        }
-
-        public Builder addParagraphTags(boolean value) {
-            style.set(ADD_PARAGRAPH_TAGS, value);
-            return this;
-        }
-
-        public Builder keepSingleLine(boolean value) {
-            style.set(KEEP_SINGLE_LINE, value);
-            return this;
-        }
-
-        public Builder tagContinuationIndent(int value) {
-            style.set(TAG_CONTINUATION_INDENT, value);
-            return this;
-        }
-
-        public Builder closingTagForm(JavadocClosingTagForm value) {
-            style.set(CLOSING_TAG_FORM, value);
-            return this;
-        }
-
-        public Builder openingTagPosition(JavadocOpeningTagPosition value) {
-            style.set(OPENING_TAG_POSITION, value);
-            return this;
-        }
-
-    }
 
 }

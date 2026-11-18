@@ -12,7 +12,6 @@ import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.SpacingRules;
-import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -116,7 +115,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             emptyStyle,
             0,
             0,
-            keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_LAMBDAS_ON_ONE_LINE)
+            keepsOnOneLine(node, PreservationRules.KEEP_SIMPLE_LAMBDAS_INLINE)
         );
     }
 
@@ -137,7 +136,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
             rule(BraceRules.EMPTY_METHOD_BODY),
             0,
             0,
-            keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)
+            keepsOnOneLine(node, PreservationRules.KEEP_SIMPLE_METHODS_INLINE)
         );
     }
 
@@ -566,6 +565,22 @@ abstract class StatementEmitter extends ExpressionEmitter {
         return Doc.concat(parts);
     }
 
+    /** An assert whose message breaks away from the condition before the condition breaks itself. */
+    protected Doc emitAssert(GreenNode node) {
+        List<GreenNode> children = node.children();
+        if (children.size() < 5 || hasLeadingComments(children.get(2)) || hasLeadingComments(children.get(3))) {
+            return emitKeywordStatement(node);
+        }
+        Doc message = Doc.concat(Doc.line(), emit(children.get(2)), space(), emit(children.get(3)));
+        return Doc.concat(
+            emit(children.get(0)),
+            space(),
+            authorGroup(node, Doc.concat(emit(children.get(1)), Doc.indent(continuation(), message))),
+            semicolonLead(),
+            emit(children.get(4))
+        );
+    }
+
     protected Doc emitLabeled(GreenNode node) {
         List<GreenNode> children = node.children();
         Doc separator = authorBrokeBefore(children.get(2)) ? Doc.hardLine() : space();
@@ -717,8 +732,8 @@ abstract class StatementEmitter extends ExpressionEmitter {
             // and formatting has to be a fixed point.
             GreenNode labelNode = children.getFirst();
             boolean onOneLine = isNullDefault(labelNode.children()) &&
-                keepsOnOneLine(labelNode, SwitchRules.NULL_DEFAULT_ON_ONE_LINE);
-            Doc tail = rule(SwitchRules.ARROW_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
+                keepsOnOneLine(labelNode, PreservationRules.KEEP_CASE_NULL_DEFAULT_INLINE);
+            Doc tail = rule(WrappingRules.ARROW_CASE_BODY_ON_NEW_LINE_WHEN_LONG) && !onOneLine
                 ? Doc.group(Doc.indent(continuation(), Doc.concat(spaced ? Doc.line() : Doc.softLine(), bodyDoc)))
                 : Doc.concat(spaceIf(spaced), bodyDoc);
             return Doc.concat(labels, spaceIf(spaced), emit(children.get(1)), tail);
@@ -766,13 +781,13 @@ abstract class StatementEmitter extends ExpressionEmitter {
         if (!current.isEmpty()) {
             elements.add(Doc.concat(current));
         }
-        if (isNullDefault(children) && keepsOnOneLine(node, SwitchRules.NULL_DEFAULT_ON_ONE_LINE)) {
+        if (isNullDefault(children) && keepsOnOneLine(node, PreservationRules.KEEP_CASE_NULL_DEFAULT_INLINE)) {
             // Two words that mean one thing. Splitting them across lines reads as two separate cases.
             Doc pair = Doc.join(spaceIf(rule(SpacingRules.AFTER_COMMA)), elements);
             return Doc.concat(keyword, space(), pair, guard);
         }
         Doc separator = rule(SpacingRules.AFTER_COMMA) ? Doc.line() : Doc.softLine();
-        Doc labels = rule(SwitchRules.MULTI_LABEL_WRAPPING) == WrapPolicy.WRAP_IF_LONG
+        Doc labels = rule(WrappingRules.CASE_LABELS) == WrapPolicy.WRAP_IF_LONG
             ? Doc.fill(withSeparator(elements, separator))
             : Doc.join(separator, elements);
         return authorGroup(node, Doc.concat(keyword, space(), Doc.indent(continuation(), labels), guard));
@@ -781,7 +796,7 @@ abstract class StatementEmitter extends ExpressionEmitter {
     protected Doc emitCaseGuard(GreenNode node) {
         List<GreenNode> children = node.children();
         Doc guard = Doc.concat(emit(children.get(0)), space(), emit(children.get(1)));
-        return rule(SwitchRules.GUARD_ON_SAME_LINE)
+        return rule(WrappingRules.CASE_GUARD_ON_SAME_LINE)
             ? guard
             : Doc.group(Doc.indent(continuation(), Doc.concat(Doc.line(), guard)));
     }

@@ -8,11 +8,9 @@ import zone.rong.formatj.api.rules.AnnotationPlacement;
 import zone.rong.formatj.api.rules.AnnotationRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
-import zone.rong.formatj.api.rules.EmptyBodyStyle;
+import zone.rong.formatj.api.rules.DeclarationRules;
 import zone.rong.formatj.api.rules.IndentRules;
-import zone.rong.formatj.api.rules.ModuleRules;
-import zone.rong.formatj.api.rules.RecordRules;
-import zone.rong.formatj.api.rules.SealedRules;
+import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
 import zone.rong.formatj.api.rules.WrappingRules;
@@ -154,7 +152,7 @@ public final class DocEmitter extends StatementEmitter {
             case RECORD_HEADER ->
                 delimitedList(
                     node,
-                    rule(RecordRules.COMPONENT_WRAPPING),
+                    rule(WrappingRules.RECORD_COMPONENTS),
                     continuation(),
                     rule(SpacingRules.WITHIN_PARENTHESES)
                 );
@@ -215,8 +213,9 @@ public final class DocEmitter extends StatementEmitter {
             case RESOURCE -> emitResource(node);
             case CATCH_CLAUSE -> emitCatch(node);
             case FINALLY_CLAUSE -> emitFinally(node);
-            case RETURN_STATEMENT, THROW_STATEMENT, BREAK_STATEMENT, CONTINUE_STATEMENT, YIELD_STATEMENT,
-                ASSERT_STATEMENT -> emitKeywordStatement(node);
+            case RETURN_STATEMENT, THROW_STATEMENT, BREAK_STATEMENT, CONTINUE_STATEMENT, YIELD_STATEMENT ->
+                emitKeywordStatement(node);
+            case ASSERT_STATEMENT -> emitAssert(node);
             case SYNCHRONIZED_STATEMENT -> emitSynchronized(node);
             case LABELED_STATEMENT -> emitLabeled(node);
             case EMPTY_STATEMENT -> emitConcatenated(node);
@@ -444,7 +443,7 @@ public final class DocEmitter extends StatementEmitter {
                 rule(BraceRules.EMPTY_CLASS_BODY),
                 rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE),
                 rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE),
-                keepsOnOneLine(node, WrappingRules.KEEP_SIMPLE_CLASSES_ON_ONE_LINE)
+                keepsOnOneLine(node, PreservationRules.KEEP_SIMPLE_CLASSES_INLINE)
             );
         } finally {
             inInterfaceBody = outer;
@@ -454,8 +453,8 @@ public final class DocEmitter extends StatementEmitter {
     /** A record body, whose empty form has a rule of its own. */
     private Doc emitRecordBody(GreenNode node) {
         boolean empty = node.children().size() == 2 && !hasLeadingComments(node.children().getLast());
-        if (empty && rule(RecordRules.SINGLE_LINE_EMPTY_BODY)) {
-            return emitBracedBody(node, EmptyBodyStyle.COMPACT, 0, 0);
+        if (empty) {
+            return emitBracedBody(node, rule(BraceRules.EMPTY_RECORD_BODY), 0, 0);
         }
         return emitClassBody(node, false);
     }
@@ -468,7 +467,7 @@ public final class DocEmitter extends StatementEmitter {
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (child.kind() == SyntaxKind.MODULE_BODY) {
-                parts.add(braceLead(rule(ModuleRules.BRACE_PLACEMENT).orElse(rule(BraceRules.CLASS_PLACEMENT))));
+                parts.add(braceLead(rule(BraceRules.MODULE_PLACEMENT)));
                 parts.add(emit(child));
                 continue;
             }
@@ -483,9 +482,9 @@ public final class DocEmitter extends StatementEmitter {
     private Doc emitModuleBody(GreenNode node) {
         return emitBracedBody(
             node,
-            rule(ModuleRules.EMPTY_BODY).orElse(rule(BraceRules.EMPTY_CLASS_BODY)),
-            rule(ModuleRules.BLANK_LINES_AFTER_OPENING_BRACE).orElse(rule(BlankLineRules.AFTER_CLASS_OPENING_BRACE)),
-            rule(ModuleRules.BLANK_LINES_BEFORE_CLOSING_BRACE).orElse(rule(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE))
+            rule(BraceRules.EMPTY_MODULE_BODY),
+            rule(BlankLineRules.AFTER_MODULE_OPENING_BRACE),
+            rule(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE)
         );
     }
 
@@ -500,8 +499,8 @@ public final class DocEmitter extends StatementEmitter {
         List<GreenNode> children = node.children();
         WrapPolicy policy = rule(
             node.kind() == SyntaxKind.TO_CLAUSE
-                ? ModuleRules.EXPORTS_OPENS_TARGET_LIST_WRAPPING
-                : ModuleRules.PROVIDES_IMPLEMENTATION_LIST_WRAPPING
+                ? WrappingRules.EXPORTS_OPENS_TARGETS
+                : WrappingRules.PROVIDES_IMPLEMENTATIONS
         );
         Doc list = emitModuleCommaList(node, children.subList(1, children.size()), policy);
         Doc lead = policy == WrapPolicy.PRESERVE && authorBrokeBefore(children.get(1)) ? Doc.hardLine() : space();
@@ -555,7 +554,7 @@ public final class DocEmitter extends StatementEmitter {
 
     private int ruleBetween(GreenNode previous, GreenNode next) {
         if (isModuleDirective(previous) && isModuleDirective(next) && previous.kind() != next.kind()) {
-            return rule(ModuleRules.BLANK_LINES_BETWEEN_DIRECTIVE_GROUPS);
+            return rule(BlankLineRules.BETWEEN_MODULE_DIRECTIVE_GROUPS);
         }
         if (previous.kind() == SyntaxKind.ENUM_CONSTANTS) {
             return rule(BlankLineRules.AFTER_ENUM_CONSTANTS);
@@ -575,7 +574,7 @@ public final class DocEmitter extends StatementEmitter {
         return switch (next.kind()) {
             case METHOD_DECLARATION, CONSTRUCTOR_DECLARATION, ANNOTATION_ELEMENT_DECLARATION ->
                 rule(BlankLineRules.BEFORE_METHOD);
-            case COMPACT_CONSTRUCTOR_DECLARATION -> rule(BlankLineRules.BEFORE_RECORD_COMPACT_CONSTRUCTOR);
+            case COMPACT_CONSTRUCTOR_DECLARATION -> rule(BlankLineRules.BEFORE_COMPACT_CONSTRUCTOR);
             case FIELD_DECLARATION -> rule(BlankLineRules.BEFORE_FIELD);
             case CLASS_DECLARATION, INTERFACE_DECLARATION, ENUM_DECLARATION, RECORD_DECLARATION,
                 ANNOTATION_TYPE_DECLARATION -> rule(BlankLineRules.BEFORE_CLASS);
@@ -598,10 +597,10 @@ public final class DocEmitter extends StatementEmitter {
         boolean parameterized = hasParameterizedConstant(children);
         boolean required = parameterized ||
             Boolean.TRUE.equals(membersFollow) ||
-            rule(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON);
+            rule(DeclarationRules.REQUIRE_ENUM_SEMICOLON);
         boolean mayOmit = Boolean.FALSE.equals(membersFollow) &&
             !parameterized &&
-            !rule(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON);
+            !rule(DeclarationRules.REQUIRE_ENUM_SEMICOLON);
 
         if (semicolon != null) {
             if (mayOmit && !hasComments(semicolon)) {
@@ -692,14 +691,14 @@ public final class DocEmitter extends StatementEmitter {
         }
 
         boolean permits = node.kind() == SyntaxKind.PERMITS_CLAUSE;
-        WrapPolicy policy = permits ? rule(SealedRules.PERMITS_WRAPPING) : rule(WrappingRules.EXTENDS_IMPLEMENTS);
+        WrapPolicy policy = permits ? rule(WrappingRules.PERMITS_CLAUSE) : rule(WrappingRules.EXTENDS_IMPLEMENTS);
         boolean afterComma = rule(SpacingRules.AFTER_COMMA);
         Doc keyword = emit(children.getFirst());
         Doc separator = afterComma ? Doc.line() : Doc.softLine();
 
         // The clause carries the break that precedes its keyword: a header that will not fit wraps
         // before extends or implements, not between the keyword and the type it introduces.
-        boolean ownLine = permits && rule(SealedRules.PERMITS_ON_NEW_LINE);
+        boolean ownLine = permits && rule(WrappingRules.PERMITS_ON_NEW_LINE);
         Doc lead = ownLine ? Doc.hardLine() : Doc.line();
         if (policy == WrapPolicy.NEVER) {
             // NEVER lets the line run long, so the lead is a plain space rather than a break: a break
@@ -889,14 +888,14 @@ public final class DocEmitter extends StatementEmitter {
         for (int i = 0; i < children.size(); i++) {
             GreenNode child = children.get(i);
             if (child.kind() == SyntaxKind.BLOCK) {
-                int padding = rule(RecordRules.COMPACT_CONSTRUCTOR_BLANK_LINE) ? 1 : 0;
+                int padding = rule(BlankLineRules.INSIDE_COMPACT_CONSTRUCTOR);
                 parts.add(braceLead(rule(BraceRules.METHOD_PLACEMENT)));
                 parts.add(emitBracedBody(
                     child,
                     rule(BraceRules.EMPTY_METHOD_BODY),
                     padding,
                     padding,
-                    keepsOnOneLine(child, WrappingRules.KEEP_SIMPLE_METHODS_ON_ONE_LINE)
+                    keepsOnOneLine(child, PreservationRules.KEEP_SIMPLE_METHODS_INLINE)
                 ));
                 continue;
             }

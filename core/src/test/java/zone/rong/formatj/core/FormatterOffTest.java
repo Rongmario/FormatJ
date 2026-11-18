@@ -8,6 +8,7 @@ import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.CommentRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -74,7 +75,7 @@ class FormatterOffTest {
 
         String formatted = format(
             source,
-            style -> style.comments(comments -> comments.offMarker("formatj:off").onMarker("formatj:on"))
+            style -> style.set(CommentRules.OFF_MARKER, "formatj:off").set(CommentRules.ON_MARKER, "formatj:on")
         );
 
         assertTrue(formatted.contains("int    kept   =   1;"), formatted);
@@ -83,7 +84,7 @@ class FormatterOffTest {
 
     @Test
     void theHatchCanBeClosedAltogether() {
-        String formatted = format(MEMBERS, style -> style.comments(comments -> comments.honourFormatterOff(false)));
+        String formatted = format(MEMBERS, style -> style.set(CommentRules.HONOUR_FORMATTER_OFF, false));
 
         assertFalse(formatted.contains("int    spaced   =   1;"), formatted);
         assertTrue(formatted.contains("int spaced = 1;"), formatted);

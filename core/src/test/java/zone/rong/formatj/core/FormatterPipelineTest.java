@@ -8,7 +8,8 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.api.Preset;
 import zone.rong.formatj.api.Style;
-import zone.rong.formatj.api.rules.WrappingRules;
+import zone.rong.formatj.api.rules.DeclarationRules;
+import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.core.parser.JavaParser;
 import zone.rong.formatj.core.parser.ParseResult;
 import zone.rong.formatj.core.pipeline.TokenEquivalence;
@@ -125,7 +126,7 @@ class FormatterPipelineTest {
 
     @Test
     void aStyleIsCarriedThroughUnchanged() {
-        Style style = Style.builder().indent(indent -> indent.size(2)).build();
+        Style style = Style.builder().set(IndentRules.SIZE, 2).build();
         assertEquals(style, FormatJ.newFormatter().style(style).build().style());
     }
 
@@ -161,7 +162,7 @@ class FormatterPipelineTest {
 
     @Test
     void requiringTheOptionalSemicolonInsertsItOnNoArgumentEnums() {
-        Style style = Style.builder().wrapping(wrapping -> wrapping.requireEnumConstantSemicolon(true)).build();
+        Style style = Style.builder().set(DeclarationRules.REQUIRE_ENUM_SEMICOLON, true).build();
         Formatter formatter = FormatJ.newFormatter().style(style).build();
 
         FormatResult result = formatter.format(FormatRequest.of("enum Color { RED, GREEN, BLUE }\n"));
@@ -201,12 +202,12 @@ class FormatterPipelineTest {
 
     @Test
     void requiringTheOptionalSemicolonIsAFixedPoint() {
-        Style style = Style.builder().wrapping(wrapping -> wrapping.requireEnumConstantSemicolon(true)).build();
+        Style style = Style.builder().set(DeclarationRules.REQUIRE_ENUM_SEMICOLON, true).build();
         Formatter formatter = FormatJ.newFormatter().style(style).build();
         String once = formatter.format(FormatRequest.of("enum Color { RED, GREEN, BLUE }\n")).text();
         String twice = formatter.format(FormatRequest.of(once)).text();
         assertEquals(once, twice);
-        assertEquals(true, style.get(WrappingRules.REQUIRE_ENUM_CONSTANT_SEMICOLON));
+        assertEquals(true, style.get(DeclarationRules.REQUIRE_ENUM_SEMICOLON));
     }
 
 }

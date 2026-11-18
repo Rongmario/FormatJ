@@ -158,16 +158,18 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 ```java
 Formatter formatter = FormatJ.newFormatter()
         .style(Style.preset(Preset.FORMATJ)
-                .indent(indent -> indent.size(4).useTabs(false).continuation(8))
-                .wrapping(wrapping -> wrapping.maxLineLength(120)
-                        .chainedCalls(ChainPolicy.BREAK_ALL_IF_MULTILINE))
-                .switches(switches -> switches.arrowCaseBraces(BracePolicy.WHEN_MULTI_STATEMENT))
+                .set(IndentRules.CONTINUATION, 8)
+                .set(WrappingRules.MAX_LINE_LENGTH, 120)
+                .set(WrappingRules.CHAINED_CALLS, ChainPolicy.BREAK_ALL_IF_MULTILINE)
+                .set(BraceRules.ARROW_CASE_BODY, BracePolicy.WHEN_MULTI_STATEMENT)
                 .build())
         .languageLevel(LanguageLevel.LATEST)
         .build();
 
 FormatResult result = formatter.format(FormatRequest.of(source).withName("Foo.java"));
 ```
+
+Every rule is a constant on one of the `*Rules` classes in `zone.rong.formatj.api.rules`, named after its key.
 
 A formatter is immutable and thread-safe, so one instance can serve the whole project.
 
@@ -181,13 +183,13 @@ The language level is the Java release the sources compile for, from 8 to 25. Fo
 | `text-blocks.escape-trailing-spaces = true` | `\s`                                            | 15, or 14 with preview |
 | `modifiers.remove-redundant = true`         | a `@SafeVarargs` private method without `final` | 9                      |
 
-| Entry point | Where the level comes from                                                        |
-|-------------|-----------------------------------------------------------------------------------|
-| Library     | `.languageLevel(...)`, default `LATEST`                                           |
-| CLI         | `--language-level N` and `--preview`, default latest                              |
-| Gradle      | `languageLevel`, default the release `compileJava` targets                        |
-| Maven       | `<languageLevel>`, default the compiler plugin's `release`, then its `source`     |
-| IntelliJ    | the language level of the file's module                                           |
+| Entry point | Where the level comes from                                                    |
+|-------------|-------------------------------------------------------------------------------|
+| Library     | `.languageLevel(...)`, default `LATEST`                                       |
+| CLI         | `--language-level N` and `--preview`, default latest                          |
+| Gradle      | `languageLevel`, default the release `compileJava` targets                    |
+| Maven       | `<languageLevel>`, default the compiler plugin's `release`, then its `source` |
+| IntelliJ    | the language level of the file's module                                       |
 
 Each default falls back to the latest release when the project does not name one. A style file cannot set the level, because the level belongs to the project and a style file is shared.
 
@@ -227,24 +229,21 @@ Rule groups:
 [`blank-lines`](#blank-lines),
 [`alignment`](#alignment),
 [`annotations`](#annotations),
-[`imports`](#imports),
 [`comments`](#comments),
 [`javadoc`](#javadoc),
-[`module`](#module),
-[`modifiers`](#modifiers),
-[`switch`](#switch),
-[`records`](#records),
-[`patterns`](#patterns),
-[`sealed`](#sealed),
-[`lambdas`](#lambdas),
-[`text-blocks`](#text-blocks),
-[`literals`](#literals),
-[`semicolons`](#semicolons),
 [`preservation`](#preservation),
-[`arrays`](#arrays),
-[`members`](#members)
+[`imports`](#imports),
+[`members`](#members),
+[`modifiers`](#modifiers),
+[`declarations`](#declarations),
+[`literals`](#literals),
+[`lambdas`](#lambdas),
+[`switch`](#switch),
+[`text-blocks`](#text-blocks)
 
 In the examples, `·` marks a significant space and `/` separates alternatives.
+
+A rule whose default is `inherit` follows the broader rule named in its effect until it is set itself. Setting it to `inherit` again restores that link.
 
 Several rules share a value type:
 
@@ -273,55 +272,64 @@ Several rules share a value type:
 
 ### `indent`
 
-| Key                         | Values  | Default | Effect                                                                                 | Example                                                         |
-|-----------------------------|---------|---------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------|
-| `indent.size`               | integer | `4`     | Columns of indentation per nesting level                                               | `2`: `class A {`<br>`··int x;`                                  |
-| `indent.use-tabs`           | boolean | `false` | Indent with tab characters instead of spaces                                           | `true`: each level is one `\t`                                  |
-| `indent.continuation`       | integer | `4`     | Columns added to a wrapped continuation line                                           | `int x = a`<br>`····+ b;`                                       |
-| `indent.chained-call`       | integer | `4`     | Columns added to a wrapped method chain link                                           | `list.stream()`<br>`····.map(f)`                                |
-| `indent.array-initializer`  | integer | `4`     | Columns added inside a wrapped array initializer                                       | `int[] a = {`<br>`····1, 2,`<br>`};`                            |
-| `indent.ternary`            | integer | `4`     | Columns added to a wrapped ternary branch, when `alignment.ternary-branches` is `none` | `x = c`<br>`····? a`<br>`····: b;`                              |
-| `indent.throws-clause`      | integer | `4`     | Columns added to a wrapped throws clause                                               | `void f()`<br>`····throws IOException {`                        |
-| `indent.switch-case-labels` | boolean | `true`  | Indent case labels one level inside the switch block                                   | `true`: `switch (x) {`<br>`····case 1:`                         |
-| `indent.switch-case-body`   | boolean | `true`  | Indent a colon-label case body past its label                                          | `true`: `case 1:`<br>`····doThing();`                           |
-| `indent.blank-lines`        | boolean | `false` | Emit indentation whitespace on otherwise blank lines                                   | `false`: a blank line inside a method is empty, not four spaces |
+| Key                         | Values               | Default   | Effect                                                                                                                | Example                                                         |
+|-----------------------------|----------------------|-----------|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| `indent.size`               | integer              | `4`       | Columns of indentation per nesting level                                                                              | `2`: `class A {`<br>`··int x;`                                  |
+| `indent.use-tabs`           | boolean              | `false`   | Indent with tab characters instead of spaces                                                                          | `true`: each level is one `\t`                                  |
+| `indent.continuation`       | integer              | `4`       | Columns added to a wrapped continuation line                                                                          | `int x = a`<br>`····+ b;`                                       |
+| `indent.chained-call`       | `inherit` or integer | `inherit` | Columns added to a wrapped method chain link. Follows `indent.continuation`                                           | `list.stream()`<br>`····.map(f)`                                |
+| `indent.array-initializer`  | `inherit` or integer | `inherit` | Columns added inside a wrapped array initializer. Follows `indent.size`                                               | `int[] a = {`<br>`····1, 2,`<br>`};`                            |
+| `indent.ternary`            | `inherit` or integer | `inherit` | Columns added to a wrapped ternary branch, when `alignment.ternary-branches` is `none`. Follows `indent.continuation` | `x = c`<br>`····? a`<br>`····: b;`                              |
+| `indent.throws-clause`      | `inherit` or integer | `inherit` | Columns added to a wrapped throws clause. Follows `indent.continuation`                                               | `void f()`<br>`····throws IOException {`                        |
+| `indent.nested-pattern`     | `inherit` or integer | `inherit` | Columns a wrapped nested pattern is indented. Follows `indent.continuation`                                           | `4`: an inner deconstruction is indented 4 past its outer one   |
+| `indent.switch-case-labels` | boolean              | `true`    | Indent case labels one level inside the switch block                                                                  | `true`: `switch (x) {`<br>`····case 1:`                         |
+| `indent.switch-case-body`   | boolean              | `true`    | Indent a colon-label case body past its label                                                                         | `true`: `case 1:`<br>`····doThing();`                           |
+| `indent.blank-lines`        | boolean              | `false`   | Emit indentation whitespace on otherwise blank lines                                                                  | `false`: a blank line inside a method is empty, not four spaces |
 
 ### `wrapping`
 
-| Key                                           | Values                              | Default                   | Effect                                                                                   | Example                                                                                                         |
-|-----------------------------------------------|-------------------------------------|---------------------------|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| `wrapping.max-line-length`                    | integer                             | `120`                     | Maximum columns before a line is wrapped                                                 | `100`: lines are broken at 100 columns                                                                          |
-| `wrapping.method-parameters`                  | `WrapPolicy`                        | `chop-down-if-long`       | Wrapping of a method declaration's parameter list                                        | `chop-down-if-long`: `void f(`<br>`········int a,`<br>`········int b) {`                                        |
-| `wrapping.method-arguments`                   | `WrapPolicy`                        | `chop-down-if-long`       | Wrapping of an argument list at a call site                                              | `chop-down-if-long`: `f(`<br>`········a,`<br>`········b);`                                                      |
-| `wrapping.closing-delimiter`                  | `own-line`, `attached`, `own-line-unless-brace` | `own-line`                | Whether a wrapped list's closing parenthesis takes its own line                          | `own-line`: `f(`<br>`····a,`<br>`····b`<br>`);`                                                                 |
-| `wrapping.chained-calls`                      | `ChainPolicy`                       | `break-all-when-too-long` | Wrapping of a chain of method calls                                                      | `break-all-if-multiline`: one break in the chain breaks every link                                              |
-| `wrapping.chain-threshold`                    | integer                             | `2`                       | Chain links required before the chain may be broken at all                               | `3`: `a.b().c()` stays on one line however long it is                                                           |
-| `wrapping.binary-operators`                   | `WrapPolicy`                        | `wrap-if-long`            | Wrapping of a binary expression                                                          | `wrap-if-long`: `a + b`<br>`········+ c`                                                                        |
-| `wrapping.operator-position`                  | `before-operator`, `after-operator` | `after-operator`          | Which line a binary operator lands on when wrapped                                       | `before-operator`: `a`<br>`········+ b` / `after-operator`: `a +`<br>`········b`                                |
-| `wrapping.method-reference`                   | `WrapPolicy`                        | `never`                   | Wrapping of a method reference at `::`                                                   | `chop-down-always`: `Type`<br>`········::method`                                                                |
-| `wrapping.method-reference-operator-position` | `before-operator`, `after-operator` | `before-operator`         | Which line `::` lands on when a method reference wraps                                   | `after-operator`: `Type ::`<br>`········method`                                                                 |
-| `wrapping.instanceof`                         | `WrapPolicy`                        | `preserve`                | Wrapping of an `instanceof` test                                                         | `chop-down-always`: `value instanceof`<br>`········Type pattern`                                                |
-| `wrapping.instanceof-operator-position`       | `before-operator`, `after-operator` | `after-operator`          | Which line `instanceof` lands on when its test wraps                                     | `before-operator`: `value`<br>`········instanceof Type pattern`                                                 |
-| `wrapping.multicatch`                         | `WrapPolicy`                        | `never`                   | Wrapping of multi-catch alternatives                                                     | `chop-down-always`: `First`<br>`········&#124; Second e`                                                        |
-| `wrapping.multicatch-separator-position`      | `before-operator`, `after-operator` | `before-operator`         | Which line `&#124;` lands on when multi-catch alternatives wrap                          | `after-operator`: `First &#124;`<br>`········Second e`                                                          |
-| `wrapping.intersection-types`                 | `WrapPolicy`                        | `never`                   | Wrapping of intersection type bounds and casts                                           | `chop-down-always`: `A`<br>`········& B`                                                                        |
-| `wrapping.intersection-separator-position`    | `before-operator`, `after-operator` | `before-operator`         | Which line `&` lands on when intersection types wrap                                     | `after-operator`: `A &`<br>`········B`                                                                          |
-| `wrapping.ternary`                            | `WrapPolicy`                        | `wrap-if-long`            | Wrapping of a conditional expression                                                     | `wrap-if-long`: `c`<br>`········? a`<br>`········: b`                                                           |
-| `wrapping.assignment`                         | `WrapPolicy`                        | `never`                   | Wrapping of the right hand side of an assignment                                         | `wrap-if-long`: `int x =`<br>`········compute();`                                                               |
-| `wrapping.assignment-break`                   | `after-operator`, `inside-value`    | `inside-value`            | Where a long assignment breaks first                                                     | `inside-value`: `x = call(`<br>`········a,`<br>`········b);` / `after-operator`: `x =`<br>`········call(a, b);` |
-| `wrapping.hug-sole-argument`                  | boolean                             | `true`                    | Keep a lone call or creation argument on the line of the parenthesis and break inside it | `true`: `add(new Entry(`<br>`········key,`<br>`········value));`                                                |
-| `wrapping.break-after-open-paren`             | boolean                             | `true`                    | Start a wrapped parenthesised list on the line after its opening parenthesis             | `false`: `call(first, second,`<br>`········third);`                                                             |
-| `wrapping.array-initializers`                 | `WrapPolicy`                        | `chop-down-if-long`       | Wrapping of an array initializer                                                         | `wrap-if-long`: `{ 1, 2,`<br>`····3 }`                                                                          |
-| `wrapping.extends-implements`                 | `WrapPolicy`                        | `never`                   | Wrapping of extends and implements clauses                                               | `class A implements B,`<br>`····C {`                                                                            |
-| `wrapping.throws-clause`                      | `WrapPolicy`                        | `wrap-if-long`            | Wrapping of a throws clause                                                              | `void f() throws A,`<br>`····B {`                                                                               |
-| `wrapping.annotation-arguments`               | `WrapPolicy`                        | `wrap-if-long`            | Wrapping of an annotation's element list                                                 | `@A(`<br>`········name = "x")`                                                                                  |
-| `wrapping.enum-constants`                     | `WrapPolicy`                        | `chop-down-always`        | Wrapping of the constant list of an enum                                                 | `chop-down-if-long`: `A,`<br>`B,`<br>`C;`                                                                       |
-| `wrapping.require-enum-constant-semicolon`    | boolean                             | `false`                   | Always write a semicolon after the last no-argument enum constant                        | `true`: `enum E { A, B; }` / `false`: `enum E { A, B }`                                                         |
-| `wrapping.for-statement`                      | `WrapPolicy`                        | `chop-down-if-long`       | Wrapping of the header of a basic for statement                                          | `for (int i = 0;`<br>`········i < n;`<br>`········i++) {`                                                       |
-| `wrapping.try-resources`                      | `WrapPolicy`                        | `never`                   | Wrapping of a try-with-resources resource list                                           | `try (`<br>`········A a = x();`<br>`········B b = y()) {`                                                       |
-| `wrapping.keep-simple-methods-on-one-line`    | boolean                             | `false`                   | Allow a whole short method to stay on one line                                           | `true`: `int x() { return x; }`                                                                                 |
-| `wrapping.keep-simple-lambdas-on-one-line`    | boolean                             | `false`                   | Allow a short lambda body to stay on one line                                            | `true`: `x -> { return x + 1; }`                                                                                |
-| `wrapping.keep-simple-classes-on-one-line`    | boolean                             | `false`                   | Allow a short class body to stay on one line                                             | `true`: `class A { int x; }`                                                                                    |
+| Key                                              | Values                                          | Default                   | Effect                                                                                   | Example                                                                                                         |
+|--------------------------------------------------|-------------------------------------------------|---------------------------|------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `wrapping.max-line-length`                       | integer                                         | `120`                     | Maximum columns before a line is wrapped                                                 | `100`: lines are broken at 100 columns                                                                          |
+| `wrapping.method-parameters`                     | `WrapPolicy`                                    | `chop-down-if-long`       | Wrapping of a method declaration's parameter list                                        | `chop-down-if-long`: `void f(`<br>`········int a,`<br>`········int b) {`                                        |
+| `wrapping.method-arguments`                      | `WrapPolicy`                                    | `chop-down-if-long`       | Wrapping of an argument list at a call site                                              | `chop-down-if-long`: `f(`<br>`········a,`<br>`········b);`                                                      |
+| `wrapping.record-components`                     | `WrapPolicy`                                    | `chop-down-if-long`       | Wrapping of a record header's components                                                 | `record R(`<br>`········int a,`<br>`········int b) {`                                                           |
+| `wrapping.chained-calls`                         | `ChainPolicy`                                   | `break-all-when-too-long` | Wrapping of a chain of method calls                                                      | `break-all-if-multiline`: one break in the chain breaks every link                                              |
+| `wrapping.chain-threshold`                       | integer                                         | `2`                       | Chain links required before the chain may be broken at all                               | `3`: `a.b().c()` stays on one line however long it is                                                           |
+| `wrapping.binary-operators`                      | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a binary expression                                                          | `wrap-if-long`: `a + b`<br>`········+ c`                                                                        |
+| `wrapping.operator-position`                     | `before-operator`, `after-operator`             | `after-operator`          | Which line a binary operator lands on when wrapped                                       | `before-operator`: `a`<br>`········+ b` / `after-operator`: `a +`<br>`········b`                                |
+| `wrapping.method-reference`                      | `WrapPolicy`                                    | `never`                   | Wrapping of a method reference at `::`                                                   | `chop-down-always`: `Type`<br>`········::method`                                                                |
+| `wrapping.method-reference-operator-position`    | `before-operator`, `after-operator`             | `before-operator`         | Which line `::` lands on when a method reference wraps                                   | `after-operator`: `Type ::`<br>`········method`                                                                 |
+| `wrapping.instanceof`                            | `WrapPolicy`                                    | `preserve`                | Wrapping of an `instanceof` test                                                         | `chop-down-always`: `value instanceof`<br>`········Type pattern`                                                |
+| `wrapping.instanceof-operator-position`          | `before-operator`, `after-operator`             | `after-operator`          | Which line `instanceof` lands on when its test wraps                                     | `before-operator`: `value`<br>`········instanceof Type pattern`                                                 |
+| `wrapping.multicatch`                            | `WrapPolicy`                                    | `never`                   | Wrapping of multi-catch alternatives                                                     | `chop-down-always`: `First`<br>`········&#124; Second e`                                                        |
+| `wrapping.multicatch-separator-position`         | `before-operator`, `after-operator`             | `before-operator`         | Which line `&#124;` lands on when multi-catch alternatives wrap                          | `after-operator`: `First &#124;`<br>`········Second e`                                                          |
+| `wrapping.intersection-types`                    | `WrapPolicy`                                    | `never`                   | Wrapping of intersection type bounds and casts                                           | `chop-down-always`: `A`<br>`········& B`                                                                        |
+| `wrapping.intersection-separator-position`       | `before-operator`, `after-operator`             | `before-operator`         | Which line `&` lands on when intersection types wrap                                     | `after-operator`: `A &`<br>`········B`                                                                          |
+| `wrapping.deconstruction-patterns`               | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a record deconstruction pattern                                              | `case R(`<br>`········int a,`<br>`········int b) -> f();`                                                       |
+| `wrapping.ternary`                               | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a conditional expression                                                     | `wrap-if-long`: `c`<br>`········? a`<br>`········: b`                                                           |
+| `wrapping.lambda-expression-on-arrow-line`       | boolean                                         | `true`                    | Keep a single-expression body on the arrow's line                                        | `true`: `x -> x + 1`                                                                                            |
+| `wrapping.assignment`                            | `WrapPolicy`                                    | `never`                   | Wrapping of the right hand side of an assignment                                         | `wrap-if-long`: `int x =`<br>`········compute();`                                                               |
+| `wrapping.array-initializers`                    | `WrapPolicy`                                    | `chop-down-if-long`       | Wrapping of an array initializer                                                         | `wrap-if-long`: `{ 1, 2,`<br>`····3 }`                                                                          |
+| `wrapping.extends-implements`                    | `WrapPolicy`                                    | `never`                   | Wrapping of extends and implements clauses                                               | `class A implements B,`<br>`····C {`                                                                            |
+| `wrapping.permits-clause`                        | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a permits clause                                                             | `sealed interface I`<br>`········permits A, B {`                                                                |
+| `wrapping.permits-on-new-line`                   | boolean                                         | `false`                   | Start the permits clause on its own line                                                 | `true`: `sealed interface I`<br>`········permits A {`                                                           |
+| `wrapping.throws-clause`                         | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a throws clause                                                              | `void f() throws A,`<br>`····B {`                                                                               |
+| `wrapping.annotation-arguments`                  | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of an annotation's element list                                                 | `@A(`<br>`········name = "x")`                                                                                  |
+| `wrapping.closing-delimiter`                     | `own-line`, `attached`, `own-line-unless-brace` | `own-line`                | Whether a wrapped list's closing parenthesis takes its own line                          | `own-line`: `f(`<br>`····a,`<br>`····b`<br>`);`                                                                 |
+| `wrapping.assignment-break`                      | `after-operator`, `inside-value`                | `inside-value`            | Where a long assignment breaks first                                                     | `inside-value`: `x = call(`<br>`········a,`<br>`········b);` / `after-operator`: `x =`<br>`········call(a, b);` |
+| `wrapping.hug-sole-argument`                     | boolean                                         | `true`                    | Keep a lone call or creation argument on the line of the parenthesis and break inside it | `true`: `add(new Entry(`<br>`········key,`<br>`········value));`                                                |
+| `wrapping.break-after-open-paren`                | boolean                                         | `true`                    | Start a wrapped parenthesised list on the line after its opening parenthesis             | `false`: `call(first, second,`<br>`········third);`                                                             |
+| `wrapping.enum-constants`                        | `WrapPolicy`                                    | `chop-down-always`        | Wrapping of the constant list of an enum                                                 | `chop-down-if-long`: `A,`<br>`B,`<br>`C;`                                                                       |
+| `wrapping.for-statement`                         | `WrapPolicy`                                    | `chop-down-if-long`       | Wrapping of the header of a basic for statement                                          | `for (int i = 0;`<br>`········i < n;`<br>`········i++) {`                                                       |
+| `wrapping.try-resources`                         | `WrapPolicy`                                    | `never`                   | Wrapping of a try-with-resources resource list                                           | `try (`<br>`········A a = x();`<br>`········B b = y()) {`                                                       |
+| `wrapping.case-labels`                           | `WrapPolicy`                                    | `wrap-if-long`            | Wrapping of a case label listing several constants                                       | `case A, B,`<br>`········C -> f();`                                                                             |
+| `wrapping.case-guard-on-same-line`               | boolean                                         | `true`                    | Keep a `when` guard on the line of its pattern                                           | `true`: `case T t when t.ok() -> f();`                                                                          |
+| `wrapping.arrow-case-body-on-new-line-when-long` | boolean                                         | `true`                    | Move a long arrow case body to the next line                                             | `true`: `case A ->`<br>`········someVeryLongCall();`                                                            |
+| `wrapping.with-block`                            | `preserve`, `always-block`, `inline-when-short` | `inline-when-short`       | Layout of a derived record creation `with` block                                         | `inline-when-short`: `r with { a = 1; }`                                                                        |
+| `wrapping.split-long-strings`                    | boolean                                         | `true`                    | Split a string literal that runs past the line length into a concatenation               | `true`: `"a long message"` becomes `"a long " + "message"`                                                      |
+| `wrapping.exports-opens-targets`                 | `WrapPolicy`                                    | `never`                   | Wrapping of target module lists in `exports` and `opens`                                 | `chop-down-always`: one target after each comma                                                                 |
+| `wrapping.provides-implementations`              | `WrapPolicy`                                    | `never`                   | Wrapping of implementation lists in `provides`                                           | `wrap-if-long`: wrap implementations at the margin                                                              |
 
 - `wrap-if-long` breaks only where the line overflows. On `extends`, `implements` and `throws`, the keyword stays on the line while it can start its list there, and the list fills each line. `chop-down-if-long` puts every element on its own line as soon as one break is needed. `chop-down-always` does so regardless of length.
 - There is no wrapping rule for type parameters and arguments. The brackets belong to the types they enclose: the formatter never breaks between a bracket and its type, and never between the elements. A section never moves to a line of its own: it moves only with its type, and overflows rather than breaking at its commas, so `Map<TypeA, TypeB>` is always one piece and `new HashMap<>()` can never be split between its brackets.
@@ -347,25 +355,34 @@ Several rules share a value type:
   - `break-all-when-too-long` breaks every link once the chain's own line does not fit. Measurement stops at the first forced line break, so a lambda body in the last link does not count as overflow.
   - `break-when-too-long` breaks only as many links as it takes to fit, so two links can share a line.
   - `never-break` leaves the dots alone and lets the overflow land inside an argument list.
-- `wrapping.instanceof = preserve` defers to `patterns.keep-simple-pattern-inline`. Every other value overrides that pattern rule. `wrapping.instanceof-operator-position` only chooses the side of a break and does not force one.
+- `wrapping.instanceof = preserve` keeps a pattern on the line of its test unless the author broke around `instanceof`. Every other value decides the break itself. `wrapping.instanceof-operator-position` only chooses the side of a break and does not force one.
+- `wrapping.split-long-strings` changes tokens, so it is verified like the other rewrites.
+  - It splits after a space or a `\n` escape, and runs again after each layout pass until every piece fits or cannot split further.
+  - Text blocks, literals with Unicode escapes, literals carrying comments and literals where `+` would bind to a neighbour, such as `"text".length()`, stay whole.
+- `wrapping.with-block` is layout and changes no tokens. The one-line form is only offered, so a block too long for its line still breaks.
 
 ### `braces`
 
-| Key                          | Values           | Default       | Effect                                             | Example                                                                                          |
-|------------------------------|------------------|---------------|----------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| `braces.class-placement`     | `BracePlacement` | `end-of-line` | Opening brace position for a type declaration      | `end-of-line`: `class A {` / `next-line`: `class A`<br>`{`                                       |
-| `braces.method-placement`    | `BracePlacement` | `end-of-line` | Opening brace position for a method or constructor | `next-line`: `void f()`<br>`{`                                                                   |
-| `braces.control-placement`   | `BracePlacement` | `end-of-line` | Opening brace position for a control statement     | `next-line`: `if (x)`<br>`{`                                                                     |
-| `braces.lambda-placement`    | `BracePlacement` | `end-of-line` | Opening brace position for a lambda block body     | `end-of-line`: `x -> {`                                                                          |
-| `braces.if-else`             | `BracePolicy`    | `always`      | Braces around if and else bodies                   | `always`: `if (x) f();` becomes `if (x) {`<br>`····f();`<br>`}`                                  |
-| `braces.for-loop`            | `BracePolicy`    | `always`      | Braces around for and enhanced-for bodies          | `never`: `for (T t : ts) {`<br>`····f(t);`<br>`}` becomes `for (T t : ts) f(t);`                 |
-| `braces.while-loop`          | `BracePolicy`    | `always`      | Braces around while and do-while bodies            | `when-multi-statement`: a one-statement `while` loses its braces, a two-statement one keeps them |
-| `braces.else-on-new-line`    | boolean          | `false`       | Put else on the line after the closing brace       | `false`: `} else {` / `true`: `}`<br>`else {`                                                    |
-| `braces.catch-on-new-line`   | boolean          | `false`       | Put catch on the line after the closing brace      | `true`: `}`<br>`catch (E e) {`                                                                   |
-| `braces.finally-on-new-line` | boolean          | `false`       | Put finally on the line after the closing brace    | `true`: `}`<br>`finally {`                                                                       |
-| `braces.empty-class-body`    | `EmptyBodyStyle` | `spaced`      | Rendering of an empty type body                    | `compact`: `class A {}` / `spaced`: `class A { }` / `expanded`: `class A {`<br>`}`               |
-| `braces.empty-method-body`   | `EmptyBodyStyle` | `spaced`      | Rendering of an empty method body                  | `spaced`: `void f() { }`                                                                         |
-| `braces.empty-control-body`  | `EmptyBodyStyle` | `expanded`    | Rendering of an empty control statement body       | `spaced`: `while (f()) { }`                                                                      |
+| Key                          | Values                        | Default                | Effect                                                                            | Example                                                                                          |
+|------------------------------|-------------------------------|------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| `braces.class-placement`     | `BracePlacement`              | `end-of-line`          | Opening brace position for a type declaration                                     | `end-of-line`: `class A {` / `next-line`: `class A`<br>`{`                                       |
+| `braces.method-placement`    | `BracePlacement`              | `end-of-line`          | Opening brace position for a method or constructor                                | `next-line`: `void f()`<br>`{`                                                                   |
+| `braces.control-placement`   | `BracePlacement`              | `end-of-line`          | Opening brace position for a control statement                                    | `next-line`: `if (x)`<br>`{`                                                                     |
+| `braces.lambda-placement`    | `BracePlacement`              | `end-of-line`          | Opening brace position for a lambda block body                                    | `end-of-line`: `x -> {`                                                                          |
+| `braces.module-placement`    | `inherit` or `BracePlacement` | `inherit`              | Opening brace position for a module declaration. Follows `braces.class-placement` | `next-line`: `module m`<br>`{`                                                                   |
+| `braces.if-else`             | `BracePolicy`                 | `always`               | Braces around if and else bodies                                                  | `always`: `if (x) f();` becomes `if (x) {`<br>`····f();`<br>`}`                                  |
+| `braces.for-loop`            | `BracePolicy`                 | `always`               | Braces around for and enhanced-for bodies                                         | `never`: `for (T t : ts) {`<br>`····f(t);`<br>`}` becomes `for (T t : ts) f(t);`                 |
+| `braces.while-loop`          | `BracePolicy`                 | `always`               | Braces around while and do-while bodies                                           | `when-multi-statement`: a one-statement `while` loses its braces, a two-statement one keeps them |
+| `braces.lambda-body`         | `BracePolicy`                 | `when-multi-statement` | Braces around a lambda body                                                       | `never`: `x -> { return x; }` becomes `x -> x`; `always` is declined                             |
+| `braces.arrow-case-body`     | `BracePolicy`                 | `when-multi-statement` | Braces around the body of an arrow case                                           | `never`: `case 1 -> { f(); }` becomes `case 1 -> f();`; statement switches only                  |
+| `braces.else-on-new-line`    | boolean                       | `false`                | Put else on the line after the closing brace                                      | `false`: `} else {` / `true`: `}`<br>`else {`                                                    |
+| `braces.catch-on-new-line`   | boolean                       | `false`                | Put catch on the line after the closing brace                                     | `true`: `}`<br>`catch (E e) {`                                                                   |
+| `braces.finally-on-new-line` | boolean                       | `false`                | Put finally on the line after the closing brace                                   | `true`: `}`<br>`finally {`                                                                       |
+| `braces.empty-class-body`    | `EmptyBodyStyle`              | `spaced`               | Rendering of an empty type body                                                   | `compact`: `class A {}` / `spaced`: `class A { }` / `expanded`: `class A {`<br>`}`               |
+| `braces.empty-record-body`   | `inherit` or `EmptyBodyStyle` | `inherit`              | Rendering of an empty record body. Follows `braces.empty-class-body`              | `compact`: `record R(int a) {}`                                                                  |
+| `braces.empty-module-body`   | `inherit` or `EmptyBodyStyle` | `inherit`              | Rendering of an empty module body. Follows `braces.empty-class-body`              | `compact`: `module m {}`                                                                         |
+| `braces.empty-method-body`   | `EmptyBodyStyle`              | `spaced`               | Rendering of an empty method body                                                 | `spaced`: `void f() { }`                                                                         |
+| `braces.empty-control-body`  | `EmptyBodyStyle`              | `expanded`             | Rendering of an empty control statement body                                      | `spaced`: `while (f()) { }`                                                                      |
 
 `braces.if-else`, `braces.for-loop` and `braces.while-loop` add and remove braces, so they run in the rewrite stage.
 
@@ -409,28 +426,33 @@ Every rule is a boolean. Each example shows `true` / `false`.
 | `spacing.before-annotation-parenthesis`         | `false` | Space between an annotation name and its elements         | `@A ("x")` / `@A("x")`                        |
 | `spacing.before-array-brackets`                 | `false` | Space between a type and its array brackets               | `int [] a` / `int[] a`                        |
 | `spacing.after-varargs-ellipsis`                | `true`  | Space between a varargs ellipsis and the parameter name   | `T... ts` / `T...ts`                          |
+| `spacing.before-with-block`                     | `true`  | Space between the `with` keyword and its block            | `r with {` / `r with{`                        |
 
 ### `blank-lines`
 
 Every rule is an integer, except the boolean `strip-at-brace-edges`.
 
-| Key                                             | Default | Effect                                                                                                   | Example                                                                       |
-|-------------------------------------------------|---------|----------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| `blank-lines.max-consecutive`                   | `1`     | Most consecutive blank lines kept anywhere in a body                                                     | `1`: three blank lines collapse to one                                        |
-| `blank-lines.after-package`                     | `1`     | Blank lines after the package declaration                                                                | `1`: `package p;`<br>``<br>`import a.B;`                                      |
-| `blank-lines.after-imports`                     | `1`     | Blank lines after the last import                                                                        | `2`: two blank lines before the first type                                    |
-| `blank-lines.before-class`                      | `1`     | Blank lines before a nested type declaration                                                             | `1`: one blank line before `static class Inner {`                             |
-| `blank-lines.before-method`                     | `1`     | Blank lines before a method or constructor                                                               | `1`: one blank line between two methods                                       |
-| `blank-lines.before-field`                      | `0`     | Blank lines before a field declaration                                                                   | `0`: consecutive fields stay packed                                           |
-| `blank-lines.after-class-opening-brace`         | `1`     | Blank lines just inside a type body                                                                      | `1`: `class A {`<br>``<br>`····int x;`                                        |
-| `blank-lines.before-class-closing-brace`        | `1`     | Blank lines just before a type body closes                                                               | `1`: `····}`<br>``<br>`}`                                                     |
-| `blank-lines.strip-at-brace-edges`              | `false` | Drop blank lines the author left just inside the braces of a body                                        | `true`: `class A {`<br>``<br>`····int x;` becomes `class A {`<br>`····int x;` |
-| `blank-lines.around-initializer-block`          | `1`     | Blank lines around an instance or static initializer                                                     | `1`: `static { }` is separated from its neighbours                            |
-| `blank-lines.before-record-compact-constructor` | `1`     | Blank lines before a compact canonical constructor                                                       | `1`: one blank line before `R {` inside `record R(...)`                       |
-| `blank-lines.after-enum-constants`              | `0`     | Blank lines between the constants and the body of an enum                                                | `1`: blank line after `A, B;`                                                 |
-| `blank-lines.before-first-enum-constant`        | `1`     | Blank lines between an enum's brace and its first constant                                               | `1`: `enum E {`<br>``<br>`····A,`                                             |
-| `blank-lines.between-member-groups`             | `1`     | Blank lines between neighbouring members of different kinds; access level does not split a run of fields | `1`: a blank line between a `final` and a non-final field                     |
-| `blank-lines.between-switch-cases`              | `0`     | Blank lines between the cases of a switch                                                                | `1`: a blank line separates each `case`                                       |
+| Key                                           | Default   | Effect                                                                                                   | Example                                                                       |
+|-----------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| `blank-lines.max-consecutive`                 | `1`       | Most consecutive blank lines kept anywhere. `0` drops every blank line the author wrote                  | `1`: three blank lines collapse to one                                        |
+| `blank-lines.after-package`                   | `1`       | Blank lines after the package declaration                                                                | `1`: `package p;`<br>``<br>`import a.B;`                                      |
+| `blank-lines.after-imports`                   | `1`       | Blank lines after the last import                                                                        | `2`: two blank lines before the first type                                    |
+| `blank-lines.before-class`                    | `1`       | Blank lines before a nested type declaration                                                             | `1`: one blank line before `static class Inner {`                             |
+| `blank-lines.before-method`                   | `1`       | Blank lines before a method or constructor                                                               | `1`: one blank line between two methods                                       |
+| `blank-lines.before-compact-constructor`      | `inherit` | Blank lines before a compact canonical constructor. Follows `blank-lines.before-method`                  | `1`: one blank line before `R {` inside `record R(...)`                       |
+| `blank-lines.inside-compact-constructor`      | `0`       | Blank lines just inside the braces of a compact canonical constructor                                    | `1`: a blank line opens and closes the body                                   |
+| `blank-lines.before-field`                    | `0`       | Blank lines before a field declaration                                                                   | `0`: consecutive fields stay packed                                           |
+| `blank-lines.after-class-opening-brace`       | `1`       | Blank lines just inside a type body                                                                      | `1`: `class A {`<br>``<br>`····int x;`                                        |
+| `blank-lines.before-class-closing-brace`      | `1`       | Blank lines just before a type body closes                                                               | `1`: `····}`<br>``<br>`}`                                                     |
+| `blank-lines.after-module-opening-brace`      | `inherit` | Blank lines just inside a module body. Follows `blank-lines.after-class-opening-brace`                   | `0`: the first directive follows on the next line                             |
+| `blank-lines.before-module-closing-brace`     | `inherit` | Blank lines just before a module body closes. Follows `blank-lines.before-class-closing-brace`           | `0`: the brace follows the final directive on the next line                   |
+| `blank-lines.strip-at-brace-edges`            | `false`   | Drop blank lines the author left just inside the braces of a body                                        | `true`: `class A {`<br>``<br>`····int x;` becomes `class A {`<br>`····int x;` |
+| `blank-lines.around-initializer-block`        | `1`       | Blank lines around an instance or static initializer                                                     | `1`: `static { }` is separated from its neighbours                            |
+| `blank-lines.after-enum-constants`            | `0`       | Blank lines between the constants and the body of an enum                                                | `1`: blank line after `A, B;`                                                 |
+| `blank-lines.before-first-enum-constant`      | `1`       | Blank lines between an enum's brace and its first constant                                               | `1`: `enum E {`<br>``<br>`····A,`                                             |
+| `blank-lines.between-member-groups`           | `1`       | Blank lines between neighbouring members of different kinds; access level does not split a run of fields | `1`: a blank line between a `final` and a non-final field                     |
+| `blank-lines.between-module-directive-groups` | `0`       | Blank lines between adjacent groups of different directive types                                         | `1`: separate `requires`, `exports`, and `uses` groups                        |
+| `blank-lines.between-switch-cases`            | `0`       | Blank lines between the cases of a switch                                                                | `1`: a blank line separates each `case`                                       |
 
 ### `alignment`
 
@@ -456,58 +478,35 @@ Every rule takes an `AlignmentPolicy`.
 
 ### `annotations`
 
-| Key                                 | Values                | Default     | Effect                                                                  | Example                                 |
-|-------------------------------------|-----------------------|-------------|-------------------------------------------------------------------------|-----------------------------------------|
-| `annotations.declaration-placement` | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a type, method or constructor declaration | `new-line`: `@Override`<br>`void f() {` |
-| `annotations.field-placement`       | `AnnotationPlacement` | `same-line` | Placement of an annotation on a field declaration                       | `same-line`: `@Nullable T t;`           |
-| `annotations.package-placement`     | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a package declaration                      | `new-line`: `@NullMarked`<br>`package repro.pkg;` |
-| `annotations.parameter-placement`   | `AnnotationPlacement` | `same-line` | Placement of an annotation on a parameter or local variable             | `same-line`: `void f(@Nullable T t)`    |
-| `annotations.single-marker-inline`  | boolean               | `false`     | Keep a lone marker annotation on the line of its declaration            | `true`: `@Override void f() {`          |
-
-### `imports`
-
-| Key                                 | Values                                | Default                  | Effect                                                                                                                                                                       | Example                                                                                                  |
-|-------------------------------------|---------------------------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `imports.groups`                    | list of prefixes or prefix lists      | `["java", "javax", "*"]` | Import groups, in order; an entry is one prefix or a list of prefixes that share a group, and `*` is the catch-all. The longest matching prefix wins wherever it is declared | `[["net.minecraft", "net.minecraftforge"], "*"]` puts the game in one group and everything else after it |
-| `imports.order`                     | `preserve`, `ascending`, `descending` | `ascending`              | Sort order applied within a group; `preserve` leaves the whole run alone, which also switches off grouping, static placement and module ordering                             | `ascending`: `import a.A;` before `import b.B;`                                                          |
-| `imports.static-placement`          | `first`, `last`, `inline`             | `last`                   | Where static imports sit relative to ordinary ones                                                                                                                           | `first`: the `import static` block precedes every ordinary import                                        |
-| `imports.blank-line-between-groups` | boolean                               | `true`                   | Separate import groups with a blank line                                                                                                                                     | `true`: `import java.util.List;`<br>``<br>`import org.x.Y;`                                              |
-| `imports.remove-unused`             | boolean                               | `false`                  | Delete imports the file does not reference                                                                                                                                   | `true`: an import named nowhere in the file, comments and Javadoc included, is dropped                   |
-| `imports.module-imports-first`      | boolean                               | `true`                   | Place module imports before every other import                                                                                                                               | `true`: `import module java.base;` heads the block                                                       |
-
-- `imports.order = preserve` leaves the imports exactly as written and switches off every other rule in this group.
-- A `groups` array may run over several lines and carry comments:
-
-```toml
-[imports]
-order = "ascending"
-groups = [
-    "com.cleanroommc",
-    "*",
-    ["net.minecraft", "net.minecraftforge", "com.mojang"],
-    ["javax", "java"],
-]
-```
+| Key                                 | Values                | Default     | Effect                                                                  | Example                                           |
+|-------------------------------------|-----------------------|-------------|-------------------------------------------------------------------------|---------------------------------------------------|
+| `annotations.declaration-placement` | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a type, method or constructor declaration | `new-line`: `@Override`<br>`void f() {`           |
+| `annotations.field-placement`       | `AnnotationPlacement` | `same-line` | Placement of an annotation on a field declaration                       | `same-line`: `@Nullable T t;`                     |
+| `annotations.parameter-placement`   | `AnnotationPlacement` | `same-line` | Placement of an annotation on a parameter or local variable             | `same-line`: `void f(@Nullable T t)`              |
+| `annotations.package-placement`     | `AnnotationPlacement` | `new-line`  | Placement of an annotation on a package declaration                     | `new-line`: `@NullMarked`<br>`package repro.pkg;` |
+| `annotations.single-marker-inline`  | boolean               | `false`     | Keep a lone marker annotation on the line of its declaration            | `true`: `@Override void f() {`                    |
 
 ### `comments`
 
-| Key                                     | Values                              | Default            | Effect                                                 | Example                                                                    |
-|-----------------------------------------|-------------------------------------|--------------------|--------------------------------------------------------|----------------------------------------------------------------------------|
-| `comments.reflow`                       | `preserve`, `reflow-to-line-length` | `preserve`         | Whether line and block comment prose may be re-wrapped | `reflow-to-line-length` refills paragraphs to `wrapping.max-line-length`   |
-| `comments.block-comment-star-alignment` | boolean                             | `true`             | Align the leading stars of a block comment             | `true`: `/*`<br>`·* text`<br>`·*/`                                         |
-| `comments.trailing-comment-min-spaces`  | integer                             | `1`                | Spaces between code and a comment trailing it          | `2`: `int x = 1;··// note`                                                 |
-| `comments.trailing-comment-column`      | integer                             | `0`                | Column trailing comments are padded to; `0` disables   | `40`: every trailing comment starts at column 40                           |
-| `comments.keep-first-column-comments`   | boolean                             | `false`            | Leave a comment starting in column one where it is     | `true`: a `//` in column 1 inside a method body is not indented            |
-| `comments.indent-with-code`             | boolean                             | `true`             | Indent comments to match the code that follows them    | `true`: a comment above an indented statement gets that statement's indent |
-| `comments.honour-formatter-off`         | boolean                             | `true`             | Respect the off and on markers                         | `true`: everything between the markers is reproduced byte for byte         |
-| `comments.off-marker`                   | string                              | `"@formatter:off"` | Marker that suspends formatting until the on-marker    | `"formatj:off"`: `// formatj:off` suspends formatting                      |
-| `comments.on-marker`                    | string                              | `"@formatter:on"`  | Marker that resumes formatting                         | `"formatj:on"`: `// formatj:on` resumes it                                 |
+| Key                                     | Values                              | Default            | Effect                                                          | Example                                                                    |
+|-----------------------------------------|-------------------------------------|--------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------|
+| `comments.reflow`                       | `preserve`, `reflow-to-line-length` | `preserve`         | Whether line and block comment prose may be re-wrapped          | `reflow-to-line-length` refills paragraphs to `wrapping.max-line-length`   |
+| `comments.space-after-line-comment`     | boolean                             | `false`            | Put a space between the slashes of a line comment and its prose | `true`: `//TODO fix` becomes `// TODO fix`                                 |
+| `comments.block-comment-star-alignment` | boolean                             | `true`             | Align the leading stars of a block comment                      | `true`: `/*`<br>`·* text`<br>`·*/`                                         |
+| `comments.trailing-comment-min-spaces`  | integer                             | `1`                | Spaces between code and a comment trailing it                   | `2`: `int x = 1;··// note`                                                 |
+| `comments.trailing-comment-column`      | integer                             | `0`                | Column trailing comments are padded to; `0` disables            | `40`: every trailing comment starts at column 40                           |
+| `comments.keep-first-column-comments`   | boolean                             | `false`            | Leave a comment starting in column one where it is              | `true`: a `//` in column 1 inside a method body is not indented            |
+| `comments.indent-with-code`             | boolean                             | `true`             | Indent comments to match the code that follows them             | `true`: a comment above an indented statement gets that statement's indent |
+| `comments.honour-formatter-off`         | boolean                             | `true`             | Respect the off and on markers                                  | `true`: everything between the markers is reproduced byte for byte         |
+| `comments.off-marker`                   | string                              | `"@formatter:off"` | Marker that suspends formatting until the on-marker             | `"formatj:off"`: `// formatj:off` suspends formatting                      |
+| `comments.on-marker`                    | string                              | `"@formatter:on"`  | Marker that resumes formatting                                  | `"formatj:on"`: `// formatj:on` resumes it                                 |
 
 - `comments.trailing-comment-column` pads each trailing comment to that column after layout, and never moves a line break.
   - A line whose code already passes the column keeps its ordinary spacing.
   - `alignment.trailing-comments` can still line a run up past the column.
 - `comments.indent-with-code = false` keeps the indent the author wrote. `comments.keep-first-column-comments` is narrower and only pins comments that already start in column one.
 - The off and on markers work at whole members, whole statements and whole top-level declarations. A marker in the middle of an expression is ignored.
+- `comments.space-after-line-comment` only spaces prose, meaning text that starts with a letter or digit and does not end in `;`, `{`, `}`, `(` or `)`. Commented-out code, divider lines, `//noinspection` and markers like `//$NON-NLS-1$` keep their form.
 - `comments.reflow` refills a run of `//` lines as one paragraph. It skips:
   - a comment holding a `{@code}`, `<pre>` or `@snippet` region
   - a run of `//` lines with no space after the slashes, which is what commented-out code looks like
@@ -517,18 +516,6 @@ groups = [
   - It stays when another comment sits between the start of the statement and it, or when a `//` comment is already above the statement.
   - It stays when moving it would let a rewriting rule remove the token it was attached to.
   - A file holding the off marker keeps all its trailing comments in place.
-
-### `declarations`
-
-| Key                             | Values  | Default | Effect                                                                                                     | Example                                            |
-|---------------------------------|---------|---------|------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| `declarations.split-variables`  | boolean | `false` | Split a declaration of several variables into one declaration per variable, repeating the modifiers, annotations and type | `true`: `int a, b = 2;` becomes `int a;`<br>`int b = 2;` |
-
-- Both fields and local variables split. Everything above the first declarator — modifiers, annotations, the type — is written again for each variable.
-- A Javadoc comment or other comment riding on the head prints once, on the first declaration. A comma that carries a comment of its own has nowhere to go once the comma goes, so the whole declaration is declined.
-- Array brackets written beside a name belong to that variable alone: `int a[], b;` splits to `int[] a;` and `int b;`, the brackets moving onto the type they now describe.
-- A declarator carrying its own annotation declines the split, since what that annotation applies to is the author's to spell out.
-- A for statement's init declarations are not split, because they take commas, not semicolons.
 
 ### `javadoc`
 
@@ -565,188 +552,61 @@ groups = [
   - `same-line` joins it with the paragraph's first words (`·* <p> text`).
   - Markers glued to other text (`foo<p>bar`) and forms with spaces inside the brackets (`<p />`) are left alone.
 
-### `module`
-
-| Key                                            | Values                        | Default   | Effect                                                           | Example                                                     |
-|------------------------------------------------|-------------------------------|-----------|------------------------------------------------------------------|-------------------------------------------------------------|
-| `module.brace-placement`                       | `inherit` or `BracePlacement` | `inherit` | Opening brace position for a module declaration                  | `next-line`: `module m`<br>`{`                              |
-| `module.empty-body`                            | `inherit` or `EmptyBodyStyle` | `inherit` | Rendering of an empty module body                                | `compact`: `module m {}`                                    |
-| `module.blank-lines-after-opening-brace`       | `inherit` or integer          | `inherit` | Blank lines after a module's opening brace                       | `0`: the first directive follows on the next line           |
-| `module.blank-lines-before-closing-brace`      | `inherit` or integer          | `inherit` | Blank lines before a module's closing brace                      | `0`: the brace follows the final directive on the next line |
-| `module.blank-lines-between-directive-groups`  | integer                       | `0`       | Blank lines between adjacent groups of different directive types | `1`: separate `requires`, `exports`, and `uses` groups      |
-| `module.exports-opens-target-list-wrapping`    | `WrapPolicy`                  | `never`   | Wrapping of target module lists in `exports` and `opens`         | `chop-down-always`: one target after each comma             |
-| `module.provides-implementation-list-wrapping` | `WrapPolicy`                  | `never`   | Wrapping of implementation lists in `provides`                   | `wrap-if-long`: wrap implementations at the margin          |
-
-The four `inherit` rules follow the matching class brace, empty-body and blank-line rules until a module-specific value is set.
-
-### `modifiers`
-
-| Key                          | Values                  | Default     | Effect                                  | Example                                                                     |
-|------------------------------|-------------------------|-------------|-----------------------------------------|-----------------------------------------------------------------------------|
-| `modifiers.order`            | `preserve`, `canonical` | `canonical` | Ordering of declaration modifiers       | `canonical`: `static public` becomes `public static`                        |
-| `modifiers.remove-redundant` | boolean                 | `true`      | Remove modifiers the JLS makes implicit | `true`: `public abstract void run();` in an interface becomes `void run();` |
-| `modifiers.visibility-position` | `first`, `last` | `first` | Where the access modifier sits among the other modifiers in the canonical order | `last`: `public static final` becomes `static final public` |
-
-- `canonical` uses the per-declaration orders documented in `ModifierRules`.
-  - Annotations keep their source order and their positions among the modifiers.
-  - A comment or Javadoc in front of the declaration stays in front of it while the keywords move.
-  - Modifier lists with comments between the modifiers, duplicates or malformed modifiers stay unchanged.
-- `modifiers.remove-redundant` removes only what the JLS implies. A modifier that carries a comment stays.
-- Below Java 9, `final` stays on a private method that carries `@SafeVarargs`, because the annotation needs it there.
-  - `public` and bodiless `abstract` on interface methods
-  - `public static final` on interface fields
-  - `public static` on interface member types
-  - `static` on nested enums, records and interfaces
-  - `final` on records and on private methods
-  - `private` on enum constructors
-  - `final` on try-with-resources variables
-
-### `switch`
-
-| Key                                       | Values                                                 | Default                    | Effect                                             | Example                                                                         |
-|-------------------------------------------|--------------------------------------------------------|----------------------------|----------------------------------------------------|---------------------------------------------------------------------------------|
-| `switch.case-style`                       | `preserve`, `arrow`, `colon`                           | `arrow`                    | Arrow or colon case labels                         | `arrow`: `case 1: f(); break;` becomes `case 1 -> f();`                         |
-| `switch.arrow-case-braces`                | `BracePolicy`                                          | `when-multi-statement`     | Braces around the body of an arrow case            | `never`: `case 1 -> { f(); }` becomes `case 1 -> f();`; statement switches only |
-| `switch.yield-style`                      | `preserve`, `expression-when-possible`, `always-block` | `expression-when-possible` | How the value of an arrow case body is written     | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;`     |
-| `switch.multi-label-wrapping`             | `WrapPolicy`                                           | `wrap-if-long`             | Wrapping of a case label listing several constants | `case A, B,`<br>`········C -> f();`                                             |
-| `switch.null-default-on-one-line`         | boolean                                                | `true`                     | Keep `case null, default` on a single line         | `true`: `case null, default -> f();`                                            |
-| `switch.guard-on-same-line`               | boolean                                                | `true`                     | Keep a `when` guard on the line of its pattern     | `true`: `case T t when t.ok() -> f();`                                          |
-| `switch.arrow-body-on-new-line-when-long` | boolean                                                | `true`                     | Move a long arrow case body to the next line       | `true`: `case A ->`<br>`········someVeryLongCall();`                            |
-
-- `switch.arrow-case-braces` governs statement switches, where an arrow body is a statement and its braces are only braces.
-- `switch.yield-style` governs expression switches, where braces round an arrow body bring a `yield` with them.
-- Neither rule touches the other's cases.
-- `never` and `when-multi-statement` coincide on an arrow case, because a block holding more than one statement has no unbraced form.
-- `yield-style = always-block` leaves a `throw` body alone, because a `throw` produces no value.
-- `switch.case-style = "arrow"` does nothing below Java 14, where arrow cases do not compile. See [Language Level](#language-level).
-- `switch.case-style` reads the whole switch first and converts it only when every condition below holds. A switch is converted wholly or left alone, because mixing the two forms does not compile.
-  - Every group ends where it cannot fall through. That is an unlabelled `break`, which the rule removes, or a `return`, `throw`, `yield` or `continue`, which it keeps. The last group needs no terminator.
-  - No `break` belonging to the switch is buried inside a group. A `break` inside a nested loop or switch binds to that and does not count.
-  - No group declares a local variable or local type at its own level, because the groups of a colon switch share one scope and arrow cases do not.
-  - A `default`, and a label carrying a `when` guard, are never merged with the empty cases above them.
-  - `colon` converts only expression and `throw` bodies, because a block body would need a `break` after it.
-
-### `records`
-
-| Key                                      | Values                                          | Default             | Effect                                            | Example                                                 |
-|------------------------------------------|-------------------------------------------------|---------------------|---------------------------------------------------|---------------------------------------------------------|
-| `records.component-wrapping`             | `WrapPolicy`                                    | `chop-down-if-long` | Wrapping of a record header's components          | `record R(`<br>`········int a,`<br>`········int b) {`   |
-| `records.single-line-empty-body`         | boolean                                         | `false`             | Render an empty record body as `{}`               | `true`: `record R(int a) {}`                            |
-| `records.compact-constructor-blank-line` | boolean                                         | `false`             | Blank line inside a compact canonical constructor | `true`: a blank line opens the compact constructor body |
-| `records.with-style`                     | `preserve`, `always-block`, `inline-when-short` | `inline-when-short` | Layout of a derived record creation `with` block  | `inline-when-short`: `r with { a = 1; }`                |
-| `records.space-before-with-block`        | boolean                                         | `true`              | Space between the `with` keyword and its block    | `r with {` / `r with{`                                  |
-
-`records.with-style` is layout and changes no tokens. The one-line form is only offered, so a block too long for its line still breaks.
-
-### `patterns`
-
-| Key                                   | Values       | Default        | Effect                                       | Example                                                       |
-|---------------------------------------|--------------|----------------|----------------------------------------------|---------------------------------------------------------------|
-| `patterns.deconstruction-wrapping`    | `WrapPolicy` | `wrap-if-long` | Wrapping of a record deconstruction pattern  | `case R(`<br>`········int a,`<br>`········int b) -> f();`     |
-| `patterns.keep-simple-pattern-inline` | boolean      | `true`         | Keep a short pattern on the line of its test | `true`: `if (x instanceof T t) {`                             |
-| `patterns.nested-indent`              | integer      | `4`            | Columns a wrapped nested pattern is indented | `4`: an inner deconstruction is indented 4 past its outer one |
-
-### `sealed`
-
-| Key                          | Values                                | Default        | Effect                                      | Example                                               |
-|------------------------------|---------------------------------------|----------------|---------------------------------------------|-------------------------------------------------------|
-| `sealed.permits-wrapping`    | `WrapPolicy`                          | `wrap-if-long` | Wrapping of a permits clause                | `sealed interface I`<br>`········permits A, B {`      |
-| `sealed.permits-order`       | `preserve`, `ascending`, `descending` | `preserve`     | Sort order of the types in a permits clause | `ascending`: `permits A, B, C`                        |
-| `sealed.permits-on-new-line` | boolean                               | `false`        | Start the permits clause on its own line    | `true`: `sealed interface I`<br>`········permits A {` |
-
-`sealed.permits-order` replaces the clause as one declared edit whose tokens are a permutation of the originals, so no permitted type can go missing or appear.
-
-### `lambdas`
-
-| Key                                     | Values                                                  | Default                | Effect                                            | Example                                                              |
-|-----------------------------------------|---------------------------------------------------------|------------------------|---------------------------------------------------|----------------------------------------------------------------------|
-| `lambdas.parameter-style`               | `preserve`, `always-parenthesise`, `omit-when-possible` | `omit-when-possible`   | Parentheses around a single untyped parameter     | `omit-when-possible`: `(x) -> x` becomes `x -> x`                    |
-| `lambdas.body-braces`                   | `BracePolicy`                                           | `when-multi-statement` | Braces around a lambda body                       | `never`: `x -> { return x; }` becomes `x -> x`; `always` is declined |
-| `lambdas.keep-single-expression-inline` | boolean                                                 | `true`                 | Keep a single-expression body on the arrow's line | `true`: `x -> x + 1`                                                 |
-
-- `lambdas.parameter-style = omit-when-possible` drops the parentheses only round exactly one parameter written as a bare name, with no type, no `final` and no annotation. `()`, `(a, b)`, `(int x)` and `(var x)` keep theirs.
-- `lambdas.body-braces` only takes braces off. `{ return e; }` and `{ e(); }` each collapse to the expression body.
-  - Where `e` is a call, an assignment or an increment, the expression body fits both a value-returning and a `void` interface.
-  - A call site overloaded on both, such as `pick(Function)` beside `pick(Consumer)`, then resolves differently or turns ambiguous. Set `preserve` for code that leans on such overloads.
-  - `always` is declined for an expression body, because `x -> e` could need `{ return e; }` or `{ e; }` and the text does not say which.
-
-### `text-blocks`
-
-| Key                                         | Values                                     | Default    | Effect                                                 | Example                                                                   |
-|---------------------------------------------|--------------------------------------------|------------|--------------------------------------------------------|---------------------------------------------------------------------------|
-| `text-blocks.indent-policy`                 | `preserve`, `reindent-to-block`, `minimal` | `preserve` | How incidental indentation is handled                  | `minimal` strips incidental indentation to the opening delimiter's column |
-| `text-blocks.closing-delimiter-on-own-line` | boolean                                    | `false`    | Put the closing delimiter on its own line              | `true`: the value gains the trailing newline that implies                 |
-| `text-blocks.escape-trailing-spaces`        | boolean                                    | `false`    | Make trailing spaces significant by escaping with `\s` | `true`: `text··` becomes `text·\s`                                        |
-
-- `indent-policy` is layout. The language throws away the indentation every line of a block shares, so moving all lines together does not change the string. Verification compares text blocks by the string they denote.
-- `closing-delimiter-on-own-line` and `escape-trailing-spaces` are rewrites, because each changes the string.
-- `escape-trailing-spaces` does nothing below Java 15, where `\s` does not compile.
-  - The first adds the line terminator that a delimiter on its own line implies.
-  - The second makes trailing spaces significant that the language would discard.
-  - Each may change only a line's trailing white space and the final line terminator.
-- Both rewrites are off by default, so a string constant never changes unasked.
-
-### `literals`
-
-| Key                    | Values                       | Default | Effect                                        | Example                            |
-|------------------------|------------------------------|---------|-----------------------------------------------|------------------------------------|
-| `literals.long-suffix` | `preserve`, `upper`          | `upper` | Case of the suffix on long literals           | `upper`: `10l` becomes `10L`       |
-| `literals.hex-digits`  | `preserve`, `upper`, `lower` | `upper` | Case of the digits `a` to `f` in hex literals | `upper`: `0xcafe` becomes `0xCAFE` |
-
-- Both rules change only the case of characters in a numeric literal, never its value.
-- A literal written with a Unicode escape is left alone.
-- `hex-digits` changes the digits `a` to `f` of `0x` integer and hex floating literals. It leaves the `0x` prefix, the `p` exponent and every suffix alone.
-
-### `semicolons`
-
-| Key                           | Values  | Default | Effect                                                   | Example                            |
-|-------------------------------|---------|---------|----------------------------------------------------------|------------------------------------|
-| `semicolons.remove-redundant` | boolean | `true`  | Remove stray semicolons between members and after a type | `true`: `int a;;` becomes `int a;` |
-
-- `remove-redundant` deletes a stray `;` that is an empty declaration, either between the members of a type body or after a top-level type.
-- Empty statements in a method body, the `;` that ends an enum's constants, `for (;;)` and a semicolon with a comment attached are left alone.
-- An enum whose only members after the constants are stray semicolons keeps them.
-
 ### `preservation`
 
-| Key                                             | Values  | Default | Effect                                                   | Example                                                      |
-|-------------------------------------------------|---------|---------|----------------------------------------------------------|--------------------------------------------------------------|
-| `preservation.keep-author-blank-lines`          | boolean | `true`  | Keep blank lines the author placed inside bodies         | `true`: a blank line splitting two statement groups survives |
-| `preservation.max-preserved-blank-lines`        | integer | `1`     | Most consecutive author blank lines kept                 | `1`: two author blank lines collapse to one                  |
-| `preservation.keep-line-break-after-open-paren` | boolean | `false` | Keep a break the author put after an opening parenthesis | `true`: `f(`<br>`········a, b)` stays broken                 |
-| `preservation.keep-simple-blocks-inline`        | boolean | `false` | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                   |
-| `preservation.keep-array-initializer-layout`    | boolean | `false` | Keep the row layout of a hand-arranged array initializer | `true`: a matrix written as one row per line stays that way  |
-| `preservation.respect-existing-chain-breaks`    | boolean | `false` | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken                |
-| `preservation.never-join-lines`                 | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing       |
+| Key                                             | Values  | Default | Effect                                                   | Example                                                     |
+|-------------------------------------------------|---------|---------|----------------------------------------------------------|-------------------------------------------------------------|
+| `preservation.keep-line-break-after-open-paren` | boolean | `false` | Keep a break the author put after an opening parenthesis | `true`: `f(`<br>`········a, b)` stays broken                |
+| `preservation.keep-simple-blocks-inline`        | boolean | `false` | Keep a block the author wrote on one line on one line    | `true`: `if (x) { return; }` is left alone                  |
+| `preservation.keep-simple-methods-inline`       | boolean | `false` | Allow a whole short method to stay on one line           | `true`: `int x() { return x; }`                             |
+| `preservation.keep-simple-lambdas-inline`       | boolean | `false` | Allow a short lambda body to stay on one line            | `true`: `x -> { return x + 1; }`                            |
+| `preservation.keep-simple-classes-inline`       | boolean | `false` | Allow a short class body to stay on one line             | `true`: `class A { int x; }`                                |
+| `preservation.keep-case-null-default-inline`    | boolean | `true`  | Keep `case null, default` on a single line               | `true`: `case null, default -> f();`                        |
+| `preservation.keep-array-initializer-layout`    | boolean | `false` | Keep the row layout of a hand-arranged array initializer | `true`: a matrix written as one row per line stays that way |
+| `preservation.respect-existing-chain-breaks`    | boolean | `false` | Keep breaks the author placed in a method chain          | `true`: a chain the author broke stays broken               |
+| `preservation.never-join-lines`                 | boolean | `false` | Never merge two lines the author kept apart              | `true` would make every author line break load-bearing      |
 
-- These rules elsewhere also keep what the author wrote:
-  - `wrapping.keep-simple-{methods,lambdas,classes}-on-one-line`
-  - `patterns.keep-simple-pattern-inline`
-  - `switch.null-default-on-one-line`
-  - `wrapping.throws-clause = preserve`
+- The `preserve` value of `wrapping.instanceof` and `wrapping.throws-clause` also keeps what the author wrote.
+- `blank-lines.max-consecutive` caps the blank lines the author wrote. `0` drops them all.
 - A construct is on one line when no line terminator falls between its first token and its last character.
 - A comment the author kept inline is part of that line. A `//` comment ends the line, so a body carrying one was never on one line and is laid out like any other.
 - `never-join-lines` applies wherever there is a wrapping decision.
 
-### `arrays`
+### `imports`
 
-| Key                       | Values             | Default | Effect                                            | Example                                     |
-|---------------------------|--------------------|---------|---------------------------------------------------|---------------------------------------------|
-| `arrays.c-style-brackets` | `preserve`, `java` | `java`  | Placement of array brackets on declared variables | `java`: `int a[], b[]` becomes `int[] a, b` |
+| Key                                 | Values                                | Default                  | Effect                                                                                                                                                                       | Example                                                                                                  |
+|-------------------------------------|---------------------------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `imports.groups`                    | list of prefixes or prefix lists      | `["java", "javax", "*"]` | Import groups, in order; an entry is one prefix or a list of prefixes that share a group, and `*` is the catch-all. The longest matching prefix wins wherever it is declared | `[["net.minecraft", "net.minecraftforge"], "*"]` puts the game in one group and everything else after it |
+| `imports.order`                     | `preserve`, `ascending`, `descending` | `ascending`              | Sort order applied within a group; `preserve` leaves the whole run alone, which also switches off grouping, static placement and module ordering                             | `ascending`: `import a.A;` before `import b.B;`                                                          |
+| `imports.static-placement`          | `first`, `last`, `inline`             | `last`                   | Where static imports sit relative to ordinary ones                                                                                                                           | `first`: the `import static` block precedes every ordinary import                                        |
+| `imports.blank-line-between-groups` | boolean                               | `true`                   | Separate import groups with a blank line                                                                                                                                     | `true`: `import java.util.List;`<br>``<br>`import org.x.Y;`                                              |
+| `imports.remove-unused`             | boolean                               | `false`                  | Delete imports the file does not reference                                                                                                                                   | `true`: an import named nowhere in the file, comments and Javadoc included, is dropped                   |
+| `imports.module-imports-first`      | boolean                               | `true`                   | Place module imports before every other import                                                                                                                               | `true`: `import module java.base;` heads the block                                                       |
 
-- `java` moves brackets from fields, locals and parameters onto the type.
-- Method return brackets, varargs, annotated brackets and brackets with comments stay.
-- A declaration with several declarators changes only when every declarator has the same brackets.
+- `imports.order = preserve` leaves the imports exactly as written and switches off every other rule in this group.
+- A `groups` array may run over several lines and carry comments:
+
+```toml
+[imports]
+order = "ascending"
+groups = [
+    "com.cleanroommc",
+    "*",
+    ["net.minecraft", "net.minecraftforge", "com.mojang"],
+    ["javax", "java"],
+]
+```
 
 ### `members`
 
-| Key             | Values                 | Default    | Effect                                 | Example                                         |
-|-----------------|------------------------|------------|----------------------------------------|-------------------------------------------------|
-| `members.order` | `preserve`, `intellij` | `intellij` | Ordering of the members of a type body | `intellij`: a static field moves above a method |
-| `members.field-order` | list of field kinds or kind lists | `["static-final", "static", "final", "instance"]` | Ranking of field kinds: `static-final`, `static`, `final` and `instance` | `["instance", "final", "static", "static-final"]` puts instance fields first |
-| `members.visibility-order` | list of access levels or level lists | `["public", "protected", "package-private", "private"]` | Ranking of access levels for fields and methods sorted by visibility | `["private", "package-private", "protected", "public"]` puts private members first |
-| `members.field-visibility-order` | boolean | `true` | Sort fields of one kind by visibility within their group, in `members.visibility-order` | `true`: `public int a;` before `private int b;` |
-| `members.method-visibility-order` | boolean | `true` | Sort methods of one kind by visibility within their group, in `members.visibility-order` | `true`: `public void a();` before `private void b();` |
+| Key                               | Values                               | Default                                                 | Effect                                                                                    | Example                                                                            |
+|-----------------------------------|--------------------------------------|---------------------------------------------------------|-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| `members.order`                   | `preserve`, `intellij`               | `intellij`                                              | Ordering of the members of a type body                                                    | `intellij`: a static field moves above a method                                    |
+| `members.field-order`             | list of field kinds or kind lists    | `["static-final", "static", "final", "instance"]`       | Ranking of field kinds: `static-final`, `static`, `final` and `instance`                  | `["instance", "final", "static", "static-final"]` puts instance fields first       |
+| `members.visibility-order`        | list of access levels or level lists | `["public", "protected", "package-private", "private"]` | Ranking of access levels for fields and methods sorted by visibility                      | `["private", "package-private", "protected", "public"]` puts private members first |
+| `members.field-visibility-order`  | boolean                              | `true`                                                  | Sort fields of one kind by visibility within their group, in `members.visibility-order`   | `true`: `public int a;` before `private int b;`                                    |
+| `members.method-visibility-order` | boolean                              | `true`                                                  | Sort methods of one kind by visibility within their group, in `members.visibility-order`  | `true`: `public void a();` before `private void b();`                              |
+| `members.keep-overloads-together` | boolean                              | `true`                                                  | Keep methods of one name and staticness side by side, where the best-ranked of them sorts | `true`: `public void run()` is followed by `private void run(int n)`               |
 
 - `intellij` sorts each type body by IntelliJ IDEA's default arrangement. Members of one group keep the order they were written in.
 - The groups, in order:
@@ -765,10 +625,119 @@ The four `inherit` rules follow the matching class brace, empty-body and blank-l
   13. inner classes
 - `members.field-order` reorders the four field groups. A static initializer follows the last static field group, and an instance initializer the last instance one.
 - Fields and methods are ordered by access within their group, in `members.visibility-order`. `members.field-visibility-order` and `members.method-visibility-order` turn either kind's visibility sorting off independently.
+- `members.keep-overloads-together` moves every overload up to the best-ranked one of its name and staticness, so access sorting never splits them. A static and an instance method of one name stay in their own groups.
 - In both lists, kinds written as one inner list rank equal and keep their source order, and a kind left out ranks after every listed one.
 - A member moves with its comments and annotations, and enum constants stay first.
 - A body is left alone when it holds a formatter-off region or a stray semicolon.
 - A body is left alone, with a warning, when the sort would swap two field initializers or initializer blocks whose order matters. Two fields may swap only when their initializers are built from literals, operators, casts, array initializers and names, and neither names the other.
+
+### `modifiers`
+
+| Key                             | Values                  | Default     | Effect                                                                          | Example                                                                     |
+|---------------------------------|-------------------------|-------------|---------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| `modifiers.order`               | `preserve`, `canonical` | `canonical` | Ordering of declaration modifiers                                               | `canonical`: `static public` becomes `public static`                        |
+| `modifiers.visibility-position` | `first`, `last`         | `first`     | Where the access modifier sits among the other modifiers in the canonical order | `last`: `public static final` becomes `static final public`                 |
+| `modifiers.remove-redundant`    | boolean                 | `true`      | Remove modifiers the JLS makes implicit                                         | `true`: `public abstract void run();` in an interface becomes `void run();` |
+
+- `canonical` uses the per-declaration orders documented in `ModifierRules`.
+  - Annotations keep their source order and their positions among the modifiers.
+  - A comment or Javadoc in front of the declaration stays in front of it while the keywords move.
+  - Modifier lists with comments between the modifiers, duplicates or malformed modifiers stay unchanged.
+- `modifiers.remove-redundant` removes only what the JLS implies. A modifier that carries a comment stays.
+- Below Java 9, `final` stays on a private method that carries `@SafeVarargs`, because the annotation needs it there.
+  - `public` and bodiless `abstract` on interface methods
+  - `public static final` on interface fields
+  - `public static` on interface member types
+  - `static` on nested enums, records and interfaces
+  - `final` on records and on private methods
+  - `private` on enum constructors
+  - `final` on try-with-resources variables
+
+### `declarations`
+
+| Key                                        | Values                                | Default    | Effect                                                                                                                    | Example                                                  |
+|--------------------------------------------|---------------------------------------|------------|---------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| `declarations.split-variables`             | boolean                               | `false`    | Split a declaration of several variables into one declaration per variable, repeating the modifiers, annotations and type | `true`: `int a, b = 2;` becomes `int a;`<br>`int b = 2;` |
+| `declarations.array-brackets`              | `preserve`, `java`                    | `java`     | Placement of array brackets on declared variables                                                                         | `java`: `int a[], b[]` becomes `int[] a, b`              |
+| `declarations.permits-order`               | `preserve`, `ascending`, `descending` | `preserve` | Sort order of the types in a permits clause                                                                               | `ascending`: `permits A, B, C`                           |
+| `declarations.remove-redundant-semicolons` | boolean                               | `true`     | Remove stray semicolons between members and after a type                                                                  | `true`: `int a;;` becomes `int a;`                       |
+| `declarations.require-enum-semicolon`      | boolean                               | `false`    | Always write a semicolon after the last no-argument enum constant                                                         | `true`: `enum E { A, B; }` / `false`: `enum E { A, B }`  |
+
+- `declarations.split-variables` splits both fields and local variables. Everything above the first declarator — modifiers, annotations, the type — is written again for each variable.
+- A Javadoc comment or other comment riding on the head prints once, on the first declaration. A comma that carries a comment of its own has nowhere to go once the comma goes, so the whole declaration is declined.
+- Array brackets written beside a name belong to that variable alone: `int a[], b;` splits to `int[] a;` and `int b;`, the brackets moving onto the type they now describe.
+- A declarator carrying its own annotation declines the split, since what that annotation applies to is the author's to spell out.
+- A for statement's init declarations are not split, because they take commas, not semicolons.
+- `declarations.array-brackets = java` moves brackets from fields, locals and parameters onto the type.
+  - Method return brackets, varargs, annotated brackets and brackets with comments stay.
+  - A declaration with several declarators changes only when every declarator has the same brackets.
+- `declarations.permits-order` replaces the clause as one declared edit whose tokens are a permutation of the originals, so no permitted type can go missing or appear.
+- `declarations.remove-redundant-semicolons` deletes a stray `;` that is an empty declaration, either between the members of a type body or after a top-level type.
+  - Empty statements in a method body, the `;` that ends an enum's constants, `for (;;)` and a semicolon with a comment attached are left alone.
+  - An enum whose only members after the constants are stray semicolons keeps them.
+
+### `literals`
+
+| Key                                 | Values                       | Default    | Effect                                                                                               | Example                                       |
+|-------------------------------------|------------------------------|------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------|
+| `literals.long-suffix`              | `preserve`, `upper`          | `upper`    | Case of the suffix on long literals                                                                  | `upper`: `10l` becomes `10L`                  |
+| `literals.hex-digits`               | `preserve`, `upper`, `lower` | `upper`    | Case of the digits `a` to `f` in hex literals                                                        | `upper`: `0xcafe` becomes `0xCAFE`            |
+| `literals.float-suffix`             | `preserve`, `upper`, `lower` | `preserve` | Case of the suffix on float and double literals                                                      | `upper`: `1.5f` becomes `1.5F`                |
+| `literals.digit-grouping-threshold` | integer                      | `0`        | Digits a decimal integer literal needs before underscores group it in threes. `0` turns grouping off | `5`: `100000` becomes `100_000`, `1234` stays |
+
+- Every rule changes only the case of characters in a numeric literal, or the underscores between its digits, never its value.
+- A literal written with a Unicode escape is left alone.
+- `hex-digits` changes the digits `a` to `f` of `0x` integer and hex floating literals. It leaves the `0x` prefix, the `p` exponent and every suffix alone.
+- `float-suffix` recases a trailing `f` or `d`. In a hex literal those letters are digits unless a `p` exponent comes before them.
+- `digit-grouping-threshold` groups plain decimal integers only. A literal that already has underscores, a hex, octal or binary literal, and a floating-point literal keep their form.
+
+### `lambdas`
+
+| Key                       | Values                                                  | Default              | Effect                                        | Example                                           |
+|---------------------------|---------------------------------------------------------|----------------------|-----------------------------------------------|---------------------------------------------------|
+| `lambdas.parameter-style` | `preserve`, `always-parenthesise`, `omit-when-possible` | `omit-when-possible` | Parentheses around a single untyped parameter | `omit-when-possible`: `(x) -> x` becomes `x -> x` |
+
+- `lambdas.parameter-style = omit-when-possible` drops the parentheses only round exactly one parameter written as a bare name, with no type, no `final` and no annotation. `()`, `(a, b)`, `(int x)` and `(var x)` keep theirs.
+- `braces.lambda-body` only takes braces off. `{ return e; }` and `{ e(); }` each collapse to the expression body.
+  - Where `e` is a call, an assignment or an increment, the expression body fits both a value-returning and a `void` interface.
+  - A call site overloaded on both, such as `pick(Function)` beside `pick(Consumer)`, then resolves differently or turns ambiguous. Set `preserve` for code that leans on such overloads.
+  - `always` is declined for an expression body, because `x -> e` could need `{ return e; }` or `{ e; }` and the text does not say which.
+
+### `switch`
+
+| Key                  | Values                                                 | Default                    | Effect                                         | Example                                                                     |
+|----------------------|--------------------------------------------------------|----------------------------|------------------------------------------------|-----------------------------------------------------------------------------|
+| `switch.case-style`  | `preserve`, `arrow`, `colon`                           | `arrow`                    | Arrow or colon case labels                     | `arrow`: `case 1: f(); break;` becomes `case 1 -> f();`                     |
+| `switch.yield-style` | `preserve`, `expression-when-possible`, `always-block` | `expression-when-possible` | How the value of an arrow case body is written | `expression-when-possible`: `case 1 -> { yield x; }` becomes `case 1 -> x;` |
+
+- `braces.arrow-case-body` governs statement switches, where an arrow body is a statement and its braces are only braces.
+- `switch.yield-style` governs expression switches, where braces round an arrow body bring a `yield` with them.
+- Neither rule touches the other's cases.
+- `never` and `when-multi-statement` coincide on an arrow case, because a block holding more than one statement has no unbraced form.
+- `yield-style = always-block` leaves a `throw` body alone, because a `throw` produces no value.
+- `switch.case-style = "arrow"` does nothing below Java 14, where arrow cases do not compile. See [Language Level](#language-level).
+- `switch.case-style` reads the whole switch first and converts it only when every condition below holds. A switch is converted wholly or left alone, because mixing the two forms does not compile.
+  - Every group ends where it cannot fall through. That is an unlabelled `break`, which the rule removes, or a `return`, `throw`, `yield` or `continue`, which it keeps. The last group needs no terminator.
+  - No `break` belonging to the switch is buried inside a group. A `break` inside a nested loop or switch binds to that and does not count.
+  - No group declares a local variable or local type at its own level, because the groups of a colon switch share one scope and arrow cases do not.
+  - A `default`, and a label carrying a `when` guard, are never merged with the empty cases above them.
+  - `colon` converts only expression and `throw` bodies, because a block body would need a `break` after it.
+
+### `text-blocks`
+
+| Key                                         | Values                                     | Default    | Effect                                                 | Example                                                                   |
+|---------------------------------------------|--------------------------------------------|------------|--------------------------------------------------------|---------------------------------------------------------------------------|
+| `text-blocks.indent-policy`                 | `preserve`, `reindent-to-block`, `minimal` | `preserve` | How incidental indentation is handled                  | `minimal` strips incidental indentation to the opening delimiter's column |
+| `text-blocks.closing-delimiter-on-own-line` | boolean                                    | `false`    | Put the closing delimiter on its own line              | `true`: the value gains the trailing newline that implies                 |
+| `text-blocks.escape-trailing-spaces`        | boolean                                    | `false`    | Make trailing spaces significant by escaping with `\s` | `true`: `text··` becomes `text·\s`                                        |
+
+- `indent-policy` is layout. The language throws away the indentation every line of a block shares, so moving all lines together does not change the string. Verification compares text blocks by the string they denote.
+- `closing-delimiter-on-own-line` and `escape-trailing-spaces` are rewrites, because each changes the string.
+- `escape-trailing-spaces` does nothing below Java 15, where `\s` does not compile.
+  - The first adds the line terminator that a delimiter on its own line implies.
+  - The second makes trailing spaces significant that the language would discard.
+  - Each may change only a line's trailing white space and the final line terminator.
+- Both rewrites are off by default, so a string constant never changes unasked.
 
 ## Design
 

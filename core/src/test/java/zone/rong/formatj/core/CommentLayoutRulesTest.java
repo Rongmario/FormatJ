@@ -9,7 +9,11 @@ import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
 import zone.rong.formatj.api.rules.AlignmentPolicy;
+import zone.rong.formatj.api.rules.AlignmentRules;
+import zone.rong.formatj.api.rules.CommentRules;
+import zone.rong.formatj.api.rules.PreservationRules;
 import zone.rong.formatj.api.rules.WrapPolicy;
+import zone.rong.formatj.api.rules.WrappingRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,11 +54,11 @@ class CommentLayoutRulesTest {
     void trailingCommentsArePaddedToTheConfiguredColumn() {
         String source = "class A {\n\n    private int x; // one\n    private String name; // two\n\n}\n";
 
-        String formatted = format(source, style -> style.comments(comments -> comments.trailingCommentColumn(40)));
+        String formatted = format(source, style -> style.set(CommentRules.TRAILING_COMMENT_COLUMN, 40));
 
         assertEquals(40, commentColumn(formatted, "private int x;"));
         assertEquals(40, commentColumn(formatted, "private String name;"));
-        assertFixedPoint(source, style -> style.comments(comments -> comments.trailingCommentColumn(40)));
+        assertFixedPoint(source, style -> style.set(CommentRules.TRAILING_COMMENT_COLUMN, 40));
     }
 
     @Test
@@ -71,7 +75,7 @@ class CommentLayoutRulesTest {
     void aLineAlreadyPastTheColumnKeepsItsOrdinarySpacing() {
         String source = "class A {\n\n    private String aVeryLongFieldNameIndeed; // note\n\n}\n";
 
-        String formatted = format(source, style -> style.comments(comments -> comments.trailingCommentColumn(20)));
+        String formatted = format(source, style -> style.set(CommentRules.TRAILING_COMMENT_COLUMN, 20));
 
         assertTrue(formatted.contains("aVeryLongFieldNameIndeed; // note"), formatted);
         assertTrue(commentColumn(formatted, "aVeryLongFieldNameIndeed;") > 20, formatted);
@@ -79,12 +83,13 @@ class CommentLayoutRulesTest {
 
     @Test
     void alignmentCanStillPushARunPastTheColumn() {
-        String source = "class A {\n\n    private int x; // one\n    private String aVeryLongFieldNameIndeed; // two\n\n}\n";
+        String source = "class A {\n\n    private int x; // one\n" +
+            "    private String aVeryLongFieldNameIndeed; // two\n\n}\n";
 
         String formatted = format(
             source,
-            style -> style.comments(comments -> comments.trailingCommentColumn(40))
-                .alignment(alignment -> alignment.trailingComments(AlignmentPolicy.ALIGN_ON_COLUMN))
+            style -> style.set(CommentRules.TRAILING_COMMENT_COLUMN, 40)
+                .set(AlignmentRules.TRAILING_COMMENTS, AlignmentPolicy.ALIGN_ON_COLUMN)
         );
 
         int first = commentColumn(formatted, "private int x;");
@@ -99,7 +104,8 @@ class CommentLayoutRulesTest {
 
         String formatted = format(
             source,
-            style -> style.comments(comments -> comments.trailingCommentColumn(40).trailingCommentMinSpaces(2))
+            style -> style.set(CommentRules.TRAILING_COMMENT_COLUMN, 40)
+                .set(CommentRules.TRAILING_COMMENT_MIN_SPACES, 2)
         );
 
         assertEquals(40, commentColumn(formatted, "private int x;"));
@@ -140,10 +146,10 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        String formatted = format(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
 
         assertTrue(formatted.contains("    void f() {\n// note\n        int x = 1;"), formatted);
-        assertFixedPoint(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        assertFixedPoint(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
     }
 
     @Test
@@ -159,7 +165,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        String formatted = format(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
 
         assertTrue(formatted.contains("    void f() {\n/* note */\n        int x = 1;"), formatted);
     }
@@ -177,7 +183,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        String formatted = format(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
 
         assertTrue(formatted.contains("        int x = 1;\n// end\n    }"), formatted);
     }
@@ -196,7 +202,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        String formatted = format(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
 
         assertTrue(formatted.contains("    void f() {\n// keep\n        // move\n        int x = 1;"), formatted);
     }
@@ -214,10 +220,10 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.indentWithCode(false)));
+        String formatted = format(source, style -> style.set(CommentRules.INDENT_WITH_CODE, false));
 
         assertTrue(formatted.contains("    void f() {\n  // two\n        int x = 1;"), formatted);
-        assertFixedPoint(source, style -> style.comments(comments -> comments.indentWithCode(false)));
+        assertFixedPoint(source, style -> style.set(CommentRules.INDENT_WITH_CODE, false));
     }
 
     @Test
@@ -252,7 +258,7 @@ class CommentLayoutRulesTest {
                 }
                 """;
 
-        String formatted = format(source, style -> style.comments(comments -> comments.keepFirstColumnComments(true)));
+        String formatted = format(source, style -> style.set(CommentRules.KEEP_FIRST_COLUMN_COMMENTS, true));
 
         assertTrue(formatted.contains("        if (ready) {\n// keep\n            return;"), formatted);
     }
@@ -270,10 +276,11 @@ class CommentLayoutRulesTest {
 
                 }
                 """;
-        Consumer<StyleBuilder> configure = style -> style.wrapping(wrapping -> wrapping.arrayInitializers(
+        Consumer<StyleBuilder> configure = style -> style.set(
+            WrappingRules.ARRAY_INITIALIZERS,
             WrapPolicy.CHOP_DOWN_IF_LONG
-        ))
-            .preservation(preservation -> preservation.keepArrayInitializerLayout(false));
+        )
+            .set(PreservationRules.KEEP_ARRAY_INITIALIZER_LAYOUT, false);
 
         assertEquals(source, format(source, configure));
         assertFixedPoint(source, configure);
@@ -293,9 +300,10 @@ class CommentLayoutRulesTest {
 
                 }
                 """;
-        Consumer<StyleBuilder> configure = style -> style.wrapping(wrapping -> wrapping.methodArguments(
+        Consumer<StyleBuilder> configure = style -> style.set(
+            WrappingRules.METHOD_ARGUMENTS,
             WrapPolicy.CHOP_DOWN_IF_LONG
-        ));
+        );
 
         assertEquals(source, format(source, configure));
         assertFixedPoint(source, configure);
@@ -331,7 +339,8 @@ class CommentLayoutRulesTest {
 
     @Test
     void aJavadocLineWithoutAStarKeepsItsIndentation() {
-        String source = "class A {\n  /**\n * Sample:\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n */\n  void m() {}\n}\n";
+        String source = "class A {\n  /**\n * Sample:\n<pre>{@code\n// note\nif (a) {\n    x();\n}\n}</pre>\n */\n" +
+            "  void m() {}\n}\n";
 
         String formatted = format(source, style -> { });
 
@@ -372,6 +381,40 @@ class CommentLayoutRulesTest {
         String formatted = format(source, style -> { });
 
         assertTrue(formatted.contains("return\n            // note\n            a;"), formatted);
+    }
+
+    @Test
+    void lineCommentProseIsSpacedFromItsSlashes() {
+        String source = """
+                class A {
+
+                    void f() {
+                        //TODO tidy this up
+                        //foo();
+                        //if (x) {
+                        //----------
+                        //noinspection unchecked
+                        g(); //trailing note
+                    }
+
+                }
+                """;
+        String expected = """
+                class A {
+
+                    void f() {
+                        // TODO tidy this up
+                        //foo();
+                        //if (x) {
+                        //----------
+                        //noinspection unchecked
+                        g(); // trailing note
+                    }
+
+                }
+                """;
+        assertEquals(expected, format(source, style -> style.set(CommentRules.SPACE_AFTER_LINE_COMMENT, true)));
+        assertEquals(source, format(source, style -> { }));
     }
 
 }

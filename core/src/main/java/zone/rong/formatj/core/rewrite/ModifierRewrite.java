@@ -183,16 +183,16 @@ public final class ModifierRewrite implements Rewrite {
         };
     }
 
+    private static List<String> order(SyntaxKind kind, VisibilityPosition position) {
+        List<String> canonical = order(kind);
+        return canonical != null && position == VisibilityPosition.LAST ? visibilityLast(canonical) : canonical;
+    }
+
     private static List<String> visibilityLast(List<String> order) {
         List<String> moved = new ArrayList<>(order);
         moved.removeAll(VISIBILITY);
         moved.addAll(VISIBILITY.stream().filter(order::contains).toList());
         return moved;
-    }
-
-    private static List<String> order(SyntaxKind kind, VisibilityPosition position) {
-        List<String> canonical = order(kind);
-        return canonical != null && position == VisibilityPosition.LAST ? visibilityLast(canonical) : canonical;
     }
 
     /** The modifiers in {@code order}, or the same node when they already are or cannot be sorted. */

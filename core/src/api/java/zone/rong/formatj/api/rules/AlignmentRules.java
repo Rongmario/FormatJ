@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /** Column alignment of runs of related lines. */
 public final class AlignmentRules {
@@ -55,56 +54,5 @@ public final class AlignmentRules {
     );
 
     private AlignmentRules() { }
-
-    /** Fluent view of the {@code alignment.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder consecutiveFields(AlignmentPolicy value) {
-            style.set(CONSECUTIVE_FIELDS, value);
-            return this;
-        }
-
-        public Builder consecutiveVariables(AlignmentPolicy value) {
-            style.set(CONSECUTIVE_VARIABLES, value);
-            return this;
-        }
-
-        public Builder consecutiveAssignments(AlignmentPolicy value) {
-            style.set(CONSECUTIVE_ASSIGNMENTS, value);
-            return this;
-        }
-
-        public Builder methodChains(AlignmentPolicy value) {
-            style.set(METHOD_CHAINS, value);
-            return this;
-        }
-
-        public Builder annotationValues(AlignmentPolicy value) {
-            style.set(ANNOTATION_VALUES, value);
-            return this;
-        }
-
-        public Builder switchArrows(AlignmentPolicy value) {
-            style.set(SWITCH_ARROWS, value);
-            return this;
-        }
-
-        public Builder ternaryBranches(AlignmentPolicy value) {
-            style.set(TERNARY_BRANCHES, value);
-            return this;
-        }
-
-        public Builder trailingComments(AlignmentPolicy value) {
-            style.set(TRAILING_COMMENTS, value);
-            return this;
-        }
-
-    }
 
 }

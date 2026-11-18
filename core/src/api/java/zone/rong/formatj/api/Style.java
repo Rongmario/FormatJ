@@ -38,10 +38,13 @@ public final class Style {
         return builder;
     }
 
-    /** The effective value of an option: what was set, or the option's default. */
+    /** The effective value of an option: what was set, else its parent's value, else its default. */
     public <T> T get(Option<T> option) {
         Object value = values.get(option.key());
-        return value == null ? option.defaultValue() : option.cast(value);
+        if (value != null) {
+            return option.cast(value);
+        }
+        return option.parent().map(this::get).orElseGet(option::defaultValue);
     }
 
     /** Whether this style sets the option explicitly rather than inheriting its default. */

@@ -9,7 +9,6 @@ import java.util.Optional;
 
 import zone.rong.formatj.api.rules.AlignmentRules;
 import zone.rong.formatj.api.rules.AnnotationRules;
-import zone.rong.formatj.api.rules.ArrayRules;
 import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.CommentRules;
@@ -22,12 +21,7 @@ import zone.rong.formatj.api.rules.LambdaRules;
 import zone.rong.formatj.api.rules.LiteralRules;
 import zone.rong.formatj.api.rules.MemberRules;
 import zone.rong.formatj.api.rules.ModifierRules;
-import zone.rong.formatj.api.rules.ModuleRules;
-import zone.rong.formatj.api.rules.PatternRules;
 import zone.rong.formatj.api.rules.PreservationRules;
-import zone.rong.formatj.api.rules.RecordRules;
-import zone.rong.formatj.api.rules.SealedRules;
-import zone.rong.formatj.api.rules.SemicolonRules;
 import zone.rong.formatj.api.rules.SpacingRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.TextBlockRules;
@@ -52,23 +46,17 @@ public final class OptionRegistry {
         new Group("blank-lines", BlankLineRules.class),
         new Group("alignment", AlignmentRules.class),
         new Group("annotations", AnnotationRules.class),
-        new Group("imports", ImportRules.class),
         new Group("comments", CommentRules.class),
         new Group("javadoc", JavadocRules.class),
-        new Group("module", ModuleRules.class),
-        new Group("modifiers", ModifierRules.class),
-        new Group("switch", SwitchRules.class),
-        new Group("records", RecordRules.class),
-        new Group("patterns", PatternRules.class),
-        new Group("sealed", SealedRules.class),
-        new Group("lambdas", LambdaRules.class),
-        new Group("text-blocks", TextBlockRules.class),
-        new Group("literals", LiteralRules.class),
-        new Group("semicolons", SemicolonRules.class),
         new Group("preservation", PreservationRules.class),
-        new Group("arrays", ArrayRules.class),
+        new Group("imports", ImportRules.class),
+        new Group("members", MemberRules.class),
+        new Group("modifiers", ModifierRules.class),
         new Group("declarations", DeclarationRules.class),
-        new Group("members", MemberRules.class)
+        new Group("literals", LiteralRules.class),
+        new Group("lambdas", LambdaRules.class),
+        new Group("switch", SwitchRules.class),
+        new Group("text-blocks", TextBlockRules.class)
     );
 
     static {

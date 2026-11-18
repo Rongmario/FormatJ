@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import zone.rong.formatj.api.rules.BracePolicy;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.SwitchRules;
 import zone.rong.formatj.api.rules.YieldStyle;
 import zone.rong.formatj.core.cst.GreenNode;
@@ -19,7 +20,7 @@ import zone.rong.formatj.core.cst.SyntaxKind;
  * are one decision, not two, and it belongs to {@code switch.yield-style}.
  *
  * <p>That is the split, and it is what keeps one token from having two rules with an opinion about
- * it: {@code switch.arrow-case-braces} governs statement switches, {@code switch.yield-style}
+ * it: {@code braces.arrow-case-body} governs statement switches, {@code switch.yield-style}
  * governs expression switches, and neither is consulted about the other's cases.
  *
  * <h2>What is declined</h2>
@@ -44,7 +45,7 @@ public final class SwitchRewrite implements Rewrite {
 
     @Override
     public boolean enabled(RewriteContext context) {
-        return context.rule(SwitchRules.ARROW_CASE_BRACES) != BracePolicy.PRESERVE ||
+        return context.rule(BraceRules.ARROW_CASE_BODY) != BracePolicy.PRESERVE ||
             context.rule(SwitchRules.YIELD_STYLE) != YieldStyle.PRESERVE;
     }
 
@@ -101,7 +102,7 @@ public final class SwitchRewrite implements Rewrite {
     // ------------------------------------------------- statement switch braces
 
     private GreenNode rewriteStatementBody(GreenNode body, RewriteContext context) {
-        BracePolicy policy = context.rule(SwitchRules.ARROW_CASE_BRACES);
+        BracePolicy policy = context.rule(BraceRules.ARROW_CASE_BODY);
         if (policy == BracePolicy.PRESERVE) {
             return body;
         }
@@ -120,19 +121,13 @@ public final class SwitchRewrite implements Rewrite {
         }
         String reason = "braces added around an arrow case body";
         context.record(TokenEdit.insert(
-            SwitchRules.ARROW_CASE_BRACES,
+            BraceRules.ARROW_CASE_BODY,
             reason,
             start,
             TokenEdit.Bias.OUTERMOST_FIRST,
             "{"
         ));
-        context.record(TokenEdit.insert(
-            SwitchRules.ARROW_CASE_BRACES,
-            reason,
-            end,
-            TokenEdit.Bias.INNERMOST_FIRST,
-            "}"
-        ));
+        context.record(TokenEdit.insert(BraceRules.ARROW_CASE_BODY, reason, end, TokenEdit.Bias.INNERMOST_FIRST, "}"));
         return GreenNode.branch(SyntaxKind.BLOCK, List.of(Synthetic.separator("{"), body, Synthetic.separator("}")));
     }
 
@@ -160,8 +155,8 @@ public final class SwitchRewrite implements Rewrite {
             return body;
         }
         String reason = "braces removed from a single-statement arrow case body";
-        context.record(TokenEdit.delete(SwitchRules.ARROW_CASE_BRACES, reason, openPosition, "{"));
-        context.record(TokenEdit.delete(SwitchRules.ARROW_CASE_BRACES, reason, closePosition, "}"));
+        context.record(TokenEdit.delete(BraceRules.ARROW_CASE_BODY, reason, openPosition, "{"));
+        context.record(TokenEdit.delete(BraceRules.ARROW_CASE_BODY, reason, closePosition, "}"));
         return only;
     }
 

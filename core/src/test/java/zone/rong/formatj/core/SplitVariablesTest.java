@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import zone.rong.formatj.api.FormatRequest;
 import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Style;
+import zone.rong.formatj.api.rules.DeclarationRules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SplitVariablesTest {
 
-    private static final Style ON = Style.builder().declarations(d -> d.splitVariables(true)).build();
+    private static final Style ON = Style.builder().set(DeclarationRules.SPLIT_VARIABLES, true).build();
 
     private static String format(String source, Style style) {
         FormatResult result = FormatJ.newFormatter()

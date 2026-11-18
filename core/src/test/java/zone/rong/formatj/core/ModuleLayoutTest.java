@@ -8,9 +8,12 @@ import zone.rong.formatj.api.FormatResult;
 import zone.rong.formatj.api.Formatter;
 import zone.rong.formatj.api.Style;
 import zone.rong.formatj.api.StyleBuilder;
+import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BracePlacement;
+import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.WrapPolicy;
+import zone.rong.formatj.api.rules.WrappingRules;
 import zone.rong.formatj.core.config.StyleFiles;
 import zone.rong.formatj.core.config.TomlWriter;
 
@@ -37,12 +40,14 @@ class ModuleLayoutTest {
     void emptyModulesInheritClassRulesUntilOverridden() {
         String source = "module sample { }\n";
         Style inherited = Style.builder()
-            .braces(braces -> braces.classPlacement(BracePlacement.NEXT_LINE).emptyClassBody(EmptyBodyStyle.COMPACT))
+            .set(BraceRules.CLASS_PLACEMENT, BracePlacement.NEXT_LINE)
+            .set(BraceRules.EMPTY_CLASS_BODY, EmptyBodyStyle.COMPACT)
             .build();
         assertEquals("module sample\n{}\n", format(source, inherited));
 
         Style overridden = inherited.toBuilder()
-            .modules(module -> module.bracePlacement(BracePlacement.END_OF_LINE).emptyBody(EmptyBodyStyle.EXPANDED))
+            .set(BraceRules.MODULE_PLACEMENT, BracePlacement.END_OF_LINE)
+            .set(BraceRules.EMPTY_MODULE_BODY, EmptyBodyStyle.EXPANDED)
             .build();
         assertEquals("module sample {\n}\n", format(source, overridden));
     }
@@ -51,8 +56,10 @@ class ModuleLayoutTest {
     void moduleBodyBlankLinesCanOverrideClassRulesIndependently() {
         String source = "module sample { requires java.base; }\n";
         Style style = Style.builder()
-            .blankLines(blank -> blank.afterClassOpeningBrace(2).beforeClassClosingBrace(2))
-            .modules(module -> module.blankLinesAfterOpeningBrace(0).blankLinesBeforeClosingBrace(0))
+            .set(BlankLineRules.AFTER_CLASS_OPENING_BRACE, 2)
+            .set(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE, 2)
+            .set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+            .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
             .build();
 
         assertEquals("module sample {\n    requires java.base;\n}\n", format(source, style));
@@ -73,7 +80,8 @@ class ModuleLayoutTest {
                 """;
         String formatted = format(
             source,
-            style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0).blankLinesBeforeClosingBrace(0))
+            style -> style.set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
         );
 
         assertTrue(formatted.startsWith("open module sample {\n"), formatted);
@@ -105,9 +113,9 @@ class ModuleLayoutTest {
                 """;
         String formatted = format(
             source,
-            style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
-                .blankLinesBeforeClosingBrace(0)
-                .blankLinesBetweenDirectiveGroups(1))
+            style -> style.set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(BlankLineRules.BETWEEN_MODULE_DIRECTIVE_GROUPS, 1)
         );
 
         assertTrue(
@@ -142,11 +150,11 @@ class ModuleLayoutTest {
                 """;
         String targets = format(
             source,
-            style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
-                .modules(module -> module.blankLinesAfterOpeningBrace(0)
-                    .blankLinesBeforeClosingBrace(0)
-                    .exportsOpensTargetListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS)
-                    .providesImplementationListWrapping(WrapPolicy.NEVER))
+            style -> style.set(WrappingRules.MAX_LINE_LENGTH, 45)
+                .set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(WrappingRules.EXPORTS_OPENS_TARGETS, WrapPolicy.CHOP_DOWN_ALWAYS)
+                .set(WrappingRules.PROVIDES_IMPLEMENTATIONS, WrapPolicy.NEVER)
         );
 
         assertTrue(
@@ -166,11 +174,11 @@ class ModuleLayoutTest {
 
         String implementations = format(
             source,
-            style -> style.wrapping(wrapping -> wrapping.maxLineLength(45))
-                .modules(module -> module.blankLinesAfterOpeningBrace(0)
-                    .blankLinesBeforeClosingBrace(0)
-                    .exportsOpensTargetListWrapping(WrapPolicy.NEVER)
-                    .providesImplementationListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS))
+            style -> style.set(WrappingRules.MAX_LINE_LENGTH, 45)
+                .set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(WrappingRules.EXPORTS_OPENS_TARGETS, WrapPolicy.NEVER)
+                .set(WrappingRules.PROVIDES_IMPLEMENTATIONS, WrapPolicy.CHOP_DOWN_ALWAYS)
         );
 
         assertTrue(
@@ -196,10 +204,10 @@ class ModuleLayoutTest {
                 """;
         String formatted = format(
             source,
-            style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
-                .blankLinesBeforeClosingBrace(0)
-                .exportsOpensTargetListWrapping(WrapPolicy.PRESERVE)
-                .providesImplementationListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS))
+            style -> style.set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(WrappingRules.EXPORTS_OPENS_TARGETS, WrapPolicy.PRESERVE)
+                .set(WrappingRules.PROVIDES_IMPLEMENTATIONS, WrapPolicy.CHOP_DOWN_ALWAYS)
         );
 
         assertTrue(formatted.indexOf("consumer.alpha") < formatted.indexOf("// primary"), formatted);
@@ -219,9 +227,9 @@ class ModuleLayoutTest {
                 """;
         String formatted = format(
             source,
-            style -> style.modules(module -> module.blankLinesAfterOpeningBrace(0)
-                .blankLinesBeforeClosingBrace(0)
-                .exportsOpensTargetListWrapping(WrapPolicy.PRESERVE))
+            style -> style.set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(WrappingRules.EXPORTS_OPENS_TARGETS, WrapPolicy.PRESERVE)
         );
 
         assertTrue(formatted.contains("exports sample.api to\n        consumer.alpha,"), formatted);
@@ -233,10 +241,10 @@ class ModuleLayoutTest {
             "provides sample.Service with First, Second, Third; }\n";
         for (WrapPolicy policy : WrapPolicy.values()) {
             Style style = Style.builder()
-                .modules(module -> module.blankLinesAfterOpeningBrace(0)
-                    .blankLinesBeforeClosingBrace(0)
-                    .exportsOpensTargetListWrapping(policy)
-                    .providesImplementationListWrapping(policy))
+                .set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+                .set(BlankLineRules.BEFORE_MODULE_CLOSING_BRACE, 0)
+                .set(WrappingRules.EXPORTS_OPENS_TARGETS, policy)
+                .set(WrappingRules.PROVIDES_IMPLEMENTATIONS, policy)
                 .build();
             String once = format(source, style);
             assertEquals(once, format(once, style), policy.name());
@@ -247,20 +255,20 @@ class ModuleLayoutTest {
     void dumpedInheritedModuleRulesReloadWithoutChangingOutput() {
         String source = "module sample { requires java.base; exports sample.api to one, two; }\n";
         Style style = Style.builder()
-            .braces(braces -> braces.classPlacement(BracePlacement.NEXT_LINE))
-            .blankLines(blank -> blank.afterClassOpeningBrace(0).beforeClassClosingBrace(0))
-            .modules(module -> module.emptyBody(EmptyBodyStyle.COMPACT)
-                .blankLinesAfterOpeningBrace(0)
-                .blankLinesBetweenDirectiveGroups(1)
-                .exportsOpensTargetListWrapping(WrapPolicy.CHOP_DOWN_ALWAYS))
+            .set(BraceRules.CLASS_PLACEMENT, BracePlacement.NEXT_LINE)
+            .set(BlankLineRules.AFTER_CLASS_OPENING_BRACE, 0)
+            .set(BlankLineRules.BEFORE_CLASS_CLOSING_BRACE, 0)
+            .set(BraceRules.EMPTY_MODULE_BODY, EmptyBodyStyle.COMPACT)
+            .set(BlankLineRules.AFTER_MODULE_OPENING_BRACE, 0)
+            .set(BlankLineRules.BETWEEN_MODULE_DIRECTIVE_GROUPS, 1)
+            .set(WrappingRules.EXPORTS_OPENS_TARGETS, WrapPolicy.CHOP_DOWN_ALWAYS)
             .build();
 
         String dumped = TomlWriter.write(style);
-        assertTrue(dumped.contains("[module]"), dumped);
-        assertTrue(dumped.contains("brace-placement = inherit"), dumped);
-        assertTrue(dumped.contains("empty-body = compact"), dumped);
-        assertTrue(dumped.contains("blank-lines-after-opening-brace = 0"), dumped);
-        assertTrue(dumped.contains("blank-lines-before-closing-brace = inherit"), dumped);
+        assertTrue(dumped.contains("module-placement = inherit"), dumped);
+        assertTrue(dumped.contains("empty-module-body = compact"), dumped);
+        assertTrue(dumped.contains("after-module-opening-brace = 0"), dumped);
+        assertTrue(dumped.contains("before-module-closing-brace = inherit"), dumped);
 
         Style reloaded = StyleFiles.parse(dumped);
         assertEquals(style.resolvedValues(), reloaded.resolvedValues());

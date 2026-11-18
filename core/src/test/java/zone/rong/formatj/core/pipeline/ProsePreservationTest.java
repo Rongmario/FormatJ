@@ -218,8 +218,10 @@ class ProsePreservationTest {
 
     @Test
     void reorderingIsRefusedUntilTheRuleThatDoesItIsOn() {
-        String before = "class T {\n    /**\n     * @return r\n     * @param a x\n     */\n    int f(int a) { return a; }\n}\n";
-        String after = "class T {\n    /**\n     * @param a x\n     * @return r\n     */\n    int f(int a) { return a; }\n}\n";
+        String before = "class T {\n    /**\n     * @return r\n     * @param a x\n     */\n" +
+            "    int f(int a) { return a; }\n}\n";
+        String after = "class T {\n    /**\n     * @param a x\n     * @return r\n     */\n" +
+            "    int f(int a) { return a; }\n}\n";
         assertNotNull(difference(before, after));
         assertNull(differenceReordering(before, after));
     }

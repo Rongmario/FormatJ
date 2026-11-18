@@ -3,7 +3,6 @@ package zone.rong.formatj.api.rules;
 import java.util.List;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /**
  * The order of members in a type body.
@@ -46,42 +45,12 @@ public final class MemberRules {
         "Sort methods of one kind by visibility within their group, in members.visibility-order"
     );
 
+    public static final Option<Boolean> KEEP_OVERLOADS_TOGETHER = Option.ofBoolean(
+        "members.keep-overloads-together",
+        true,
+        "Keep methods of one name and staticness side by side, where the best-ranked of them sorts"
+    );
+
     private MemberRules() { }
-
-    /** Fluent view of the {@code members.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder order(MemberOrder value) {
-            style.set(ORDER, value);
-            return this;
-        }
-
-        public Builder fieldOrder(List<List<String>> value) {
-            style.set(FIELD_ORDER, value);
-            return this;
-        }
-
-        public Builder visibilityOrder(List<List<String>> value) {
-            style.set(VISIBILITY_ORDER, value);
-            return this;
-        }
-
-        public Builder fieldVisibilityOrder(boolean value) {
-            style.set(FIELD_VISIBILITY_ORDER, value);
-            return this;
-        }
-
-        public Builder methodVisibilityOrder(boolean value) {
-            style.set(METHOD_VISIBILITY_ORDER, value);
-            return this;
-        }
-
-    }
 
 }

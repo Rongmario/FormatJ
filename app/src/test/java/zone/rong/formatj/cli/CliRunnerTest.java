@@ -52,7 +52,8 @@ class CliRunnerTest {
         assertTrue(result.out().contains("[indent]"), result.out());
         assertTrue(result.out().contains("size = 4"), result.out());
         assertTrue(result.out().contains("[switch]"), result.out());
-        assertTrue(result.out().contains("[module]"), result.out());
+        assertTrue(result.out().contains("[declarations]"), result.out());
+        assertTrue(result.out().contains("module-placement = inherit"), result.out());
         assertTrue(result.out().contains("[modifiers]"), result.out());
         assertTrue(result.out().contains("order = preserve"), result.out());
         assertTrue(result.out().contains("max-line-length = 120"), result.out());

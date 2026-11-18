@@ -156,7 +156,9 @@ public sealed interface Doc {
         /** Print flat when the text before the first forced break fits. */
         FIRST_LINE,
         /** Never take the group's breaks: optional breaks inside always print flat. */
-        FORCED_FLAT
+        FORCED_FLAT,
+        /** As {@link #IF_NEEDED}, but break when the line so far holds only closing brackets. */
+        NOT_AFTER_CLOSERS
 
     }
 

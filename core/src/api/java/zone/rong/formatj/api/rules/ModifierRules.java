@@ -1,7 +1,6 @@
 package zone.rong.formatj.api.rules;
 
 import zone.rong.formatj.api.Option;
-import zone.rong.formatj.api.StyleBuilder;
 
 /**
  * Declaration modifier ordering.
@@ -44,31 +43,5 @@ public final class ModifierRules {
     );
 
     private ModifierRules() { }
-
-    /** Fluent view of the {@code modifiers.*} rules. */
-    public static final class Builder {
-
-        private final StyleBuilder style;
-
-        public Builder(StyleBuilder style) {
-            this.style = style;
-        }
-
-        public Builder order(ModifierOrder value) {
-            style.set(ORDER, value);
-            return this;
-        }
-
-        public Builder visibilityPosition(VisibilityPosition value) {
-            style.set(VISIBILITY_POSITION, value);
-            return this;
-        }
-
-        public Builder removeRedundant(boolean value) {
-            style.set(REMOVE_REDUNDANT, value);
-            return this;
-        }
-
-    }
 
 }
