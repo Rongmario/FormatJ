@@ -15,6 +15,7 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.compile.JavaCompile;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import zone.rong.formatj.api.LanguageLevel;
 import zone.rong.formatj.core.config.FileSelection;
@@ -57,7 +58,17 @@ public class FormatJPlugin implements Plugin<Project> {
             return LanguageLevel.LATEST;
         }
         // --release decides the language level over the toolchain, which sourceCompatibility follows.
+        // The toolchain's version is read directly because sourceCompatibility resolves the toolchain,
+        // which fails when that JDK is not installed.
         Integer release = compile.getOptions().getRelease().getOrNull();
+        if (release == null) {
+            release = project.getExtensions()
+                .getByType(JavaPluginExtension.class)
+                .getToolchain()
+                .getLanguageVersion()
+                .map(JavaLanguageVersion::asInt)
+                .getOrNull();
+        }
         if (release == null) {
             release = Integer.valueOf(JavaVersion.toVersion(compile.getSourceCompatibility()).getMajorVersion());
         }

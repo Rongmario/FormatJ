@@ -88,6 +88,12 @@ class FormatJPluginFunctionalTest {
             "java { toolchain { languageVersion = JavaLanguageVersion.of(8) } }"
         );
         Path source = projectDirectory.resolve("src/main/java/sample/Sample.java");
+
+        // Formatting must not need the targeted JDK installed.
+        Files.writeString(
+            projectDirectory.resolve("gradle.properties"),
+            "org.gradle.java.installations.auto-detect=false\n"
+        );
         for (String target : targets) {
             Files.writeString(
                 projectDirectory.resolve("build.gradle.kts"),
