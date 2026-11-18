@@ -10,6 +10,8 @@ public final class Main {
     private Main() { }
 
     public static void main(String[] arguments) {
+        // Core logs through System.Logger, whose default JDK format spends a line on a timestamp.
+        System.setProperty("java.util.logging.SimpleFormatter.format", "formatj: warning: %5$s%n");
         System.exit(run(arguments));
     }
 

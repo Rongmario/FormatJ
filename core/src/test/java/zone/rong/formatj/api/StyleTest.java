@@ -1,10 +1,12 @@
 package zone.rong.formatj.api;
 
 import org.junit.jupiter.api.Test;
+import zone.rong.formatj.api.rules.BlankLineRules;
 import zone.rong.formatj.api.rules.BracePlacement;
 import zone.rong.formatj.api.rules.BracePolicy;
 import zone.rong.formatj.api.rules.BraceRules;
 import zone.rong.formatj.api.rules.ChainPolicy;
+import zone.rong.formatj.api.rules.EmptyBodyStyle;
 import zone.rong.formatj.api.rules.IndentRules;
 import zone.rong.formatj.api.rules.ModifierOrder;
 import zone.rong.formatj.api.rules.ModifierRules;
@@ -81,6 +83,27 @@ class StyleTest {
         assertEquals(ModifierOrder.CANONICAL, style.get(ModifierRules.ORDER));
         assertThrows(IllegalArgumentException.class, () -> Style.builder().setRaw("indent.size", "wide"));
         assertThrows(IllegalArgumentException.class, () -> Style.builder().setRaw("wrapping.chained-calls", "nope"));
+    }
+
+    @Test
+    void legacyKeysTranslateToTheirReplacements() {
+        LegacyKeys.RENAMED.forEach((old, current) -> {
+            assertTrue(OptionRegistry.find(old).isEmpty(), old);
+            assertTrue(OptionRegistry.find(current).isPresent(), current);
+        });
+
+        Style style = Style.builder()
+            .setRaw("sealed.permits-wrapping", "chop-down-always")
+            .setRaw("records.single-line-empty-body", "true")
+            .setRaw("records.compact-constructor-blank-line", "true")
+            .setRaw("preservation.keep-author-blank-lines", "false")
+            .setRaw("patterns.keep-simple-pattern-inline", "true")
+            .build();
+        assertEquals(WrapPolicy.CHOP_DOWN_ALWAYS, style.get(WrappingRules.PERMITS_CLAUSE));
+        assertEquals(EmptyBodyStyle.COMPACT, style.get(BraceRules.EMPTY_RECORD_BODY));
+        assertEquals(1, style.get(BlankLineRules.INSIDE_COMPACT_CONSTRUCTOR));
+        assertEquals(0, style.get(BlankLineRules.MAX_CONSECUTIVE));
+        assertFalse(style.isSet(WrappingRules.INSTANCEOF));
     }
 
     @Test

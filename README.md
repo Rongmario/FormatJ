@@ -20,6 +20,7 @@ One engine and one `formatj.toml` serve every entrypoint.
 - [Rules](#rules)
 - [Design](#design)
 - [Output stability](#output-stability)
+- [Migrating from 1.x](#migrating-from-1x)
 - [Runtime](#runtime)
 - [Building](#building)
 - [Origins](#origins)
@@ -76,7 +77,7 @@ import zone.rong.formatj.api.Preset
 
 plugins {
     java
-    id("zone.rong.formatj") version "1.1.0"
+    id("zone.rong.formatj") version "2.0.0"
 }
 
 formatJ {
@@ -109,7 +110,7 @@ Published to [maven.cleanroommc.com](https://maven.cleanroommc.com).
 <plugin>
   <groupId>zone.rong.formatj</groupId>
   <artifactId>formatj-maven-plugin</artifactId>
-  <version>1.1.0</version>
+  <version>2.0.0</version>
   <configuration>
     <styleFile>${project.basedir}/formatj.toml</styleFile>
     <preset>formatj</preset>
@@ -153,7 +154,7 @@ Smoke it locally with `./gradlew :intellij-plugin:runIde`.
 
 ### Library
 
-`zone.rong.formatj:formatj:1.1.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
+`zone.rong.formatj:formatj:2.0.0` from [maven.cleanroommc.com](https://maven.cleanroommc.com).
 
 ```java
 Formatter formatter = FormatJ.newFormatter()
@@ -768,10 +769,83 @@ groups = [
 
 ## Output stability
 
-- Within 1.x, the output for a given style changes only to fix a bug, where the previous output was wrong or unstable.
-- The defaults shipped in 1.0.1 are the baseline. Changing one waits for 2.0.
-- Rules added after 1.0.1 default to preserve or off.
+- Within 2.x, the output for a given style changes only to fix a bug, where the previous output was wrong or unstable.
+- The defaults shipped in 2.0.0 are the baseline. Changing one waits for 3.0.
+- Rules added after 2.0.0 default to preserve or off.
 - Every release diffs the formatted output of a fixed corpus against golden files.
+
+## Migrating from 1.x
+
+2.0 regroups the rule catalogue. Layout rules live in the aspect they control (`wrapping`, `braces`, `blank-lines`, ...),
+and the feature groups `arrays`, `module`, `patterns`, `records`, `sealed` and `semicolons` are gone.
+
+A 1.x key in `formatj.toml`, `--set`, or a Gradle or Maven `rules` map still works through 2.x. FormatJ translates it and
+logs a warning once per key. Support for 1.x keys ends in 3.0.
+
+### Renamed keys
+
+Values carry over unchanged.
+
+| 1.x                                             | 2.0                                              |
+|-------------------------------------------------|--------------------------------------------------|
+| `arrays.c-style-brackets`                       | `declarations.array-brackets`                    |
+| `blank-lines.before-record-compact-constructor` | `blank-lines.before-compact-constructor`         |
+| `lambdas.body-braces`                           | `braces.lambda-body`                             |
+| `lambdas.keep-single-expression-inline`         | `wrapping.lambda-expression-on-arrow-line`       |
+| `module.blank-lines-after-opening-brace`        | `blank-lines.after-module-opening-brace`         |
+| `module.blank-lines-before-closing-brace`       | `blank-lines.before-module-closing-brace`        |
+| `module.blank-lines-between-directive-groups`   | `blank-lines.between-module-directive-groups`    |
+| `module.brace-placement`                        | `braces.module-placement`                        |
+| `module.empty-body`                             | `braces.empty-module-body`                       |
+| `module.exports-opens-target-list-wrapping`     | `wrapping.exports-opens-targets`                 |
+| `module.provides-implementation-list-wrapping`  | `wrapping.provides-implementations`              |
+| `patterns.deconstruction-wrapping`              | `wrapping.deconstruction-patterns`               |
+| `patterns.nested-indent`                        | `indent.nested-pattern`                          |
+| `preservation.max-preserved-blank-lines`        | `blank-lines.max-consecutive`                    |
+| `records.component-wrapping`                    | `wrapping.record-components`                     |
+| `records.space-before-with-block`               | `spacing.before-with-block`                      |
+| `records.with-style`                            | `wrapping.with-block`                            |
+| `sealed.permits-on-new-line`                    | `wrapping.permits-on-new-line`                   |
+| `sealed.permits-order`                          | `declarations.permits-order`                     |
+| `sealed.permits-wrapping`                       | `wrapping.permits-clause`                        |
+| `semicolons.remove-redundant`                   | `declarations.remove-redundant-semicolons`       |
+| `switch.arrow-body-on-new-line-when-long`       | `wrapping.arrow-case-body-on-new-line-when-long` |
+| `switch.arrow-case-braces`                      | `braces.arrow-case-body`                         |
+| `switch.guard-on-same-line`                     | `wrapping.case-guard-on-same-line`               |
+| `switch.multi-label-wrapping`                   | `wrapping.case-labels`                           |
+| `switch.null-default-on-one-line`               | `preservation.keep-case-null-default-inline`     |
+| `wrapping.keep-simple-classes-on-one-line`      | `preservation.keep-simple-classes-inline`        |
+| `wrapping.keep-simple-lambdas-on-one-line`      | `preservation.keep-simple-lambdas-inline`        |
+| `wrapping.keep-simple-methods-on-one-line`      | `preservation.keep-simple-methods-inline`        |
+| `wrapping.require-enum-constant-semicolon`      | `declarations.require-enum-semicolon`            |
+
+### Keys with new values
+
+| 1.x                                             | 2.0                                                                     |
+|-------------------------------------------------|-------------------------------------------------------------------------|
+| `records.single-line-empty-body = true`         | `braces.empty-record-body = "compact"`                                  |
+| `records.single-line-empty-body = false`        | Delete it. `braces.empty-record-body` follows `braces.empty-class-body` |
+| `records.compact-constructor-blank-line = true` | `blank-lines.inside-compact-constructor = 1`                            |
+| `preservation.keep-author-blank-lines = false`  | `blank-lines.max-consecutive = 0`                                       |
+| `patterns.keep-simple-pattern-inline = false`   | `wrapping.instanceof = "wrap-if-long"`                                  |
+| Any of the last three set to its 1.x default    | Delete it                                                               |
+
+### Behaviour changes
+
+- `wrapping.split-long-strings` is new and on by default, in both presets. Set it to `false` to keep 1.x output.
+- `indent.chained-call`, `indent.ternary`, `indent.throws-clause` and `indent.nested-pattern` follow
+  `indent.continuation` unless set, and `indent.array-initializer` follows `indent.size`. A 1.x style that changed
+  `indent.size` or `indent.continuation` but none of these now moves them too. Pin them to `4` to keep 1.x output.
+- `--dump-config` prints `inherit` for a rule that follows its parent.
+
+### Library API
+
+- The per-group builder methods on `StyleBuilder` (`wrapping(...)`, `braces(...)`, ...) and every `*Rules.Builder` are
+  gone. Use `set(XRules.CONSTANT, value)`.
+- `Inheritable` and `Option.ofInheritableInt` are gone. A child option takes its parent in `Option.ofInt` or
+  `Option.ofEnum`, and `setRaw(key, "inherit")` clears it.
+- `ArrayRules`, `ModuleRules`, `PatternRules`, `RecordRules`, `SealedRules` and `SemicolonRules` are gone. Their
+  constants moved to the classes the tables above name.
 
 ## Runtime
 

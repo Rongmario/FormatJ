@@ -37,11 +37,16 @@ public final class StyleBuilder {
     /**
      * Sets one option from its dotted key and textual value, as used by config files and CLIs.
      *
-     * <p>{@code inherit} clears an option with a parent, so it follows that parent again.
+     * <p>{@code inherit} clears an option with a parent, so it follows that parent again. A 1.x key
+     * is translated to its 2.x equivalent with a logged warning.
      */
     public StyleBuilder setRaw(String key, String value) {
-        Option<?> option = OptionRegistry.require(key);
-        Object parsed = option.parse(value);
+        LegacyKeys.Setting setting = LegacyKeys.translate(key, value);
+        if (setting == null) {
+            return this;
+        }
+        Option<?> option = OptionRegistry.require(setting.key());
+        Object parsed = option.parse(setting.value());
         if (parsed == null) {
             values.remove(option.key());
         } else {
