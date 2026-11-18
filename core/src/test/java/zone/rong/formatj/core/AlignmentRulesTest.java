@@ -245,8 +245,8 @@ class AlignmentRulesTest {
 
     @Test
     void aFormatterOffRegionIsNotPadded() {
-        String source = "class A {\n\n    // @formatter:off\n    private int x = 1;\n    private String name = \"a\";\n" +
-            "    // @formatter:on\n    private int y = 2;\n\n}\n";
+        String source = "class A {\n\n    // @formatter:off\n    private int x = 1;\n" +
+            "    private String name = \"a\";\n" + "    // @formatter:on\n    private int y = 2;\n\n}\n";
 
         String aligned = format(
             source,

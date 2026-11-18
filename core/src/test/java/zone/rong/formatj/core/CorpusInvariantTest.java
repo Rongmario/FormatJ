@@ -154,7 +154,10 @@ class CorpusInvariantTest {
             String source = Files.readString(path, StandardCharsets.UTF_8);
             FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
             assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-            assertTrue(once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
+            assertTrue(
+                once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                () -> "rewrites were dropped: " + once.diagnostics()
+            );
 
             FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
             assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
@@ -180,7 +183,10 @@ class CorpusInvariantTest {
             String source = Files.readString(path, StandardCharsets.UTF_8);
             FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
             assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
-            assertTrue(once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING), () -> "rewrites were dropped: " + once.diagnostics());
+            assertTrue(
+                once.diagnostics().stream().noneMatch(d -> d.severity() == Diagnostic.Severity.WARNING),
+                () -> "rewrites were dropped: " + once.diagnostics()
+            );
 
             FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
             assertEquals(once.text(), twice.text(), "formatting must be a fixed point");
@@ -244,7 +250,11 @@ class CorpusInvariantTest {
                     FormatResult once = formatter.format(FormatRequest.of(source).withName(path.toString()));
                     assertTrue(!once.hasErrors(), () -> "formatting failed: " + once.diagnostics());
                     ParseResult formatted = JavaParser.parse(once.text(), LanguageLevel.LATEST, false);
-                    assertTrue(TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null, () -> "formatting changed the program: " + TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()));
+                    assertTrue(
+                        TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green()) == null,
+                        () -> "formatting changed the program: " +
+                            TokenEquivalence.firstDifference(parsed.root().green(), formatted.root().green())
+                    );
 
                     FormatResult twice = formatter.format(FormatRequest.of(once.text()).withName(path.toString()));
                     assertEquals(once.text(), twice.text(), "formatting must be a fixed point");

@@ -290,7 +290,9 @@ final class CliRunner {
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attrs) {
-                    return !directory.equals(path) && isSkippedDirectory(directory) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
+                    return !directory.equals(path) && isSkippedDirectory(directory)
+                        ? FileVisitResult.SKIP_SUBTREE
+                        : FileVisitResult.CONTINUE;
                 }
 
                 @Override
