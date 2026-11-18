@@ -369,7 +369,7 @@ public final class DefaultFormatter implements Formatter {
         );
         GreenNode current = tree;
         for (int pass = 0; pass < MAX_SPLIT_PASSES; pass++) {
-            GreenNode next = split.apply(current, text);
+            GreenNode next = split.apply(tree, current, text);
             if (next == current) {
                 break;
             }

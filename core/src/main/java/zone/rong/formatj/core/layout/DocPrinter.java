@@ -160,22 +160,19 @@ public final class DocPrinter {
                     boolean always = group.kind() == Doc.GroupKind.ALWAYS;
                     boolean forcedFlat = group.kind() == Doc.GroupKind.FORCED_FLAT;
                     boolean afterClosers = group.kind() == Doc.GroupKind.NOT_AFTER_CLOSERS && holdsOnlyClosers(out);
+                    boolean firstLine = group.kind() == Doc.GroupKind.FIRST_LINE;
                     boolean flat = forcedFlat ||
                         !always &&
                             !afterClosers &&
-                            mode == Mode.BREAK &&
-                            fits(
-                                group.content(),
-                                maxWidth - column,
-                                commands,
-                                group.kind() == Doc.GroupKind.FIRST_LINE
-                            ) ||
+                            mode != Mode.FLAT &&
+                            fits(group.content(), maxWidth - column, commands, firstLine) ||
                         mode == Mode.FLAT && !always;
-                    commands.push(new Command(indent, flat ? Mode.FLAT : Mode.BREAK, group.content()));
+                    Mode chosen = !flat ? Mode.BREAK : firstLine && mode != Mode.FLAT ? Mode.HUG : Mode.FLAT;
+                    commands.push(new Command(indent, chosen, group.content()));
                 }
                 case Doc.Fluid fluid -> {
                     boolean spaced = fluid.separator().kind() == Doc.BreakKind.LINE;
-                    if (mode == Mode.FLAT ||
+                    if (mode != Mode.BREAK ||
                         startFits(fluid.content(), maxWidth - column - (spaced ? 1 : 0), commands)) {
                         commands.push(new Command(indent, mode, fluid.content()));
                         commands.push(new Command(indent, Mode.FLAT, fluid.separator()));
@@ -203,7 +200,7 @@ public final class DocPrinter {
                     if (!hard && mode == Mode.BREAK && lineSuffixes.isEmpty() && lineIsAllWhitespace(out)) {
                         break;
                     }
-                    if (mode == Mode.FLAT && !hard && !endsLine(lineSuffixes)) {
+                    if (mode != Mode.BREAK && !hard && !endsLine(lineSuffixes)) {
                         if (lineBreak.kind() == Doc.BreakKind.LINE) {
                             out.append(' ');
                             column++;
@@ -252,7 +249,7 @@ public final class DocPrinter {
         if (parts.isEmpty()) {
             return;
         }
-        if (mode == Mode.FLAT) {
+        if (mode != Mode.BREAK) {
             pushReversed(commands, parts, indent, mode);
             return;
         }
@@ -485,7 +482,13 @@ public final class DocPrinter {
     private enum Mode {
 
         FLAT,
-        BREAK
+        BREAK,
+
+        /**
+         * A first-line group printed flat. Its own optional breaks stay flat, but nested groups are
+         * measured again, because the lines after its first forced break still have to fit.
+         */
+        HUG
 
     }
 

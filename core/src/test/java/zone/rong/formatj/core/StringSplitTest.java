@@ -81,6 +81,62 @@ class StringSplitTest {
     }
 
     @Test
+    void piecesFitAndNeverShareALineInAnyContext() {
+        String w = '"' + LONG + " and then some more words to make it longer still\"";
+        String source = """
+            @Ann(value = W, other = W)
+            class A {
+                static final String F = W;
+                String g = c ? W : W;
+                String[] h = { W, "short", W };
+
+                enum E {
+                    X(W), Y(W, 1);
+                    E(String s) { }
+                    E(String s, int i) { }
+                }
+
+                String f(int k) {
+                    log(1, W, 2, W);
+                    outer(inner(W), 2);
+                    String s = "prefix " + name + W + suffix;
+                    s += W;
+                    builder.append(W).append(W).append(x);
+                    run(NAME, () -> {
+                        log(2, W);
+                        done();
+                    });
+                    run(NAME, new Runnable() {
+                        public void run() {
+                            log(W);
+                            done();
+                        }
+                    });
+                    Object o = switch (k) {
+                        case 1 -> W;
+                        default -> {
+                            yield W;
+                        }
+                    };
+                    assert k > 0 : W;
+                    log("a\\nb\\nTAIL);
+                    return c ? W : W;
+                }
+            }
+            """.replace("TAIL", w.substring(1)).replace("W", w);
+
+        for (Preset preset : Preset.values()) {
+            Style style = Style.preset(preset).build();
+            int max = style.get(WrappingRules.MAX_LINE_LENGTH);
+            String formatted = format(source, style);
+
+            assertTrue(formatted.lines().allMatch(line -> line.length() <= max), formatted);
+            assertTrue(formatted.lines().noneMatch(line -> line.matches(".*\"\\s*\\+\\s*\".*")), formatted);
+            assertEquals(formatted, format(formatted, style));
+        }
+    }
+
+    @Test
     void theRuleCanBeTurnedOff() {
         Style style = Style.builder().set(WrappingRules.SPLIT_LONG_STRINGS, false).build();
 

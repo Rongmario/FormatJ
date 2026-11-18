@@ -22,7 +22,10 @@ import zone.rong.formatj.core.lexer.TokenKind;
  *
  * <p>Where a literal lands is only known once the file is printed, so this runs between layout passes
  * rather than in the {@link RewriteStage}. Each pass splits the literals the last print left too long,
- * and the caller prints again until nothing more splits.
+ * and the caller prints again until nothing more splits. Pieces land on other columns than the literal
+ * did, so a literal whose pieces still overflow is split again from its original text with a narrower
+ * budget, never by cutting a piece further. Pieces that land on one line are joined again, which always
+ * fits because the joined line is shorter.
  *
  * <p>The pieces are built into the same left-leaning chain the parser makes of {@code a + b + c}, so
  * the reprinted file parses back to the tree that printed it.
@@ -35,6 +38,8 @@ public final class StringSplit {
     // Every piece, including the literals not yet split, mapped to the original literal's position.
     private final Map<GreenNode.Leaf, Integer> origin = new IdentityHashMap<>();
     private final Map<Integer, String> split = new LinkedHashMap<>();
+    private final Map<Integer, Integer> budgets = new LinkedHashMap<>();
+    private final Map<Integer, List<String>> chosen = new LinkedHashMap<>();
 
     public StringSplit(GreenNode original, int maxWidth, int tabWidth) {
         this.maxWidth = maxWidth;
@@ -122,6 +127,9 @@ public final class StringSplit {
             case VARIABLE_DECLARATOR, ASSIGNMENT_EXPRESSION, ANNOTATION_ELEMENT, DEFAULT_VALUE, LAMBDA_EXPRESSION ->
                 last;
             case RETURN_STATEMENT, YIELD_STATEMENT -> index == 1;
+
+            // Only an arrow case of a switch expression has a bare literal for a statement.
+            case EXPRESSION_STATEMENT -> index == 0;
             case TERNARY_EXPRESSION -> index == 2 || index == 4;
             case ASSERT_STATEMENT -> index == 3;
             default -> false;
@@ -176,22 +184,42 @@ public final class StringSplit {
         return chain;
     }
 
+    /** The pieces with every run printed on one line joined into one piece. */
+    private static List<String> joinSharedLines(List<String> pieces, List<Integer> lines) {
+        List<String> joined = new ArrayList<>();
+        for (int i = 0; i < pieces.size(); i++) {
+            String piece = pieces.get(i);
+            if (i > 0 && lines.get(i).equals(lines.get(i - 1))) {
+                String last = joined.removeLast();
+                joined.add(last.substring(0, last.length() - 1) + piece.substring(1));
+            } else {
+                joined.add(piece);
+            }
+        }
+        return joined;
+    }
+
     /**
-     * Splits every eligible literal that {@code printed}, the print of {@code tree}, shows running past
-     * the line length.
+     * Splits every eligible literal of {@code base} that {@code printed}, the print of {@code current},
+     * shows running past the line length.
      *
-     * @return the tree with those literals split, or {@code tree} itself when none could be
+     * @param base the unsplit tree every pass splits from
+     * @param current the tree the last pass returned, or {@code base} on the first pass
+     * @return the newly split tree, or {@code current} itself when no split changed
      */
-    public GreenNode apply(GreenNode tree, String printed) {
-        Map<GreenNode.Leaf, List<String>> pieces = new IdentityHashMap<>();
+    public GreenNode apply(GreenNode base, GreenNode current, String printed) {
         List<GreenNode.Leaf> literals = new ArrayList<>();
-        for (GreenNode.Leaf leaf : ProgramTokens.leaves(tree)) {
+        for (GreenNode.Leaf leaf : ProgramTokens.leaves(current)) {
             if (leaf.token().token().kind() == TokenKind.STRING_LITERAL) {
                 literals.add(leaf);
             }
         }
-        Set<GreenNode.Leaf> eligible = splittable(tree);
+        Set<GreenNode.Leaf> eligible = splittable(current);
         List<String> lines = printed.lines().toList();
+
+        // Per original literal, the narrowest budget any of its pieces asks for, and the line of each piece.
+        Map<Integer, Integer> wanted = new LinkedHashMap<>();
+        Map<Integer, List<Integer>> pieceLines = new LinkedHashMap<>();
         int index = 0;
         for (Token token : JavaLexer.tokenize(printed)) {
             if (token.kind() != TokenKind.STRING_LITERAL) {
@@ -200,26 +228,65 @@ public final class StringSplit {
             GreenNode.Leaf leaf = index < literals.size() ? literals.get(index++) : null;
             if (leaf == null || !leaf.lexeme().equals(token.text())) {
                 // The print and the tree disagree, so nothing printed can be pinned on a leaf.
-                return tree;
+                return current;
             }
-            if (!eligible.contains(leaf) || !origin.containsKey(leaf) || Synthetic.carriesComments(leaf)) {
+            Integer position = origin.get(leaf);
+            if (!eligible.contains(leaf) || position == null || Synthetic.carriesComments(leaf)) {
                 continue;
             }
+            pieceLines.computeIfAbsent(position, key -> new ArrayList<>()).add(token.line());
             String line = lines.get(token.line() - 1);
             int start = visualColumn(line, token.column() - 1);
             int end = visualColumn(line, token.column() - 1 + token.length());
             String rest = line.substring(token.column() - 1 + token.length()).stripTrailing();
-            boolean closersOnly = rest.chars().allMatch(c -> ")];,}".indexOf(c) >= 0);
-            if (end + (closersOnly ? rest.length() : 0) <= maxWidth) {
+            // Closers and a trailing + cannot move to another line without the literal.
+            int attached = rest.chars().allMatch(c -> ")];,}+ ".indexOf(c) >= 0) ? rest.length() : 0;
+            if (end + attached <= maxWidth) {
                 continue;
             }
-            int budget = Math.max(maxWidth - start - Math.max(2, closersOnly ? rest.length() : 0), maxWidth / 3);
-            List<String> split = pieces(token.text(), budget);
-            if (split.size() > 1) {
-                pieces.put(leaf, split);
+            int budget = Math.max(maxWidth - start - Math.max(2, attached), maxWidth / 3);
+            wanted.merge(position, budget, Math::min);
+        }
+
+        Map<Integer, String> lexemes = new LinkedHashMap<>();
+        for (GreenNode.Leaf leaf : ProgramTokens.leaves(base)) {
+            Integer position = origin.get(leaf);
+            if (position != null) {
+                lexemes.put(position, leaf.lexeme());
             }
         }
-        return pieces.isEmpty() ? tree : rebuild(tree, pieces);
+        boolean changed = false;
+        for (Map.Entry<Integer, Integer> entry : wanted.entrySet()) {
+            Integer previous = budgets.get(entry.getKey());
+            if (previous == null || entry.getValue() < previous) {
+                budgets.put(entry.getKey(), entry.getValue());
+                chosen.put(entry.getKey(), pieces(lexemes.get(entry.getKey()), entry.getValue()));
+                changed = true;
+            }
+        }
+        for (Map.Entry<Integer, List<String>> entry : chosen.entrySet()) {
+            List<Integer> onLines = pieceLines.get(entry.getKey());
+            if (wanted.containsKey(entry.getKey()) || onLines == null || onLines.size() != entry.getValue().size()) {
+                continue;
+            }
+            List<String> joined = joinSharedLines(entry.getValue(), onLines);
+            if (joined.size() < entry.getValue().size()) {
+                entry.setValue(joined);
+                changed = true;
+            }
+        }
+        if (!changed) {
+            return current;
+        }
+
+        Map<GreenNode.Leaf, List<String>> pieces = new IdentityHashMap<>();
+        for (GreenNode.Leaf leaf : ProgramTokens.leaves(base)) {
+            List<String> cut = chosen.get(origin.get(leaf));
+            if (cut != null && cut.size() > 1) {
+                pieces.put(leaf, cut);
+            }
+        }
+        return rebuild(base, pieces);
     }
 
     /** One edit per split literal, from its original lexeme to the pieces {@code tree} now holds. */
@@ -236,6 +303,7 @@ public final class StringSplit {
             }
         }
         List<TokenEdit> edits = new ArrayList<>();
+        inserted.values().removeIf(tokens -> tokens.size() == 1);
         inserted.forEach((position, tokens) -> edits.add(new TokenEdit(
             WrappingRules.SPLIT_LONG_STRINGS,
             "split a long string literal",

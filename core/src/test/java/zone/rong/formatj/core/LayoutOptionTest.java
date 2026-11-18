@@ -96,6 +96,37 @@ class LayoutOptionTest {
     }
 
     @Test
+    void aBlockBodyHuggedAfterOtherArgumentsStillWrapsItsStatements() {
+        String call = "call(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, " +
+            "cccccccccccccccccccccccccccccc, dddddddddddddddddddddddddddddddddddd);";
+        String source = """
+                class A {
+                    void f() {
+                        run(NAME, () -> {
+                            CALL
+                            g();
+                        });
+                        run(NAME, new Runnable() {
+                            public void run() {
+                                CALL
+                                g();
+                            }
+                        });
+                    }
+                }
+                """.replace("CALL", call);
+
+        for (Preset preset : Preset.values()) {
+            String formatted = format(source, style -> style.apply(preset.style()));
+            int max = preset == Preset.GOOGLE ? 100 : 120;
+
+            assertTrue(formatted.contains("run(NAME, () -> {"), formatted);
+            assertTrue(formatted.contains("run(NAME, new Runnable() {"), formatted);
+            assertTrue(formatted.lines().allMatch(line -> line.length() <= max), formatted);
+        }
+    }
+
+    @Test
     void bracketSpacingAppliesToIndexesAndDimensions() {
         String source = "class A {\n    void f() {\n        int[] a = new int[n];\n        g(a[i]);\n    }\n}\n";
 
